@@ -14,7 +14,7 @@ namespace Kompass.Tests.B56Import;
 public sealed class B56ImportServiceIntegrationTests
 {
     [Fact]
-    public async Task Import_fuehrt_Pipeline_aus_und_verhindert_Dublette()
+    public async Task Import_verhindert_Dublette_nur_innerhalb_desselben_Projekts()
     {
         var testverzeichnis =
             Path.Combine(
@@ -122,6 +122,27 @@ public sealed class B56ImportServiceIntegrationTests
                     "*.xlsx",
                     SearchOption.AllDirectories);
 
+            var anderesProjektId =
+                Guid.NewGuid();
+
+            var anderesProjektErgebnis =
+                await importService.ImportierenAsync(
+                    new B56ImportAnfrage(
+                        anderesProjektId,
+                        "Anderes Integrationsprojekt",
+                        quelldatei));
+
+            var andereProjektRegistereintraege =
+                await importRegister
+                    .AlleFuerProjektAbrufenAsync(
+                        anderesProjektId);
+
+            var archivdateienNachAnderemProjekt =
+                Directory.GetFiles(
+                    archivverzeichnis,
+                    "*.xlsx",
+                    SearchOption.AllDirectories);
+
             Assert.Equal(
                 B56ImportStatus.Erfolgreich,
                 ergebnis.Status);
@@ -168,6 +189,21 @@ public sealed class B56ImportServiceIntegrationTests
 
             Assert.Single(
                 archivdateien);
+
+            Assert.Equal(
+                B56ImportStatus.Erfolgreich,
+                anderesProjektErgebnis.Status);
+
+            Assert.NotEqual(
+                ergebnis.ImportEintrag?.ImportId,
+                anderesProjektErgebnis.ImportEintrag?.ImportId);
+
+            Assert.Single(
+                andereProjektRegistereintraege);
+
+            Assert.Equal(
+                2,
+                archivdateienNachAnderemProjekt.Length);
         }
         finally
         {
