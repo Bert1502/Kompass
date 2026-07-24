@@ -21,6 +21,55 @@ public sealed class B56ImportApiClient : IB56ImportApiClient
         _httpClient = httpClient;
     }
 
+    public async Task<IReadOnlyList<B56ImportHistorieDto>>
+        HistorieAbrufenAsync(
+            Guid projektId,
+            CancellationToken cancellationToken = default)
+    {
+        if (projektId == Guid.Empty)
+        {
+            return Array.Empty<B56ImportHistorieDto>();
+        }
+
+        try
+        {
+            using var response =
+                await _httpClient.GetAsync(
+                    $"api/projekte/{projektId}/b56-importe",
+                    cancellationToken);
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                throw new ProjektApiException(
+                    "Das Projekt wurde in der KOMPASS-API nicht gefunden.");
+            }
+
+            response.EnsureSuccessStatusCode();
+
+            var historie =
+                await response.Content
+                    .ReadFromJsonAsync<List<B56ImportHistorieDto>>(
+                        JsonOptionen,
+                        cancellationToken);
+
+            return historie is null
+                ? Array.Empty<B56ImportHistorieDto>()
+                : historie;
+        }
+        catch (HttpRequestException exception)
+        {
+            throw new ProjektApiException(
+                "Die B56-Importhistorie konnte nicht von der KOMPASS-API geladen werden.",
+                exception);
+        }
+        catch (JsonException exception)
+        {
+            throw new ProjektApiException(
+                "Die B56-Importhistorie konnte nicht gelesen werden.",
+                exception);
+        }
+    }
+
     public async Task<B56ImportAntwortDto> ImportierenAsync(
         Guid projektId,
         string dateipfad,

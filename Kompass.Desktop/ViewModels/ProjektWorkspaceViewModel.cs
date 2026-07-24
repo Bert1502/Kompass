@@ -10,7 +10,7 @@ public sealed class ProjektWorkspaceViewModel : ViewModelBase
 
     private ProjektUebersichtDto? _projekt;
     private object? _aktuellerInhalt;
-    private string _aktiverBereich = "Projektübersicht";
+    private string _aktiverBereich = "ProjektÃ¼bersicht";
     private string _statusText = "Bereit";
 
     public ProjektWorkspaceViewModel(
@@ -23,8 +23,8 @@ public sealed class ProjektWorkspaceViewModel : ViewModelBase
                 ProjektuebersichtAnzeigen);
 
         B56ImportCommand =
-            new RelayCommand(
-                B56ImportAnzeigen);
+            new AsyncRelayCommand(
+                B56ImportAnzeigenAsync);
 
         KostenCommand =
             new RelayCommand(
@@ -44,7 +44,7 @@ public sealed class ProjektWorkspaceViewModel : ViewModelBase
         FoerderungCommand =
             new RelayCommand(
                 () => BereichOhneInhaltAnzeigen(
-                    "Förderung"));
+                    "FÃ¶rderung"));
 
         BerichtCommand =
             new RelayCommand(
@@ -91,8 +91,8 @@ public sealed class ProjektWorkspaceViewModel : ViewModelBase
 
     public string Fenstertitel =>
         Projekt is null
-            ? "KOMPASS – Projekt"
-            : $"KOMPASS – {Projekt.Name}";
+            ? "KOMPASS â€“ Projekt"
+            : $"KOMPASS â€“ {Projekt.Name}";
 
     public string Projektname =>
         Projekt?.Name
@@ -155,22 +155,22 @@ public sealed class ProjektWorkspaceViewModel : ViewModelBase
         ProjektuebersichtAnzeigen();
 
         StatusText =
-            $"Projekt '{projekt.Name}' wurde geöffnet.";
+            $"Projekt '{projekt.Name}' wurde geÃ¶ffnet.";
     }
 
     private void ProjektuebersichtAnzeigen()
     {
         AktiverBereich =
-            "Projektübersicht";
+            "ProjektÃ¼bersicht";
 
         AktuellerInhalt =
             null;
 
         StatusText =
-            "Projektübersicht wurde ausgewählt.";
+            "ProjektÃ¼bersicht wurde ausgewÃ¤hlt.";
     }
 
-    private void B56ImportAnzeigen()
+    private async Task B56ImportAnzeigenAsync()
     {
         AktiverBereich =
             "B56-Import";
@@ -179,7 +179,10 @@ public sealed class ProjektWorkspaceViewModel : ViewModelBase
             _b56ImportViewModel;
 
         StatusText =
-            "B56-Import wurde ausgewählt.";
+            "B56-Import wurde ausgewÃ¤hlt.";
+
+        await _b56ImportViewModel
+            .HistorieLadenAsync();
     }
 
     private void BereichOhneInhaltAnzeigen(
@@ -192,6 +195,6 @@ public sealed class ProjektWorkspaceViewModel : ViewModelBase
             null;
 
         StatusText =
-            $"Bereich '{bereich}' wurde ausgewählt.";
+            $"Bereich '{bereich}' wurde ausgewÃ¤hlt.";
     }
 }

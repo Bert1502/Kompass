@@ -2,6 +2,7 @@ using Kompass.Application.B56Import;
 using Kompass.Desktop.Models;
 using Kompass.Desktop.Mvvm;
 using Kompass.Desktop.Services;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows.Input;
 
@@ -20,6 +21,7 @@ public sealed class B56ImportViewModel : ViewModelBase
     private string _dateigroesse = string.Empty;
     private string _dateityp = string.Empty;
     private string _statusText = "Bitte wählen Sie eine B56-Excel-Datei aus.";
+    private string _historieStatusText = "Die Importhistorie wurde noch nicht geladen.";
     private bool _istDateiAusgewaehlt;
     private bool _istBeschaeftigt;
 
@@ -154,12 +156,52 @@ public sealed class B56ImportViewModel : ViewModelBase
 
     public ICommand ImportStartenCommand { get; }
 
+    public ObservableCollection<B56ImportHistorieDto> Importhistorie
+        { get; } = [];
+
+    public string HistorieStatusText
+    {
+        get => _historieStatusText;
+
+        private set =>
+            SetProperty(
+                ref _historieStatusText,
+                value);
+    }
+
     public void ProjektSetzen(
         Guid projektId,
         string projektname)
     {
         ProjektId = projektId;
         Projektname = projektname;
+    }
+
+    public async Task HistorieLadenAsync()
+    {
+        if (!ProjektId.HasValue)
+        {
+            return;
+        }
+
+        try
+        {
+            IstBeschaeftigt = true;
+
+            await AktualisiereHistorieAsync();
+        }
+        catch (Exception exception)
+        {
+            HistorieStatusText =
+                $"Die Importhistorie konnte nicht geladen werden: {exception.Message}";
+
+            _dialogService.FehlerAnzeigen(
+                HistorieStatusText);
+        }
+        finally
+        {
+            IstBeschaeftigt = false;
+        }
     }
 
     private void DateiAuswaehlen()
@@ -282,6 +324,10 @@ public sealed class B56ImportViewModel : ViewModelBase
             {
                 _dialogService.FehlerAnzeigen(
                     StatusText);
+            }
+            else
+            {
+                await AktualisiereHistorieAsync();
             }
         }
         catch (Exception exception)
@@ -438,5 +484,25 @@ public sealed class B56ImportViewModel : ViewModelBase
         }
 
         return string.Empty;
+    }
+
+    private async Task AktualisiereHistorieAsync()
+    {
+        var historie =
+            await _importApiClient.HistorieAbrufenAsync(
+                ProjektId!.Value);
+
+        Importhistorie.Clear();
+
+        foreach (var eintrag in historie)
+        {
+            Importhistorie.Add(
+                eintrag);
+        }
+
+        HistorieStatusText =
+            Importhistorie.Count == 0
+                ? "Für dieses Projekt liegen noch keine B56-Importe vor."
+                : $"{Importhistorie.Count} B56-Import(e) vorhanden.";
     }
 }
