@@ -28,11 +28,23 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
+      - name: Restore local tools
+        run: dotnet tool restore
+
       - name: Restore
         run: dotnet restore Kompass.sln
 
       - name: Build
         run: dotnet build Kompass.sln --configuration ${{ matrix.configuration }} --no-restore
+
+      - name: Validate EF Core migrations
+        run: >-
+          dotnet tool run dotnet-ef migrations list
+          --project Kompass.Persistence
+          --startup-project Kompass.Persistence
+          --configuration ${{ matrix.configuration }}
+          --no-build
+          --no-connect
 
       - name: Test
         run: dotnet test Kompass.sln --configuration ${{ matrix.configuration }} --no-build --no-restore
