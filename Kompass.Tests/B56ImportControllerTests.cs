@@ -311,6 +311,120 @@ public sealed class B56ImportControllerTests
             StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void Importantwort_enthaelt_fachliche_B56_Details()
+    {
+        var projektId =
+            Guid.NewGuid();
+
+        var pipelineErgebnis =
+            new B56ImportPipelineErgebnis
+            {
+                ImportierteArbeitsblaetter = 1,
+                ErkannteTabellen = 3,
+                ImportierteTabellen = 3,
+                ImportierteBauteile = 1,
+                ImportierteKennwerte = 5,
+                ImportierteModernisierungsalternativen = 1,
+                Bauteile =
+                [
+                    new B56Bauteil
+                    {
+                        Bauteilcode = "AW01",
+                        Bezeichnung = "Außenwand",
+                        Nachbarseite = "gegen Außenluft",
+                        UWert = 0.24
+                    }
+                ],
+                Bestandskennwerte =
+                [
+                    new B56Kennwert
+                    {
+                        Name = "Primärenergiebedarf Gebäude",
+                        Wert = 200
+                    }
+                ],
+                Modernisierungsalternativen =
+                [
+                    AlternativeErzeugen()
+                ]
+            };
+
+        var importErgebnis =
+            B56ImportErgebnis.Erfolgreich(
+                ErzeugeEintrag(
+                    projektId,
+                    "test.xlsx",
+                    "C:\\Intern\\test.xlsx",
+                    DateTimeOffset.UtcNow),
+                "test.xlsx",
+                pipelineErgebnis);
+
+        var antwort =
+            B56ImportAntwort.Aus(
+                importErgebnis);
+
+        Assert.NotNull(
+            antwort.Pipeline);
+
+        var bauteil =
+            Assert.Single(
+                antwort.Pipeline.Bauteile);
+
+        Assert.Equal(
+            "AW01",
+            bauteil.Bauteilcode);
+
+        var bestandskennwert =
+            Assert.Single(
+                antwort.Pipeline.Bestandskennwerte);
+
+        Assert.Equal(
+            200,
+            bestandskennwert.Wert);
+
+        var alternative =
+            Assert.Single(
+                antwort.Pipeline.Modernisierungsalternativen);
+
+        Assert.Equal(
+            "Fenster",
+            alternative.Bezeichnung);
+
+        Assert.Equal(
+            4,
+            alternative.Kennwerte.Count);
+    }
+
+    private static B56Modernisierungsalternative
+        AlternativeErzeugen()
+    {
+        var alternative =
+            new B56Modernisierungsalternative
+            {
+                Bezeichnung = "Fenster",
+                Beschreibung = "Fenstertausch"
+            };
+
+        foreach (var name in new[]
+                 {
+                     "Primärenergiebedarf Gebäude",
+                     "Endenergiebedarf Gebäude",
+                     "CO2-Emissionen Gebäude",
+                     "Investitionskosten"
+                 })
+        {
+            alternative.Kennwerte.Add(
+                new B56Kennwert
+                {
+                    Name = name,
+                    Wert = 1
+                });
+        }
+
+        return alternative;
+    }
+
     private static B56ImportEintrag ErzeugeEintrag(
         Guid projektId,
         string originaldateiname,
