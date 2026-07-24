@@ -188,6 +188,7 @@ public sealed record B56ImportAntwort(
     string? Sha256,
     long? DateigroesseBytes,
     DateTimeOffset? ImportiertAm,
+    B56ImportPipelineAntwort? Pipeline,
     IReadOnlyList<B56ImportMeldung> Meldungen)
 {
     public static B56ImportAntwort Aus(
@@ -204,6 +205,31 @@ public sealed record B56ImportAntwort(
             eintrag?.Sha256,
             eintrag?.DateigroesseBytes,
             eintrag?.ImportiertAm,
+            B56ImportPipelineAntwort.Aus(
+                ergebnis.PipelineErgebnis),
             ergebnis.Meldungen);
+    }
+}
+
+public sealed record B56ImportPipelineAntwort(
+    int ImportierteArbeitsblaetter,
+    int ImportierteTabellen,
+    int ImportierteBauteile,
+    int ImportierteKennwerte,
+    int ImportierteModernisierungsalternativen,
+    IReadOnlyList<string> Warnungen)
+{
+    public static B56ImportPipelineAntwort? Aus(
+        B56ImportPipelineErgebnis? ergebnis)
+    {
+        return ergebnis is null
+            ? null
+            : new B56ImportPipelineAntwort(
+                ergebnis.ImportierteArbeitsblaetter,
+                ergebnis.ImportierteTabellen,
+                ergebnis.ImportierteBauteile,
+                ergebnis.ImportierteKennwerte,
+                ergebnis.ImportierteModernisierungsalternativen,
+                ergebnis.Warnungen);
     }
 }

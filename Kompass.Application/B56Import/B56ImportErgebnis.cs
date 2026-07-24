@@ -12,6 +12,8 @@ public sealed class B56ImportErgebnis
 
     public B56ImportEintrag? ImportEintrag { get; private init; }
 
+    public B56ImportPipelineErgebnis? PipelineErgebnis { get; private init; }
+
     public IReadOnlyList<B56ImportMeldung> Meldungen => _meldungen;
 
     public bool IstErfolgreich =>
@@ -23,16 +25,19 @@ public sealed class B56ImportErgebnis
 
     public static B56ImportErgebnis Erfolgreich(
         B56ImportEintrag eintrag,
-        string quelldateipfad)
+        string quelldateipfad,
+        B56ImportPipelineErgebnis pipelineErgebnis)
     {
         ArgumentNullException.ThrowIfNull(eintrag);
+        ArgumentNullException.ThrowIfNull(pipelineErgebnis);
 
         return new B56ImportErgebnis
         {
             Status = B56ImportStatus.Erfolgreich,
             ProjektId = eintrag.ProjektId,
             Quelldateipfad = quelldateipfad,
-            ImportEintrag = eintrag
+            ImportEintrag = eintrag,
+            PipelineErgebnis = pipelineErgebnis
         };
     }
 
