@@ -144,6 +144,52 @@
 
             </Border>
 
+            <Border Margin="0,24,0,0"
+                    Background="White"
+                    BorderBrush="#D5DBDF"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="24">
+
+                <StackPanel>
+
+                    <TextBlock Text="Importhistorie"
+                               FontSize="20"
+                               FontWeight="SemiBold"/>
+
+                    <TextBlock Margin="0,6,0,16"
+                               Text="{Binding HistorieStatusText}"
+                               Foreground="#687680"/>
+
+                    <DataGrid ItemsSource="{Binding Importhistorie}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              CanUserAddRows="False"
+                              HeadersVisibility="Column"
+                              GridLinesVisibility="Horizontal"
+                              MinHeight="100">
+
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Importiert am"
+                                                Binding="{Binding ImportiertAmText}"
+                                                Width="150"/>
+                            <DataGridTextColumn Header="Dateiname"
+                                                Binding="{Binding Originaldateiname}"
+                                                Width="*"/>
+                            <DataGridTextColumn Header="Größe"
+                                                Binding="{Binding DateigroesseText}"
+                                                Width="100"/>
+                            <DataGridTextColumn Header="SHA-256"
+                                                Binding="{Binding KurzHash}"
+                                                Width="120"/>
+                        </DataGrid.Columns>
+
+                    </DataGrid>
+
+                </StackPanel>
+
+            </Border>
+
         </StackPanel>
 
     </ScrollViewer>
