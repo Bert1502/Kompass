@@ -3,44 +3,48 @@ using Kompass.Application.B56Import;
 namespace Kompass.Persistence.Services;
 
 /// <summary>
-/// Führt den fachlichen Import der B56-Arbeitsmappe aus.
+/// FÃ¼hrt den fachlichen Import der B56-Arbeitsmappe aus.
 /// </summary>
 public sealed class B56ImportPipeline : IB56ImportPipeline
 {
-    private readonly IB56TabellenFinder _tabellenFinder;
+    private readonly IB56TabellenImportService _tabellenImportService;
 
     public B56ImportPipeline(
-        IB56TabellenFinder tabellenFinder)
+        IB56TabellenImportService tabellenImportService)
     {
-        _tabellenFinder = tabellenFinder;
+        _tabellenImportService = tabellenImportService;
     }
 
-    public Task<B56ImportPipelineErgebnis> ImportierenAsync(
+    public async Task<B56ImportPipelineErgebnis> ImportierenAsync(
         B56ImportKontext kontext,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(kontext);
 
-        var tabellen =
-            _tabellenFinder.Analysieren(
-                kontext.Arbeitsmappe);
+        var tabellenErgebnis =
+            await _tabellenImportService.ImportierenAsync(
+                kontext,
+                cancellationToken);
 
-        B56ImportPipelineErgebnis ergebnis =
-            new()
-            {
-                ImportierteArbeitsblaetter =
-                    kontext.Arbeitsmappe.Arbeitsblaetter.Count,
+        return new B56ImportPipelineErgebnis
+        {
+            ImportierteArbeitsblaetter =
+                kontext.Arbeitsmappe.Arbeitsblaetter.Count,
 
-                ImportierteTabellen =
-                    tabellen.Count,
+            ErkannteTabellen =
+                tabellenErgebnis.TabellenGesamt,
 
-                ImportierteBauteile = 0,
+            ImportierteTabellen =
+                tabellenErgebnis.ErfolgreichImportiert,
 
-                ImportierteKennwerte = 0,
+            ImportierteBauteile = 0,
 
-                ImportierteModernisierungsalternativen = 0
-            };
+            ImportierteKennwerte = 0,
 
-        return Task.FromResult(ergebnis);
+            ImportierteModernisierungsalternativen = 0,
+
+            Warnungen =
+                tabellenErgebnis.Warnungen
+        };
     }
 }

@@ -20,6 +20,7 @@ public sealed record B56ImportMeldungDto(
 
 public sealed record B56ImportPipelineAntwortDto(
     int ImportierteArbeitsblaetter,
+    int ErkannteTabellen,
     int ImportierteTabellen,
     int ImportierteBauteile,
     int ImportierteKennwerte,

@@ -3,7 +3,7 @@ using Kompass.Application.B56Import;
 namespace Kompass.Persistence.Services;
 
 /// <summary>
-/// Importiert s‰mtliche erkannte Tabellen der B56-Arbeitsmappe.
+/// Importiert s√§mtliche erkannte Tabellen der B56-Arbeitsmappe.
 /// </summary>
 public sealed class B56TabellenImportService
     : IB56TabellenImportService
@@ -28,12 +28,15 @@ public sealed class B56TabellenImportService
             _tabellenFinder.Analysieren(
                 kontext.Arbeitsmappe);
 
-        foreach (var tabelle in tabellen)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
 
-            // Verarbeitung folgt in IMP-3942
-        }
+        var warnungen =
+            tabellen
+                .Select(
+                    tabelle =>
+                        $"Die erkannte Tabelle '{tabelle.Titel}' im Arbeitsblatt " +
+                        $"'{tabelle.Arbeitsblatt}' wurde noch nicht fachlich zugeordnet.")
+                .ToList();
 
         return Task.FromResult(
             new B56TabellenImportErgebnis
@@ -42,7 +45,10 @@ public sealed class B56TabellenImportService
                     tabellen.Count,
 
                 ErfolgreichImportiert =
-                    tabellen.Count
+                    0,
+
+                Warnungen =
+                    warnungen
             });
     }
 }
