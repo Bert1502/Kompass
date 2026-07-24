@@ -116,6 +116,19 @@ public sealed class B56ImportServiceIntegrationTests
                 ergebnis.PipelineErgebnis
                     .ImportierteArbeitsblaetter);
 
+            Assert.Equal(
+                0,
+                ergebnis.PipelineErgebnis
+                    .ImportierteTabellen);
+
+            Assert.Equal(
+                1,
+                ergebnis.PipelineErgebnis
+                    .ErkannteTabellen);
+
+            Assert.Single(
+                ergebnis.PipelineErgebnis.Warnungen);
+
             Assert.Single(
                 registereintraege);
 
@@ -163,7 +176,19 @@ public sealed class B56ImportServiceIntegrationTests
                         {
                             CellReference = "A1",
                             DataType = CellValues.String,
-                            CellValue = new CellValue("B56")
+                            CellValue = new CellValue("Bauteil")
+                        },
+                        new Cell
+                        {
+                            CellReference = "B1",
+                            DataType = CellValues.String,
+                            CellValue = new CellValue("Fläche")
+                        },
+                        new Cell
+                        {
+                            CellReference = "C1",
+                            DataType = CellValues.String,
+                            CellValue = new CellValue("U-Wert")
                         })));
 
         var sheets =

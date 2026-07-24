@@ -410,7 +410,9 @@ public sealed class B56ImportViewModel : ViewModelBase
             B56ImportStatus.Erfolgreich =>
                 $"Die B56-Datei wurde erfolgreich importiert. " +
                 $"Analysiert: {ergebnis.Pipeline?.ImportierteArbeitsblaetter ?? 0} " +
-                $"Arbeitsblätter und {ergebnis.Pipeline?.ImportierteTabellen ?? 0} Tabellen. " +
+                $"Arbeitsblätter, {ergebnis.Pipeline?.ErkannteTabellen ?? 0} Tabellen erkannt " +
+                $"und {ergebnis.Pipeline?.ImportierteTabellen ?? 0} fachlich importiert. " +
+                $"{ErzeugePipelineWarnungen(ergebnis.Pipeline)}" +
                 $"Import-ID: {ergebnis.ImportId}.",
 
             B56ImportStatus.BereitsImportiert =>
@@ -424,5 +426,17 @@ public sealed class B56ImportViewModel : ViewModelBase
                             meldung => meldung.Text))
                     : "Der B56-Import ist fehlgeschlagen."
         };
+    }
+
+    private static string ErzeugePipelineWarnungen(
+        B56ImportPipelineAntwortDto? pipeline)
+    {
+        if (pipeline?.Warnungen.Count > 0)
+        {
+            return
+                $"Hinweis: {string.Join(" ", pipeline.Warnungen)} ";
+        }
+
+        return string.Empty;
     }
 }

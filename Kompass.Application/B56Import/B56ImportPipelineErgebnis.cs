@@ -7,6 +7,8 @@ public sealed class B56ImportPipelineErgebnis
 {
     public int ImportierteArbeitsblaetter { get; init; }
 
+    public int ErkannteTabellen { get; init; }
+
     public int ImportierteTabellen { get; init; }
 
     public int ImportierteBauteile { get; init; }

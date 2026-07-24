@@ -213,6 +213,7 @@ public sealed record B56ImportAntwort(
 
 public sealed record B56ImportPipelineAntwort(
     int ImportierteArbeitsblaetter,
+    int ErkannteTabellen,
     int ImportierteTabellen,
     int ImportierteBauteile,
     int ImportierteKennwerte,
@@ -226,6 +227,7 @@ public sealed record B56ImportPipelineAntwort(
             ? null
             : new B56ImportPipelineAntwort(
                 ergebnis.ImportierteArbeitsblaetter,
+                ergebnis.ErkannteTabellen,
                 ergebnis.ImportierteTabellen,
                 ergebnis.ImportierteBauteile,
                 ergebnis.ImportierteKennwerte,
