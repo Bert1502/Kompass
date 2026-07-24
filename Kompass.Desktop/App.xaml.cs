@@ -1,5 +1,6 @@
-﻿using Kompass.Desktop.Services;
+using Kompass.Desktop.Services;
 using Kompass.Desktop.ViewModels;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http;
 using System.Windows;
@@ -36,24 +37,43 @@ public partial class App : System.Windows.Application
     private static void KonfiguriereDienste(
         IServiceCollection services)
     {
+        var configuration =
+            new ConfigurationBuilder()
+                .SetBasePath(AppContext.BaseDirectory)
+                .AddJsonFile(
+                    "appsettings.json",
+                    optional: false,
+                    reloadOnChange: false)
+                .Build();
+
+        var apiBasisadresse =
+            configuration["Api:BaseAddress"];
+
+        if (!Uri.TryCreate(
+                apiBasisadresse,
+                UriKind.Absolute,
+                out var apiBasisUri))
+        {
+            throw new InvalidOperationException(
+                "Die Konfiguration 'Api:BaseAddress' muss eine absolute URI enthalten.");
+        }
+
         services.AddSingleton(
             new HttpClient
             {
-                BaseAddress =
-                    new Uri("https://localhost:7275/")
+                BaseAddress = apiBasisUri
             });
-            services.AddSingleton<IProjektApiClient, ProjektApiClient>();
-            services.AddSingleton<IDialogService, DialogService>();
-            services.AddSingleton<IDateiDialogService, DateiDialogService>();
-            services.AddSingleton<IProjektNavigationService, ProjektNavigationService>();
 
-            services.AddTransient<MainWindowViewModel>();
-            services.AddTransient<ProjektWorkspaceViewModel>();
-            services.AddTransient<B56ImportViewModel>();
+        services.AddSingleton<IProjektApiClient, ProjektApiClient>();
+        services.AddSingleton<IDialogService, DialogService>();
+        services.AddSingleton<IDateiDialogService, DateiDialogService>();
+        services.AddSingleton<IProjektNavigationService, ProjektNavigationService>();
 
-            services.AddTransient<MainWindow>();
-            services.AddTransient<ProjektWindow>();
+        services.AddTransient<MainWindowViewModel>();
+        services.AddTransient<ProjektWorkspaceViewModel>();
+        services.AddTransient<B56ImportViewModel>();
 
-
+        services.AddTransient<MainWindow>();
+        services.AddTransient<ProjektWindow>();
     }
 }
