@@ -1,6 +1,7 @@
 using Kompass.Application.B56Import;
 using Kompass.Persistence.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Kompass.Persistence;
 
@@ -24,7 +25,7 @@ public static class B56ImportServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddSingleton(
+        var optionen =
             new B56ImportOptionen
             {
                 DoppelteImporteZulassen = false,
@@ -43,7 +44,10 @@ public static class B56ImportServiceCollectionExtensions
                 VorhandeneArchivdateienUeberschreiben = false,
                 ProjektUnterordnerErstellen = true,
                 ZeitstempelImArchivPfad = true
-            });
+            };
+
+        services.AddSingleton(optionen);
+        services.AddSingleton(Options.Create(optionen));
 
         services.AddScoped<
             IB56ImportRegister,
@@ -56,6 +60,10 @@ services.AddScoped<
         services.AddScoped<
             IB56ImportService,
             B56ImportService>();
+
+        services.AddSingleton<
+            IB56DateiPruefer,
+            B56Import.B56DateiPruefer>();
 
             services.AddScoped<
     IB56TabellenImportService,
@@ -76,6 +84,10 @@ services.AddScoped<
         services.AddSingleton<
             IB56BauteilregelRepository,
             StandardBauteilregelRepository>();
+
+        services.AddSingleton<
+            IB56BauteilzuordnungsRepository,
+            B56Import.JsonB56BauteilzuordnungsRepository>();
 
         services.AddSingleton<
             IB56HashService,
