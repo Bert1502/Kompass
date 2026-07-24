@@ -409,6 +409,8 @@ public sealed class B56ImportViewModel : ViewModelBase
         {
             B56ImportStatus.Erfolgreich =>
                 $"Die B56-Datei wurde erfolgreich importiert. " +
+                $"Analysiert: {ergebnis.Pipeline?.ImportierteArbeitsblaetter ?? 0} " +
+                $"Arbeitsblätter und {ergebnis.Pipeline?.ImportierteTabellen ?? 0} Tabellen. " +
                 $"Import-ID: {ergebnis.ImportId}.",
 
             B56ImportStatus.BereitsImportiert =>

@@ -10,9 +10,18 @@ public sealed record B56ImportAntwortDto(
     string? Sha256,
     long? DateigroesseBytes,
     DateTimeOffset? ImportiertAm,
+    B56ImportPipelineAntwortDto? Pipeline,
     IReadOnlyList<B56ImportMeldungDto> Meldungen);
 
 public sealed record B56ImportMeldungDto(
     B56Meldungstyp Typ,
     string Code,
     string Text);
+
+public sealed record B56ImportPipelineAntwortDto(
+    int ImportierteArbeitsblaetter,
+    int ImportierteTabellen,
+    int ImportierteBauteile,
+    int ImportierteKennwerte,
+    int ImportierteModernisierungsalternativen,
+    IReadOnlyList<string> Warnungen);

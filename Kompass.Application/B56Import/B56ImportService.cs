@@ -6,6 +6,8 @@ public sealed class B56ImportService : IB56ImportService
     private readonly IB56HashService _hashService;
     private readonly IB56ArchivService _archivService;
     private readonly IB56ImportRegister _importRegister;
+    private readonly IB56ArbeitsmappenLeser _arbeitsmappenLeser;
+    private readonly IB56ImportPipeline _importPipeline;
     private readonly B56ImportOptionen _optionen;
 
     public B56ImportService(
@@ -13,12 +15,16 @@ public sealed class B56ImportService : IB56ImportService
         IB56HashService hashService,
         IB56ArchivService archivService,
         IB56ImportRegister importRegister,
+        IB56ArbeitsmappenLeser arbeitsmappenLeser,
+        IB56ImportPipeline importPipeline,
         B56ImportOptionen optionen)
     {
         _dateiPruefer = dateiPruefer;
         _hashService = hashService;
         _archivService = archivService;
         _importRegister = importRegister;
+        _arbeitsmappenLeser = arbeitsmappenLeser;
+        _importPipeline = importPipeline;
         _optionen = optionen;
     }
 
@@ -128,8 +134,30 @@ public sealed class B56ImportService : IB56ImportService
                 Dateiendung = pruefung.Dateiendung
             };
 
+            B56ImportPipelineErgebnis pipelineErgebnis;
+
             try
             {
+                var arbeitsmappe =
+                    await _arbeitsmappenLeser.LesenAsync(
+                        archivdateipfad,
+                        cancellationToken);
+
+                pipelineErgebnis =
+                    await _importPipeline.ImportierenAsync(
+                        new B56ImportKontext
+                        {
+                            ImportId = eintrag.ImportId,
+                            ProjektId = eintrag.ProjektId,
+                            Projektname = eintrag.Projektname,
+                            Quelldatei = pruefung.VollstaendigerDateipfad,
+                            Archivdatei = archivdateipfad,
+                            SHA256 = sha256,
+                            Importzeitpunkt = importzeitpunkt,
+                            Arbeitsmappe = arbeitsmappe
+                        },
+                        cancellationToken);
+
                 await _importRegister.EintragSpeichernAsync(
                     eintrag,
                     cancellationToken);
@@ -145,7 +173,8 @@ public sealed class B56ImportService : IB56ImportService
             var ergebnis =
                 B56ImportErgebnis.Erfolgreich(
                     eintrag,
-                    pruefung.VollstaendigerDateipfad);
+                    pruefung.VollstaendigerDateipfad,
+                    pipelineErgebnis);
 
             if (vorhandenerEintrag is not null)
             {
