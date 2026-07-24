@@ -34,7 +34,7 @@ public sealed class ProjekteController : ControllerBase
         return Ok(projekte);
     }
 
-    [HttpGet("{id:guid}")]
+    [HttpGet("{id:guid}", Name = "ProjektNachIdAbrufen")]
     [ProducesResponseType(
         typeof(ProjektUebersicht),
         StatusCodes.Status200OK)]
@@ -82,8 +82,8 @@ public sealed class ProjekteController : ControllerBase
                     request.Name,
                     cancellationToken);
 
-            return CreatedAtAction(
-                nameof(NachIdAbrufenAsync),
+            return CreatedAtRoute(
+                "ProjektNachIdAbrufen",
                 new { id = projekt.Id },
                 projekt);
         }
