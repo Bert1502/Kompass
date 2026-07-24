@@ -14,6 +14,131 @@ namespace Kompass.Tests.B56Import;
 public sealed class B56ImportServiceIntegrationTests
 {
     [Fact]
+    public async Task Beschaedigte_Arbeitsmappe_hinterlaesst_weder_Register_noch_Archivdatei()
+    {
+        var testverzeichnis =
+            Path.Combine(
+                Path.GetTempPath(),
+                $"kompass-b56-beschaedigt-{Guid.NewGuid():N}");
+
+        Directory.CreateDirectory(
+            testverzeichnis);
+
+        var quelldatei =
+            Path.Combine(
+                testverzeichnis,
+                "b56-beschaedigt.xlsx");
+
+        var datenbankpfad =
+            Path.Combine(
+                testverzeichnis,
+                "kompass.db");
+
+        var archivverzeichnis =
+            Path.Combine(
+                testverzeichnis,
+                "archiv");
+
+        try
+        {
+            await File.WriteAllBytesAsync(
+                quelldatei,
+                [0x50, 0x4B, 0x03, 0x04]);
+
+            var configuration =
+                new ConfigurationBuilder()
+                    .AddInMemoryCollection(
+                        new Dictionary<string, string?>
+                        {
+                            ["ConnectionStrings:KompassDatabase"] =
+                                $"Data Source={datenbankpfad}",
+                            ["B56Import:ArchivBasisverzeichnis"] =
+                                archivverzeichnis,
+                            ["B56Import:ErlaubteDateiendungen:0"] =
+                                ".xlsx",
+                            ["B56Import:MaximaleDateigroesseBytes"] =
+                                "1048576"
+                        })
+                    .Build();
+
+            var services =
+                new ServiceCollection();
+
+            services.AddPersistence(
+                configuration);
+
+            services.AddB56Import(
+                configuration);
+
+            await using var serviceProvider =
+                services.BuildServiceProvider();
+
+            await using var scope =
+                serviceProvider.CreateAsyncScope();
+
+            var dbContext =
+                scope.ServiceProvider
+                    .GetRequiredService<KompassDbContext>();
+
+            await dbContext.Database.MigrateAsync();
+
+            var importService =
+                scope.ServiceProvider
+                    .GetRequiredService<IB56ImportService>();
+
+            var importRegister =
+                scope.ServiceProvider
+                    .GetRequiredService<IB56ImportRegister>();
+
+            var projektId =
+                Guid.NewGuid();
+
+            var ergebnis =
+                await importService.ImportierenAsync(
+                    new B56ImportAnfrage(
+                        projektId,
+                        "Integrationsprojekt",
+                        quelldatei));
+
+            var registereintraege =
+                await importRegister
+                    .AlleFuerProjektAbrufenAsync(
+                        projektId);
+
+            var archivdateien =
+                Directory.Exists(
+                    archivverzeichnis)
+                    ? Directory.GetFiles(
+                        archivverzeichnis,
+                        "*.xlsx",
+                        SearchOption.AllDirectories)
+                    : [];
+
+            Assert.Equal(
+                B56ImportStatus.Fehlgeschlagen,
+                ergebnis.Status);
+
+            Assert.Empty(
+                registereintraege);
+
+            Assert.Empty(
+                archivdateien);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+
+            if (Directory.Exists(
+                    testverzeichnis))
+            {
+                Directory.Delete(
+                    testverzeichnis,
+                    recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public async Task Konfigurierte_Dublette_wird_erneut_importiert()
     {
         var testverzeichnis =
