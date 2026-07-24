@@ -22,13 +22,16 @@ public sealed class EfB56ImportRegister : IB56ImportRegister
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sha256);
 
-        var entity = await _dbContext.B56ImportEintraege
+        var entities = await _dbContext.B56ImportEintraege
             .AsNoTracking()
             .Where(x =>
                 x.ProjektId == projektId &&
                 x.Sha256 == sha256)
+            .ToListAsync(cancellationToken);
+
+        var entity = entities
             .OrderByDescending(x => x.ImportiertAm)
-            .FirstOrDefaultAsync(cancellationToken);
+            .FirstOrDefault();
 
         return entity is null
             ? null
@@ -42,10 +45,10 @@ public sealed class EfB56ImportRegister : IB56ImportRegister
         var entities = await _dbContext.B56ImportEintraege
             .AsNoTracking()
             .Where(x => x.ProjektId == projektId)
-            .OrderByDescending(x => x.ImportiertAm)
             .ToListAsync(cancellationToken);
 
         return entities
+            .OrderByDescending(x => x.ImportiertAm)
             .Select(ZuModell)
             .ToList();
     }
