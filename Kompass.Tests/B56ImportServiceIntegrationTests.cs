@@ -14,7 +14,7 @@ namespace Kompass.Tests.B56Import;
 public sealed class B56ImportServiceIntegrationTests
 {
     [Fact]
-    public async Task Import_fuehrt_Arbeitsmappenleser_und_Pipeline_aus()
+    public async Task Import_fuehrt_Pipeline_aus_und_verhindert_Dublette()
     {
         var testverzeichnis =
             Path.Combine(
@@ -104,6 +104,24 @@ public sealed class B56ImportServiceIntegrationTests
                     .AlleFuerProjektAbrufenAsync(
                         projektId);
 
+            var zweitesErgebnis =
+                await importService.ImportierenAsync(
+                    new B56ImportAnfrage(
+                        projektId,
+                        "Integrationsprojekt",
+                        quelldatei));
+
+            var registereintraegeNachDublette =
+                await importRegister
+                    .AlleFuerProjektAbrufenAsync(
+                        projektId);
+
+            var archivdateien =
+                Directory.GetFiles(
+                    archivverzeichnis,
+                    "*.xlsx",
+                    SearchOption.AllDirectories);
+
             Assert.Equal(
                 B56ImportStatus.Erfolgreich,
                 ergebnis.Status);
@@ -136,6 +154,20 @@ public sealed class B56ImportServiceIntegrationTests
                 File.Exists(
                     ergebnis.ImportEintrag?
                         .Archivdateipfad));
+
+            Assert.Equal(
+                B56ImportStatus.BereitsImportiert,
+                zweitesErgebnis.Status);
+
+            Assert.Equal(
+                ergebnis.ImportEintrag?.ImportId,
+                zweitesErgebnis.ImportEintrag?.ImportId);
+
+            Assert.Single(
+                registereintraegeNachDublette);
+
+            Assert.Single(
+                archivdateien);
         }
         finally
         {
