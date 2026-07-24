@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Kompass.Api\Kompass.Api.csproj" />
     <ProjectReference Include="..\Kompass.Application\Kompass.Application.csproj" />
     <ProjectReference Include="..\Kompass.Domain\Kompass.Domain.csproj" />
     <ProjectReference Include="..\Kompass.Persistence\Kompass.Persistence.csproj" />
