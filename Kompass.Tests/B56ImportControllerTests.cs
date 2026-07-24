@@ -103,6 +103,62 @@ public sealed class B56ImportControllerTests
                     temporaererDateipfad)));
     }
 
+    [Theory]
+    [InlineData(
+        B56ImportStatus.Erfolgreich,
+        StatusCodes.Status201Created)]
+    [InlineData(
+        B56ImportStatus.BereitsImportiert,
+        StatusCodes.Status200OK)]
+    [InlineData(
+        B56ImportStatus.Fehlgeschlagen,
+        StatusCodes.Status500InternalServerError)]
+    public async Task Importstatus_wird_auf_HTTP_Status_abgebildet(
+        B56ImportStatus importStatus,
+        int erwarteterHttpStatus)
+    {
+        var projektId =
+            Guid.NewGuid();
+
+        var importService =
+            new ImportServiceFake(
+                (anfrage, _) =>
+                    Task.FromResult(
+                        ErzeugeImportErgebnis(
+                            importStatus,
+                            projektId,
+                            anfrage.Quelldateipfad)));
+
+        var controller =
+            new B56ImportController(
+                new ProjektServiceFake(
+                    new ProjektUebersicht(
+                        projektId,
+                        "Testprojekt",
+                        0)),
+                importService,
+                new ImportRegisterFake([]));
+
+        using var dateiStream =
+            new MemoryStream(
+                [0x50, 0x4B, 0x03, 0x04]);
+
+        var ergebnis =
+            await controller.ImportierenAsync(
+                projektId,
+                ErzeugeFormDatei(
+                    dateiStream),
+                CancellationToken.None);
+
+        var objectResult =
+            Assert.IsAssignableFrom<ObjectResult>(
+                ergebnis.Result);
+
+        Assert.Equal(
+            erwarteterHttpStatus,
+            objectResult.StatusCode);
+    }
+
     [Fact]
     public async Task Historie_fuer_unbekanntes_Projekt_liefert_NotFound()
     {
@@ -215,6 +271,46 @@ public sealed class B56ImportControllerTests
             Dateiendung = ".xlsx"
         };
     }
+
+    private static B56ImportErgebnis ErzeugeImportErgebnis(
+        B56ImportStatus status,
+        Guid projektId,
+        string quelldateipfad)
+    {
+        var eintrag =
+            ErzeugeEintrag(
+                projektId,
+                "test.xlsx",
+                "C:\\Intern\\test.xlsx",
+                DateTimeOffset.UtcNow);
+
+        return status switch
+        {
+            B56ImportStatus.Erfolgreich =>
+                B56ImportErgebnis.Erfolgreich(
+                    eintrag,
+                    quelldateipfad,
+                    new B56ImportPipelineErgebnis()),
+
+            B56ImportStatus.BereitsImportiert =>
+                B56ImportErgebnis.BereitsImportiert(
+                    eintrag,
+                    quelldateipfad),
+
+            B56ImportStatus.Fehlgeschlagen =>
+                B56ImportErgebnis.Fehlgeschlagen(
+                    projektId,
+                    quelldateipfad,
+                    "Testfehler"),
+
+            _ =>
+                throw new ArgumentOutOfRangeException(
+                    nameof(status),
+                    status,
+                    null)
+        };
+    }
+
 
     private static IFormFile ErzeugeFormDatei(
         Stream stream)
