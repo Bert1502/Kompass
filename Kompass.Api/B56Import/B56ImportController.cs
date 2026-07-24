@@ -10,13 +10,52 @@ public sealed class B56ImportController : ControllerBase
 {
     private readonly IProjektService _projektService;
     private readonly IB56ImportService _importService;
+    private readonly IB56ImportRegister _importRegister;
 
     public B56ImportController(
         IProjektService projektService,
-        IB56ImportService importService)
+        IB56ImportService importService,
+        IB56ImportRegister importRegister)
     {
         _projektService = projektService;
         _importService = importService;
+        _importRegister = importRegister;
+    }
+
+    [HttpGet]
+    [ProducesResponseType(
+        typeof(IReadOnlyList<B56ImportHistorieAntwort>),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<B56ImportHistorieAntwort>>>
+        HistorieAbrufenAsync(
+            Guid projektId,
+            CancellationToken cancellationToken)
+    {
+        var projekt =
+            await _projektService.NachIdAbrufenAsync(
+                projektId,
+                cancellationToken);
+
+        if (projekt is null)
+        {
+            return NotFound(new
+            {
+                Nachricht =
+                    $"Das Projekt mit der ID '{projektId}' wurde nicht gefunden."
+            });
+        }
+
+        var eintraege =
+            await _importRegister
+                .AlleFuerProjektAbrufenAsync(
+                    projektId,
+                    cancellationToken);
+
+        return Ok(
+            eintraege.Select(
+                B56ImportHistorieAntwort.Aus));
     }
 
     [HttpPost]
@@ -177,6 +216,29 @@ public sealed class B56ImportController : ControllerBase
         catch (UnauthorizedAccessException)
         {
         }
+    }
+}
+
+public sealed record B56ImportHistorieAntwort(
+    Guid ImportId,
+    Guid ProjektId,
+    string Originaldateiname,
+    string Sha256,
+    long DateigroesseBytes,
+    DateTimeOffset ImportiertAm,
+    string Dateiendung)
+{
+    public static B56ImportHistorieAntwort Aus(
+        B56ImportEintrag eintrag)
+    {
+        return new B56ImportHistorieAntwort(
+            eintrag.ImportId,
+            eintrag.ProjektId,
+            eintrag.Originaldateiname,
+            eintrag.Sha256,
+            eintrag.DateigroesseBytes,
+            eintrag.ImportiertAm,
+            eintrag.Dateiendung);
     }
 }
 
