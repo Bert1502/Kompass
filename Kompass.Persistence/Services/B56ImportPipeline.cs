@@ -22,7 +22,7 @@ public sealed class B56ImportPipeline : IB56ImportPipeline
         ArgumentNullException.ThrowIfNull(kontext);
 
         var tabellen =
-            _tabellenFinder.Finde(
+            _tabellenFinder.Analysieren(
                 kontext.Arbeitsmappe);
 
         B56ImportPipelineErgebnis ergebnis =

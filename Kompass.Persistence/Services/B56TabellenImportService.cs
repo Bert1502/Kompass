@@ -25,7 +25,7 @@ public sealed class B56TabellenImportService
         ArgumentNullException.ThrowIfNull(kontext);
 
         var tabellen =
-            _tabellenFinder.Finde(
+            _tabellenFinder.Analysieren(
                 kontext.Arbeitsmappe);
 
         foreach (var tabelle in tabellen)

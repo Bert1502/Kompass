@@ -79,7 +79,7 @@ services.AddScoped<
 
         services.AddSingleton<
             IB56HashService,
-            B56HashService>();
+            B56Import.Sha256HashService>();
 
         services.AddSingleton<
             IB56ArchivService,
