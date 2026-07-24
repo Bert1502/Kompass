@@ -2,7 +2,6 @@ using Kompass.Desktop.Services;
 using Kompass.Desktop.ViewModels;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System.Net.Http;
 using System.Windows;
 
 namespace Kompass.Desktop;
@@ -58,13 +57,12 @@ public partial class App : System.Windows.Application
                 "Die Konfiguration 'Api:BaseAddress' muss eine absolute URI enthalten.");
         }
 
-        services.AddSingleton(
-            new HttpClient
+        services.AddHttpClient<IProjektApiClient, ProjektApiClient>(
+            client =>
             {
-                BaseAddress = apiBasisUri
+                client.BaseAddress = apiBasisUri;
             });
 
-        services.AddSingleton<IProjektApiClient, ProjektApiClient>();
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<IDateiDialogService, DateiDialogService>();
         services.AddSingleton<IProjektNavigationService, ProjektNavigationService>();
