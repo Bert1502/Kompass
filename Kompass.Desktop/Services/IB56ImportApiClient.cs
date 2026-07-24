@@ -8,6 +8,11 @@ public interface IB56ImportApiClient
         Guid projektId,
         CancellationToken cancellationToken = default);
 
+    Task<B56ImportPipelineAntwortDto> DetailsAbrufenAsync(
+        Guid projektId,
+        Guid importId,
+        CancellationToken cancellationToken = default);
+
     Task<B56ImportAntwortDto> ImportierenAsync(
         Guid projektId,
         string dateipfad,
