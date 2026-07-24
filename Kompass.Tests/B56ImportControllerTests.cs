@@ -1,6 +1,7 @@
 using Kompass.Api.B56Import;
 using Kompass.Application.B56Import;
 using Kompass.Application.Projects;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 
@@ -8,6 +9,100 @@ namespace Kompass.Tests.Api;
 
 public sealed class B56ImportControllerTests
 {
+    [Fact]
+    public async Task Import_fuer_unbekanntes_Projekt_liefert_NotFound()
+    {
+        var controller =
+            new B56ImportController(
+                new ProjektServiceFake(null),
+                new ImportServiceFake(),
+                new ImportRegisterFake([]));
+
+        using var dateiStream =
+            new MemoryStream(
+                [0x50, 0x4B, 0x03, 0x04]);
+
+        var ergebnis =
+            await controller.ImportierenAsync(
+                Guid.NewGuid(),
+                ErzeugeFormDatei(
+                    dateiStream),
+                CancellationToken.None);
+
+        Assert.IsType<NotFoundObjectResult>(
+            ergebnis.Result);
+    }
+
+    [Fact]
+    public async Task Abgelehnter_Import_loescht_temporaere_Datei()
+    {
+        var projektId =
+            Guid.NewGuid();
+
+        string? temporaererDateipfad =
+            null;
+
+        var importService =
+            new ImportServiceFake(
+                (anfrage, _) =>
+                {
+                    temporaererDateipfad =
+                        anfrage.Quelldateipfad;
+
+                    Assert.True(
+                        File.Exists(
+                            temporaererDateipfad));
+
+                    Assert.Equal(
+                        "test.xlsx",
+                        Path.GetFileName(
+                            temporaererDateipfad));
+
+                    return Task.FromResult(
+                        B56ImportErgebnis.Abgelehnt(
+                            projektId,
+                            temporaererDateipfad,
+                            "B56-TEST",
+                            "Testablehnung"));
+                });
+
+        var controller =
+            new B56ImportController(
+                new ProjektServiceFake(
+                    new ProjektUebersicht(
+                        projektId,
+                        "Testprojekt",
+                        0)),
+                importService,
+                new ImportRegisterFake([]));
+
+        using var dateiStream =
+            new MemoryStream(
+                [0x50, 0x4B, 0x03, 0x04]);
+
+        var ergebnis =
+            await controller.ImportierenAsync(
+                projektId,
+                ErzeugeFormDatei(
+                    dateiStream),
+                CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(
+            ergebnis.Result);
+
+        Assert.NotNull(
+            temporaererDateipfad);
+
+        Assert.False(
+            File.Exists(
+                temporaererDateipfad));
+
+        Assert.False(
+            Directory.Exists(
+                Path.GetDirectoryName(
+                    temporaererDateipfad)));
+    }
+
     [Fact]
     public async Task Historie_fuer_unbekanntes_Projekt_liefert_NotFound()
     {
@@ -121,6 +216,17 @@ public sealed class B56ImportControllerTests
         };
     }
 
+    private static IFormFile ErzeugeFormDatei(
+        Stream stream)
+    {
+        return new FormFile(
+            stream,
+            0,
+            stream.Length,
+            "datei",
+            "unterordner/test.xlsx");
+    }
+
     private sealed class ProjektServiceFake
         : IProjektService
     {
@@ -172,11 +278,28 @@ public sealed class B56ImportControllerTests
     private sealed class ImportServiceFake
         : IB56ImportService
     {
+        private readonly Func<
+            B56ImportAnfrage,
+            CancellationToken,
+            Task<B56ImportErgebnis>>? _importieren;
+
+        public ImportServiceFake(
+            Func<
+                B56ImportAnfrage,
+                CancellationToken,
+                Task<B56ImportErgebnis>>? importieren = null)
+        {
+            _importieren = importieren;
+        }
+
         public Task<B56ImportErgebnis> ImportierenAsync(
             B56ImportAnfrage anfrage,
             CancellationToken cancellationToken = default)
         {
-            throw new NotSupportedException();
+            return _importieren?.Invoke(
+                    anfrage,
+                    cancellationToken)
+                ?? throw new NotSupportedException();
         }
     }
 
