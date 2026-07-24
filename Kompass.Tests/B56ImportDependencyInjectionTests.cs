@@ -16,14 +16,20 @@ public sealed class B56ImportDependencyInjectionTests
                     new Dictionary<string, string?>
                     {
                         ["ConnectionStrings:KompassDatabase"] =
-                            "Data Source=:memory:"
+                            "Data Source=:memory:",
+                        ["B56Import:ArchivBasisverzeichnis"] =
+                            "TestArchiv",
+                        ["B56Import:ErlaubteDateiendungen:0"] =
+                            ".xlsx",
+                        ["B56Import:MaximaleDateigroesseBytes"] =
+                            "1024"
                     })
                 .Build();
 
         var services = new ServiceCollection();
 
         services.AddPersistence(configuration);
-        services.AddB56Import();
+        services.AddB56Import(configuration);
 
         using var serviceProvider =
             services.BuildServiceProvider(
@@ -57,5 +63,20 @@ public sealed class B56ImportDependencyInjectionTests
         Assert.NotNull(
             scopedProvider.GetRequiredService<
                 IB56BauteilzuordnungsRepository>());
+
+        var optionen =
+            scopedProvider.GetRequiredService<B56ImportOptionen>();
+
+        Assert.Equal(
+            "TestArchiv",
+            optionen.ArchivBasisverzeichnis);
+
+        Assert.Equal(
+            [".xlsx"],
+            optionen.ErlaubteDateiendungen);
+
+        Assert.Equal(
+            1024,
+            optionen.MaximaleDateigroesseBytes);
     }
 }

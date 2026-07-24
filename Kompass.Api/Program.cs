@@ -5,7 +5,8 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddB56Import();
+builder.Services.AddB56Import(
+    builder.Configuration);
 
 builder.Services.AddControllers();
 

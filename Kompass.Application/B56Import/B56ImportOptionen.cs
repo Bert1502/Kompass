@@ -21,7 +21,7 @@ public sealed class B56ImportOptionen
     /// Basisverzeichnis für das Archiv aller importierten B56-Dateien.
     /// </summary>
     public string ArchivBasisverzeichnis { get; init; } =
-        @"D:\KOMPASS\B56-Archiv";
+        Path.Combine("Daten", "B56Archiv");
 
     /// <summary>
     /// Kompatibler Zugriff für bestehende Registerimplementierungen.
@@ -40,10 +40,7 @@ public sealed class B56ImportOptionen
     /// Zulässige Dateiendungen.
     /// </summary>
     public string[] ErlaubteDateiendungen { get; init; } =
-    {
-        ".xlsx",
-        ".xlsm"
-    };
+        [];
 
     /// <summary>
     /// Maximale Größe einer Importdatei.

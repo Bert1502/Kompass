@@ -1,5 +1,6 @@
 using Kompass.Application.B56Import;
 using Kompass.Persistence.Services;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -21,30 +22,19 @@ public static class B56ImportServiceCollectionExtensions
     /// Die ergänzte Dienstesammlung.
     /// </returns>
     public static IServiceCollection AddB56Import(
-        this IServiceCollection services)
+        this IServiceCollection services,
+        IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
 
         var optionen =
-            new B56ImportOptionen
-            {
-                DoppelteImporteZulassen = false,
-                ArchivHashPruefen = true,
-                ArchivBasisverzeichnis =
-                    @"D:\KOMPASS\B56-Archiv",
-                ErlaubteDateiendungen =
-                [
-                    ".xlsx",
-                    ".xlsm"
-                ],
-                MaximaleDateigroesseBytes =
-                    50L * 1024L * 1024L,
-                ImportdateiArchivieren = true,
-                HashBerechnen = true,
-                VorhandeneArchivdateienUeberschreiben = false,
-                ProjektUnterordnerErstellen = true,
-                ZeitstempelImArchivPfad = true
-            };
+            configuration
+                .GetSection("B56Import")
+                .Get<B56ImportOptionen>()
+            ?? new B56ImportOptionen();
+
+        Validiere(optionen);
 
         services.AddSingleton(optionen);
         services.AddSingleton(Options.Create(optionen));
@@ -98,5 +88,29 @@ services.AddScoped<
             B56ArchivService>();
 
         return services;
+    }
+
+    private static void Validiere(
+        B56ImportOptionen optionen)
+    {
+        if (string.IsNullOrWhiteSpace(
+                optionen.ArchivBasisverzeichnis))
+        {
+            throw new InvalidOperationException(
+                "B56Import:ArchivBasisverzeichnis darf nicht leer sein.");
+        }
+
+        if (optionen.ErlaubteDateiendungen is null ||
+            optionen.ErlaubteDateiendungen.Length == 0)
+        {
+            throw new InvalidOperationException(
+                "B56Import:ErlaubteDateiendungen muss mindestens einen Eintrag enthalten.");
+        }
+
+        if (optionen.MaximaleDateigroesseBytes <= 0)
+        {
+            throw new InvalidOperationException(
+                "B56Import:MaximaleDateigroesseBytes muss größer als null sein.");
+        }
     }
 }
