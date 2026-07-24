@@ -24,6 +24,19 @@ public sealed class B56ImportOptionen
         @"D:\KOMPASS\B56-Archiv";
 
     /// <summary>
+    /// Kompatibler Zugriff für bestehende Registerimplementierungen.
+    /// </summary>
+    public string Archivverzeichnis =>
+        ArchivBasisverzeichnis;
+
+    /// <summary>
+    /// Optionaler Pfad zu einer benutzerdefinierten
+    /// Bauteilzuordnungsdatei.
+    /// </summary>
+    public string Bauteilzuordnungsdatei { get; init; } =
+        string.Empty;
+
+    /// <summary>
     /// Zulässige Dateiendungen.
     /// </summary>
     public string[] ErlaubteDateiendungen { get; init; } =
