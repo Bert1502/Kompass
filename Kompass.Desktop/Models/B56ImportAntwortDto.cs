@@ -25,7 +25,29 @@ public sealed record B56ImportPipelineAntwortDto(
     int ImportierteBauteile,
     int ImportierteKennwerte,
     int ImportierteModernisierungsalternativen,
+    IReadOnlyList<B56BauteilDto> Bauteile,
+    IReadOnlyList<B56KennwertDto> Bestandskennwerte,
+    IReadOnlyList<B56ModernisierungsalternativeDto>
+        Modernisierungsalternativen,
     IReadOnlyList<string> Warnungen);
+
+public sealed record B56BauteilDto(
+    string Bauteilcode,
+    string Bezeichnung,
+    string Nachbarseite,
+    double Flaeche,
+    double UWert);
+
+public sealed record B56KennwertDto(
+    string Name,
+    string Einheit,
+    double Wert);
+
+public sealed record B56ModernisierungsalternativeDto(
+    string Bezeichnung,
+    string Beschreibung,
+    IReadOnlyList<B56BauteilDto> Bauteile,
+    IReadOnlyList<B56KennwertDto> Kennwerte);
 
 public sealed record B56ImportHistorieDto(
     Guid ImportId,

@@ -280,6 +280,10 @@ public sealed record B56ImportPipelineAntwort(
     int ImportierteBauteile,
     int ImportierteKennwerte,
     int ImportierteModernisierungsalternativen,
+    IReadOnlyList<B56BauteilAntwort> Bauteile,
+    IReadOnlyList<B56KennwertAntwort> Bestandskennwerte,
+    IReadOnlyList<B56ModernisierungsalternativeAntwort>
+        Modernisierungsalternativen,
     IReadOnlyList<string> Warnungen)
 {
     public static B56ImportPipelineAntwort? Aus(
@@ -294,6 +298,75 @@ public sealed record B56ImportPipelineAntwort(
                 ergebnis.ImportierteBauteile,
                 ergebnis.ImportierteKennwerte,
                 ergebnis.ImportierteModernisierungsalternativen,
+                ergebnis.Bauteile
+                    .Select(
+                        B56BauteilAntwort.Aus)
+                    .ToList(),
+                ergebnis.Bestandskennwerte
+                    .Select(
+                        B56KennwertAntwort.Aus)
+                    .ToList(),
+                ergebnis.Modernisierungsalternativen
+                    .Select(
+                        B56ModernisierungsalternativeAntwort.Aus)
+                    .ToList(),
                 ergebnis.Warnungen);
+    }
+}
+
+public sealed record B56BauteilAntwort(
+    string Bauteilcode,
+    string Bezeichnung,
+    string Nachbarseite,
+    double Flaeche,
+    double UWert)
+{
+    public static B56BauteilAntwort Aus(
+        B56Bauteil bauteil)
+    {
+        return new B56BauteilAntwort(
+            bauteil.Bauteilcode,
+            bauteil.Bezeichnung,
+            bauteil.Nachbarseite,
+            bauteil.Flaeche,
+            bauteil.UWert);
+    }
+}
+
+public sealed record B56KennwertAntwort(
+    string Name,
+    string Einheit,
+    double Wert)
+{
+    public static B56KennwertAntwort Aus(
+        B56Kennwert kennwert)
+    {
+        return new B56KennwertAntwort(
+            kennwert.Name,
+            kennwert.Einheit,
+            kennwert.Wert);
+    }
+}
+
+public sealed record B56ModernisierungsalternativeAntwort(
+    string Bezeichnung,
+    string Beschreibung,
+    IReadOnlyList<B56BauteilAntwort> Bauteile,
+    IReadOnlyList<B56KennwertAntwort> Kennwerte)
+{
+    public static B56ModernisierungsalternativeAntwort Aus(
+        B56Modernisierungsalternative alternative)
+    {
+        return new B56ModernisierungsalternativeAntwort(
+            alternative.Bezeichnung,
+            alternative.Beschreibung,
+            alternative.Bauteile
+                .Select(
+                    B56BauteilAntwort.Aus)
+                .ToList(),
+            alternative.Kennwerte
+                .Select(
+                    B56KennwertAntwort.Aus)
+                .ToList());
     }
 }
