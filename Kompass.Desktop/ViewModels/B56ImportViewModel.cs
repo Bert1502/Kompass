@@ -1,3 +1,5 @@
+using Kompass.Application.B56Import;
+using Kompass.Desktop.Models;
 using Kompass.Desktop.Mvvm;
 using Kompass.Desktop.Services;
 using System.IO;
@@ -9,23 +11,26 @@ public sealed class B56ImportViewModel : ViewModelBase
 {
     private readonly IDateiDialogService _dateiDialogService;
     private readonly IDialogService _dialogService;
+    private readonly IB56ImportApiClient _importApiClient;
 
     private Guid? _projektId;
     private string _projektname = string.Empty;
     private string _ausgewaehlterDateipfad = string.Empty;
-    private string _dateiname = "Keine Datei ausgewählt";
+    private string _dateiname = "Keine Datei ausgewÃ¤hlt";
     private string _dateigroesse = string.Empty;
     private string _dateityp = string.Empty;
-    private string _statusText = "Bitte wählen Sie eine B56-Excel-Datei aus.";
+    private string _statusText = "Bitte wÃ¤hlen Sie eine B56-Excel-Datei aus.";
     private bool _istDateiAusgewaehlt;
     private bool _istBeschaeftigt;
 
     public B56ImportViewModel(
         IDateiDialogService dateiDialogService,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        IB56ImportApiClient importApiClient)
     {
         _dateiDialogService = dateiDialogService;
         _dialogService = dialogService;
+        _importApiClient = importApiClient;
 
         DateiAuswaehlenCommand =
             new RelayCommand(
@@ -166,7 +171,7 @@ public sealed class B56ImportViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(dateipfad))
         {
             StatusText =
-                "Es wurde keine Datei ausgewählt.";
+                "Es wurde keine Datei ausgewÃ¤hlt.";
 
             return;
         }
@@ -181,7 +186,7 @@ public sealed class B56ImportViewModel : ViewModelBase
             AuswahlEntfernen();
 
             StatusText =
-                $"Die Datei konnte nicht übernommen werden: {exception.Message}";
+                $"Die Datei konnte nicht Ã¼bernommen werden: {exception.Message}";
 
             _dialogService.FehlerAnzeigen(
                 StatusText);
@@ -194,7 +199,7 @@ public sealed class B56ImportViewModel : ViewModelBase
         if (!File.Exists(dateipfad))
         {
             throw new FileNotFoundException(
-                "Die ausgewählte Datei wurde nicht gefunden.",
+                "Die ausgewÃ¤hlte Datei wurde nicht gefunden.",
                 dateipfad);
         }
 
@@ -205,7 +210,7 @@ public sealed class B56ImportViewModel : ViewModelBase
                 dateiendung))
         {
             throw new InvalidOperationException(
-                "Es werden nur Dateien im Format XLSX oder XLSM unterstützt.");
+                "Es werden nur Dateien im Format XLSX oder XLSM unterstÃ¼tzt.");
         }
 
         var dateiInfo =
@@ -214,7 +219,7 @@ public sealed class B56ImportViewModel : ViewModelBase
         if (dateiInfo.Length == 0)
         {
             throw new InvalidOperationException(
-                "Die ausgewählte Datei ist leer.");
+                "Die ausgewÃ¤hlte Datei ist leer.");
         }
 
         AusgewaehlterDateipfad =
@@ -237,7 +242,7 @@ public sealed class B56ImportViewModel : ViewModelBase
         IstDateiAusgewaehlt = true;
 
         StatusText =
-            "Die Datei wurde ausgewählt und kann importiert werden.";
+            "Die Datei wurde ausgewÃ¤hlt und kann importiert werden.";
     }
 
     private async Task ImportStartenAsync()
@@ -245,7 +250,7 @@ public sealed class B56ImportViewModel : ViewModelBase
         if (!ProjektId.HasValue)
         {
             _dialogService.FehlerAnzeigen(
-                "Es wurde kein Projekt für den Import festgelegt.");
+                "Es wurde kein Projekt fÃ¼r den Import festgelegt.");
 
             return;
         }
@@ -260,13 +265,24 @@ public sealed class B56ImportViewModel : ViewModelBase
             IstBeschaeftigt = true;
 
             StatusText =
-                "Die B56-Datei wird für den Import vorbereitet …";
+                "Die B56-Datei wird importiert â€¦";
 
-            await Task.Delay(500);
+            var ergebnis =
+                await _importApiClient.ImportierenAsync(
+                    ProjektId.Value,
+                    AusgewaehlterDateipfad);
 
             StatusText =
-                "Die Dateiauswahl ist vorbereitet. " +
-                "Die Import- und Archivierungslogik wird im nächsten Schritt ergänzt.";
+                ErzeugeStatusText(
+                    ergebnis);
+
+            if (ergebnis.Status is
+                B56ImportStatus.Abgelehnt or
+                B56ImportStatus.Fehlgeschlagen)
+            {
+                _dialogService.FehlerAnzeigen(
+                    StatusText);
+            }
         }
         catch (Exception exception)
         {
@@ -288,7 +304,7 @@ public sealed class B56ImportViewModel : ViewModelBase
             string.Empty;
 
         Dateiname =
-            "Keine Datei ausgewählt";
+            "Keine Datei ausgewÃ¤hlt";
 
         Dateigroesse =
             string.Empty;
@@ -300,7 +316,7 @@ public sealed class B56ImportViewModel : ViewModelBase
             false;
 
         StatusText =
-            "Bitte wählen Sie eine B56-Excel-Datei aus.";
+            "Bitte wÃ¤hlen Sie eine B56-Excel-Datei aus.";
     }
 
     private bool KannDateiAuswaehlen()
@@ -384,5 +400,27 @@ public sealed class B56ImportViewModel : ViewModelBase
         }
 
         return $"{bytes} Byte";
+    }
+
+    private static string ErzeugeStatusText(
+        B56ImportAntwortDto ergebnis)
+    {
+        return ergebnis.Status switch
+        {
+            B56ImportStatus.Erfolgreich =>
+                $"Die B56-Datei wurde erfolgreich importiert. " +
+                $"Import-ID: {ergebnis.ImportId}.",
+
+            B56ImportStatus.BereitsImportiert =>
+                "Diese B56-Datei wurde fÃ¼r das Projekt bereits importiert.",
+
+            _ =>
+                ergebnis.Meldungen.Count > 0
+                    ? string.Join(
+                        Environment.NewLine,
+                        ergebnis.Meldungen.Select(
+                            meldung => meldung.Text))
+                    : "Der B56-Import ist fehlgeschlagen."
+        };
     }
 }
