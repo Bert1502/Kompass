@@ -9,18 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="NewFolder\NewFolder\**" />
-    <EmbeddedResource Remove="NewFolder\NewFolder\**" />
-    <None Remove="NewFolder\NewFolder\**" />
-    <Page Remove="NewFolder\NewFolder\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Kompass.Application\Kompass.Application.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="NewFolder\" />
   </ItemGroup>
 
   <ItemGroup>
