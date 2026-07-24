@@ -14,6 +14,161 @@ namespace Kompass.Tests.B56Import;
 public sealed class B56ImportServiceIntegrationTests
 {
     [Fact]
+    public async Task Konfigurierte_Dublette_wird_erneut_importiert()
+    {
+        var testverzeichnis =
+            Path.Combine(
+                Path.GetTempPath(),
+                $"kompass-b56-dublette-{Guid.NewGuid():N}");
+
+        Directory.CreateDirectory(
+            testverzeichnis);
+
+        var quelldatei =
+            Path.Combine(
+                testverzeichnis,
+                "b56-test.xlsx");
+
+        var kopie =
+            Path.Combine(
+                testverzeichnis,
+                "b56-kopie.xlsx");
+
+        var datenbankpfad =
+            Path.Combine(
+                testverzeichnis,
+                "kompass.db");
+
+        var archivverzeichnis =
+            Path.Combine(
+                testverzeichnis,
+                "archiv");
+
+        try
+        {
+            ErzeugeArbeitsmappe(
+                quelldatei);
+
+            File.Copy(
+                quelldatei,
+                kopie);
+
+            var configuration =
+                new ConfigurationBuilder()
+                    .AddInMemoryCollection(
+                        new Dictionary<string, string?>
+                        {
+                            ["ConnectionStrings:KompassDatabase"] =
+                                $"Data Source={datenbankpfad}",
+                            ["B56Import:ArchivBasisverzeichnis"] =
+                                archivverzeichnis,
+                            ["B56Import:DoppelteImporteZulassen"] =
+                                "true",
+                            ["B56Import:ErlaubteDateiendungen:0"] =
+                                ".xlsx",
+                            ["B56Import:MaximaleDateigroesseBytes"] =
+                                "1048576"
+                        })
+                    .Build();
+
+            var services =
+                new ServiceCollection();
+
+            services.AddPersistence(
+                configuration);
+
+            services.AddB56Import(
+                configuration);
+
+            await using var serviceProvider =
+                services.BuildServiceProvider();
+
+            await using var scope =
+                serviceProvider.CreateAsyncScope();
+
+            var dbContext =
+                scope.ServiceProvider
+                    .GetRequiredService<KompassDbContext>();
+
+            await dbContext.Database.MigrateAsync();
+
+            var importService =
+                scope.ServiceProvider
+                    .GetRequiredService<IB56ImportService>();
+
+            var importRegister =
+                scope.ServiceProvider
+                    .GetRequiredService<IB56ImportRegister>();
+
+            var projektId =
+                Guid.NewGuid();
+
+            var erstesErgebnis =
+                await importService.ImportierenAsync(
+                    new B56ImportAnfrage(
+                        projektId,
+                        "Integrationsprojekt",
+                        quelldatei));
+
+            var zweitesErgebnis =
+                await importService.ImportierenAsync(
+                    new B56ImportAnfrage(
+                        projektId,
+                        "Integrationsprojekt",
+                        kopie));
+
+            var registereintraege =
+                await importRegister
+                    .AlleFuerProjektAbrufenAsync(
+                        projektId);
+
+            var archivdateien =
+                Directory.GetFiles(
+                    archivverzeichnis,
+                    "*.xlsx",
+                    SearchOption.AllDirectories);
+
+            Assert.Equal(
+                B56ImportStatus.Erfolgreich,
+                erstesErgebnis.Status);
+
+            Assert.Equal(
+                B56ImportStatus.Erfolgreich,
+                zweitesErgebnis.Status);
+
+            Assert.NotEqual(
+                erstesErgebnis.ImportEintrag?.ImportId,
+                zweitesErgebnis.ImportEintrag?.ImportId);
+
+            Assert.Equal(
+                2,
+                registereintraege.Count);
+
+            Assert.Equal(
+                2,
+                archivdateien.Length);
+
+            Assert.Contains(
+                zweitesErgebnis.Meldungen,
+                meldung =>
+                    meldung.Code ==
+                    "B56-DUBLETTE-ZUGELASSEN");
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+
+            if (Directory.Exists(
+                    testverzeichnis))
+            {
+                Directory.Delete(
+                    testverzeichnis,
+                    recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public async Task Import_verhindert_Dublette_nur_innerhalb_desselben_Projekts()
     {
         var testverzeichnis =
