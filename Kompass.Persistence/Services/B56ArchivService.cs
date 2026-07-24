@@ -1,17 +1,20 @@
 using Kompass.Application.B56Import;
-using Microsoft.Extensions.Options;
-using System.Text;
 
-namespace Kompass.Persistence.B56Import;
+namespace Kompass.Persistence.Services;
 
+/// <summary>
+/// Archiviert jede importierte B56-Datei revisionssicher.
+/// </summary>
 public sealed class B56ArchivService : IB56ArchivService
 {
     private readonly B56ImportOptionen _optionen;
 
     public B56ArchivService(
-        IOptions<B56ImportOptionen> optionen)
+        B56ImportOptionen optionen)
     {
-        _optionen = optionen.Value;
+        ArgumentNullException.ThrowIfNull(optionen);
+
+        _optionen = optionen;
     }
 
     public async Task<string> ArchivierenAsync(
@@ -22,230 +25,106 @@ public sealed class B56ArchivService : IB56ArchivService
         DateTimeOffset importzeitpunkt,
         CancellationToken cancellationToken = default)
     {
-        if (projektId == Guid.Empty)
+        ArgumentException.ThrowIfNullOrWhiteSpace(projektname);
+        ArgumentException.ThrowIfNullOrWhiteSpace(quelldateipfad);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sha256);
+
+        if (!File.Exists(quelldateipfad))
         {
-            throw new ArgumentException(
-                "Die Projekt-ID darf nicht leer sein.",
-                nameof(projektId));
+            throw new FileNotFoundException(
+                "Die zu archivierende Datei wurde nicht gefunden.",
+                quelldateipfad);
         }
 
-        ArgumentException.ThrowIfNullOrWhiteSpace(
+        string projektOrdner = ErzeugeProjektOrdner(
+            projektId,
             projektname);
 
-        ArgumentException.ThrowIfNullOrWhiteSpace(
-            quelldateipfad);
+        Directory.CreateDirectory(projektOrdner);
 
-        ArgumentException.ThrowIfNullOrWhiteSpace(
-            sha256);
+        string archivDateiname =
+            ErzeugeArchivDateinamen(
+                quelldateipfad,
+                sha256,
+                importzeitpunkt);
 
-        var Archivverzeichnis =
-            ErmittleArchivverzeichnis();
-
-        var projektOrdnername =
-            $"{BereinigeDateiname(projektname)}_{projektId:N}";
-
-        var zielverzeichnis =
+        string zielDatei =
             Path.Combine(
-                Archivverzeichnis,
-                projektOrdnername,
-                importzeitpunkt.Year.ToString("0000"),
-                importzeitpunkt.Month.ToString("00"));
+                projektOrdner,
+                archivDateiname);
 
-        Directory.CreateDirectory(
-            zielverzeichnis);
-
-        var originaldateiname =
-            Path.GetFileNameWithoutExtension(
-                quelldateipfad);
-
-        var dateiendung =
-            Path.GetExtension(
-                quelldateipfad)
-            .ToLowerInvariant();
-
-        var kurzerHash =
-            sha256.Length >= 12
-                ? sha256[..12]
-                : sha256;
-
-        var zeitstempel =
-            importzeitpunkt
-                .ToUniversalTime()
-                .ToString("yyyyMMdd_HHmmss_fff");
-
-        var archivdateiname =
-            $"{zeitstempel}_{BereinigeDateiname(originaldateiname)}_{kurzerHash}{dateiendung}";
-
-        var archivdateipfad =
-            Path.Combine(
-                zielverzeichnis,
-                archivdateiname);
-
-        archivdateipfad =
-            ErzeugeEindeutigenDateipfad(
-                archivdateipfad);
-
-        await DateiKopierenAsync(
-            quelldateipfad,
-            archivdateipfad,
-            cancellationToken);
-
-        return Path.GetFullPath(
-            archivdateipfad);
-    }
-
-    private string ErmittleArchivverzeichnis()
-    {
-        var konfigurierterPfad =
-            _optionen.Archivverzeichnis;
-
-        if (string.IsNullOrWhiteSpace(
-                konfigurierterPfad))
-        {
-            konfigurierterPfad =
-                "Daten/B56Archiv";
-        }
-
-        if (Path.IsPathRooted(
-                konfigurierterPfad))
-        {
-            return Path.GetFullPath(
-                konfigurierterPfad);
-        }
-
-        return Path.GetFullPath(
-            Path.Combine(
-                AppContext.BaseDirectory,
-                konfigurierterPfad));
-    }
-
-    private static async Task DateiKopierenAsync(
-        string quellpfad,
-        string zielpfad,
-        CancellationToken cancellationToken)
-    {
-        await using var quellstream =
-            new FileStream(
-                quellpfad,
+        await using FileStream quelle =
+            new(
+                quelldateipfad,
                 FileMode.Open,
                 FileAccess.Read,
-                FileShare.ReadWrite,
-                bufferSize: 1024 * 128,
-                useAsync: true);
+                FileShare.Read,
+                81920,
+                FileOptions.Asynchronous);
 
-        await using var zielstream =
-            new FileStream(
-                zielpfad,
+        await using FileStream ziel =
+            new(
+                zielDatei,
                 FileMode.CreateNew,
                 FileAccess.Write,
                 FileShare.None,
-                bufferSize: 1024 * 128,
-                useAsync: true);
+                81920,
+                FileOptions.Asynchronous);
 
-        await quellstream.CopyToAsync(
-            zielstream,
+        await quelle.CopyToAsync(
+            ziel,
             cancellationToken);
 
-        await zielstream.FlushAsync(
-            cancellationToken);
+        await ziel.FlushAsync(cancellationToken);
+
+        return zielDatei;
     }
 
-    private static string ErzeugeEindeutigenDateipfad(
-        string vorgesehenerDateipfad)
+    private string ErzeugeProjektOrdner(
+        Guid projektId,
+        string projektname)
     {
-        if (!File.Exists(vorgesehenerDateipfad))
-        {
-            return vorgesehenerDateipfad;
-        }
+        string gueltigerProjektname =
+            BereinigeDateiname(projektname);
 
-        var verzeichnis =
-            Path.GetDirectoryName(
-                vorgesehenerDateipfad)
-            ?? throw new InvalidOperationException(
-                "Das Zielverzeichnis konnte nicht ermittelt werden.");
+        return Path.Combine(
+            _optionen.ArchivBasisverzeichnis,
+            projektId.ToString("N"),
+            gueltigerProjektname);
+    }
 
-        var dateinameOhneEndung =
+    private static string ErzeugeArchivDateinamen(
+        string quelldatei,
+        string sha256,
+        DateTimeOffset zeitpunkt)
+    {
+        string dateiname =
             Path.GetFileNameWithoutExtension(
-                vorgesehenerDateipfad);
+                quelldatei);
 
-        var dateiendung =
+        string endung =
             Path.GetExtension(
-                vorgesehenerDateipfad);
+                quelldatei);
 
-        for (var nummer = 2;
-             nummer <= 9999;
-             nummer++)
-        {
-            var kandidat =
-                Path.Combine(
-                    verzeichnis,
-                    $"{dateinameOhneEndung}_{nummer}{dateiendung}");
+        string kurzerHash =
+            sha256.Length >= 8
+                ? sha256[..8]
+                : sha256;
 
-            if (!File.Exists(kandidat))
-            {
-                return kandidat;
-            }
-        }
-
-        throw new IOException(
-            "Es konnte kein eindeutiger Archivdateiname erzeugt werden.");
+        return
+            $"{zeitpunkt:yyyyMMdd_HHmmss}_{dateiname}_{kurzerHash}{endung}";
     }
 
     private static string BereinigeDateiname(
-        string wert)
+        string text)
     {
-        if (string.IsNullOrWhiteSpace(wert))
+        foreach (char zeichen in Path.GetInvalidFileNameChars())
         {
-            return "Unbenannt";
+            text = text.Replace(
+                zeichen,
+                '_');
         }
 
-        var ungueltigeZeichen =
-            Path.GetInvalidFileNameChars();
-
-        var builder =
-            new StringBuilder(
-                wert.Length);
-
-        foreach (var zeichen in wert.Trim())
-        {
-            if (ungueltigeZeichen.Contains(
-                    zeichen))
-            {
-                builder.Append('_');
-                continue;
-            }
-
-            builder.Append(
-                char.IsWhiteSpace(zeichen)
-                    ? '_'
-                    : zeichen);
-        }
-
-        var bereinigterWert =
-            builder
-                .ToString()
-                .Trim('_', '.');
-
-        while (bereinigterWert.Contains(
-                   "__",
-                   StringComparison.Ordinal))
-        {
-            bereinigterWert =
-                bereinigterWert.Replace(
-                    "__",
-                    "_",
-                    StringComparison.Ordinal);
-        }
-
-        if (bereinigterWert.Length > 80)
-        {
-            bereinigterWert =
-                bereinigterWert[..80];
-        }
-
-        return string.IsNullOrWhiteSpace(
-            bereinigterWert)
-            ? "Unbenannt"
-            : bereinigterWert;
+        return text.Trim();
     }
 }

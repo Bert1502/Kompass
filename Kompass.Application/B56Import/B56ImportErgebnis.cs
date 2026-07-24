@@ -1,108 +1,96 @@
-namespace Kompass.Application.B56Import;
+using System.Diagnostics;
+using Kompass.Application.B56Import;
 
-public sealed class B56ImportErgebnis
+namespace Kompass.Persistence.Services;
+
+/// <summary>
+/// Zentraler Orchestrator für den Import einer B56-Datei.
+/// </summary>
+public sealed class B56ImportService : IB56ImportService
 {
-    private readonly List<B56ImportMeldung> _meldungen = new();
+    private readonly IB56DateiPruefer _dateiPruefer;
+    private readonly IB56HashService _hashService;
+    private readonly IB56ArchivService _archivService;
+    private readonly IB56ArbeitsmappenLeser _arbeitsmappenLeser;
+    private readonly IB56TabellenFinder _tabellenFinder;
+    private readonly IB56ImportRegister _importRegister;
 
-    public B56ImportStatus Status { get; private init; }
-
-    public Guid ProjektId { get; private init; }
-
-    public string Quelldateipfad { get; private init; } = string.Empty;
-
-    public B56ImportEintrag? ImportEintrag { get; private init; }
-
-    public IReadOnlyList<B56ImportMeldung> Meldungen => _meldungen;
-
-    public bool IstErfolgreich =>
-        Status == B56ImportStatus.Erfolgreich;
-
-    private B56ImportErgebnis()
+    public B56ImportService(
+        IB56DateiPruefer dateiPruefer,
+        IB56HashService hashService,
+        IB56ArchivService archivService,
+        IB56ArbeitsmappenLeser arbeitsmappenLeser,
+        IB56TabellenFinder tabellenFinder,
+        IB56ImportRegister importRegister)
     {
+        _dateiPruefer = dateiPruefer;
+        _hashService = hashService;
+        _archivService = archivService;
+        _arbeitsmappenLeser = arbeitsmappenLeser;
+        _tabellenFinder = tabellenFinder;
+        _importRegister = importRegister;
     }
 
-    public static B56ImportErgebnis Erfolgreich(
-        B56ImportEintrag eintrag,
-        string quelldateipfad)
+    public async Task<B56ImportErgebnis> ImportierenAsync(
+        Guid projektId,
+        string projektname,
+        string dateipfad,
+        CancellationToken cancellationToken = default)
     {
+        Stopwatch stopwatch = Stopwatch.StartNew();
+
+        B56DateiPruefung pruefung =
+            _dateiPruefer.Pruefen(dateipfad);
+
+        if (!pruefung.IstGueltig)
+        {
+            return new B56ImportErgebnis
+            {
+                Erfolgreich = false,
+                Fehler = new[]
+                {
+                    pruefung.Fehlermeldung
+                }
+            };
+        }
+
+        string sha256 =
+            await _hashService.BerechnenAsync(
+                dateipfad,
+                cancellationToken);
+
+        string archivDatei =
+            await _archivService.ArchivierenAsync(
+                projektId,
+                projektname,
+                dateipfad,
+                sha256,
+                DateTimeOffset.UtcNow,
+                cancellationToken);
+
+        var arbeitsmappe =
+            await _arbeitsmappenLeser.LesenAsync(
+                dateipfad,
+                cancellationToken);
+
+        var tabellen =
+            _tabellenFinder.Finde(
+                arbeitsmappe);
+
+        stopwatch.Stop();
+
         return new B56ImportErgebnis
         {
-            Status = B56ImportStatus.Erfolgreich,
-            ProjektId = eintrag.ProjektId,
-            Quelldateipfad = quelldateipfad,
-            ImportEintrag = eintrag
+            Erfolgreich = true,
+            ImportId = Guid.NewGuid(),
+            SHA256 = sha256,
+            ArchivDatei = archivDatei,
+            ArbeitsblattAnzahl =
+                arbeitsmappe.Arbeitsblaetter.Count,
+            ErkannteTabellen =
+                tabellen.Count,
+            ErkannteBauteile = 0,
+            Dauer = stopwatch.Elapsed
         };
-    }
-
-    public static B56ImportErgebnis BereitsImportiert(
-        B56ImportEintrag eintrag,
-        string quelldateipfad)
-    {
-        var ergebnis = new B56ImportErgebnis
-        {
-            Status = B56ImportStatus.BereitsImportiert,
-            ProjektId = eintrag.ProjektId,
-            Quelldateipfad = quelldateipfad,
-            ImportEintrag = eintrag
-        };
-
-        ergebnis.MeldungHinzufuegen(
-            B56Meldungstyp.Information,
-            "B56-BEREITS-IMPORTIERT",
-            "Diese Datei wurde bereits importiert.");
-
-        return ergebnis;
-    }
-
-    public static B56ImportErgebnis Abgelehnt(
-        Guid projektId,
-        string quelldateipfad,
-        string code,
-        string text)
-    {
-        var ergebnis = new B56ImportErgebnis
-        {
-            Status = B56ImportStatus.Abgelehnt,
-            ProjektId = projektId,
-            Quelldateipfad = quelldateipfad
-        };
-
-        ergebnis.MeldungHinzufuegen(
-            B56Meldungstyp.Fehler,
-            code,
-            text);
-
-        return ergebnis;
-    }
-
-    public static B56ImportErgebnis Fehlgeschlagen(
-        Guid projektId,
-        string quelldateipfad,
-        string text)
-    {
-        var ergebnis = new B56ImportErgebnis
-        {
-            Status = B56ImportStatus.Fehlgeschlagen,
-            ProjektId = projektId,
-            Quelldateipfad = quelldateipfad
-        };
-
-        ergebnis.MeldungHinzufuegen(
-            B56Meldungstyp.Fehler,
-            "B56-FEHLER",
-            text);
-
-        return ergebnis;
-    }
-
-    public void MeldungHinzufuegen(
-        B56Meldungstyp typ,
-        string code,
-        string text)
-    {
-        _meldungen.Add(new B56ImportMeldung(
-            typ,
-            code,
-            text));
     }
 }
