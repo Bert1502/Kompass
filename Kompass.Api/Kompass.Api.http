@@ -1,0 +1,43 @@
+@KompassApi_HostAddress = https://localhost:7001
+@ProjektId = 00000000-0000-0000-0000-000000000000
+
+### API-Status
+GET {{KompassApi_HostAddress}}/api/status
+Accept: application/json
+
+###
+
+### Alle Projekte abrufen
+GET {{KompassApi_HostAddress}}/api/projekte
+Accept: application/json
+
+###
+
+### Projekt erstellen
+POST {{KompassApi_HostAddress}}/api/projekte
+Content-Type: application/json
+
+{
+  "name": "Musterprojekt"
+}
+
+###
+
+### Projekt nach ID abrufen
+GET {{KompassApi_HostAddress}}/api/projekte/{{ProjektId}}
+Accept: application/json
+
+###
+
+### Projekt umbenennen
+PUT {{KompassApi_HostAddress}}/api/projekte/{{ProjektId}}
+Content-Type: application/json
+
+{
+  "name": "Musterprojekt – bearbeitet"
+}
+
+###
+
+### Projekt löschen
+DELETE {{KompassApi_HostAddress}}/api/projekte/{{ProjektId}}

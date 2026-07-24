@@ -1,0 +1,65 @@
+[
+  {
+    "code": "AW",
+    "kategorie": "Außenwand",
+    "kompassTyp": "Aussenwand",
+    "beschreibung": "Außenwand",
+    "prioritaet": 100
+  },
+  {
+    "code": "IW",
+    "kategorie": "Innenwand",
+    "kompassTyp": "Innenwand",
+    "beschreibung": "Innenwand",
+    "prioritaet": 90
+  },
+  {
+    "code": "DA",
+    "kategorie": "Dach",
+    "kompassTyp": "Dach",
+    "beschreibung": "Dachfläche",
+    "prioritaet": 100
+  },
+  {
+    "code": "OD",
+    "kategorie": "Decke",
+    "kompassTyp": "ObersteGeschossdecke",
+    "beschreibung": "Oberste Geschossdecke",
+    "prioritaet": 100
+  },
+  {
+    "code": "KD",
+    "kategorie": "Decke",
+    "kompassTyp": "Kellerdecke",
+    "beschreibung": "Kellerdecke",
+    "prioritaet": 100
+  },
+  {
+    "code": "BP",
+    "kategorie": "Boden",
+    "kompassTyp": "Bodenplatte",
+    "beschreibung": "Bodenplatte",
+    "prioritaet": 100
+  },
+  {
+    "code": "FE",
+    "kategorie": "Fenster",
+    "kompassTyp": "Fenster",
+    "beschreibung": "Fenster",
+    "prioritaet": 100
+  },
+  {
+    "code": "FT",
+    "kategorie": "Fenstertür",
+    "kompassTyp": "Fenstertuer",
+    "beschreibung": "Fenstertür",
+    "prioritaet": 110
+  },
+  {
+    "code": "TU",
+    "kategorie": "Tür",
+    "kompassTyp": "Tuer",
+    "beschreibung": "Außentür",
+    "prioritaet": 100
+  }
+]

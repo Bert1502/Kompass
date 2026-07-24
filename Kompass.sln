@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.37502.11 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kompass.Domain", "Kompass.Domain\Kompass.Domain.csproj", "{40749E0A-8127-4275-A773-BDFACDDE0458}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kompass.Application", "Kompass.Application\Kompass.Application.csproj", "{725BDA15-5177-47EA-B571-645195439A3E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kompass.Persistence", "Kompass.Persistence\Kompass.Persistence.csproj", "{0A452C9C-067F-4E2E-AD48-C33BB99965F9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kompass.Api", "Kompass.Api\Kompass.Api.csproj", "{8DEAB5E4-FD16-0572-6CCD-07611A5AF3DD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kompass.Desktop", "Kompass.Desktop\Kompass.Desktop.csproj", "{9C93421D-72D4-4DE5-8816-4BB9BED97525}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kompass.Tests", "Kompass.Tests\Kompass.Tests.csproj", "{596C0F5B-72FE-4F67-B8FC-1E62ECD87582}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{40749E0A-8127-4275-A773-BDFACDDE0458}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{40749E0A-8127-4275-A773-BDFACDDE0458}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{40749E0A-8127-4275-A773-BDFACDDE0458}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40749E0A-8127-4275-A773-BDFACDDE0458}.Release|Any CPU.Build.0 = Release|Any CPU
+		{725BDA15-5177-47EA-B571-645195439A3E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{725BDA15-5177-47EA-B571-645195439A3E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{725BDA15-5177-47EA-B571-645195439A3E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{725BDA15-5177-47EA-B571-645195439A3E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0A452C9C-067F-4E2E-AD48-C33BB99965F9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A452C9C-067F-4E2E-AD48-C33BB99965F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A452C9C-067F-4E2E-AD48-C33BB99965F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A452C9C-067F-4E2E-AD48-C33BB99965F9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8DEAB5E4-FD16-0572-6CCD-07611A5AF3DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8DEAB5E4-FD16-0572-6CCD-07611A5AF3DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8DEAB5E4-FD16-0572-6CCD-07611A5AF3DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8DEAB5E4-FD16-0572-6CCD-07611A5AF3DD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9C93421D-72D4-4DE5-8816-4BB9BED97525}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9C93421D-72D4-4DE5-8816-4BB9BED97525}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9C93421D-72D4-4DE5-8816-4BB9BED97525}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9C93421D-72D4-4DE5-8816-4BB9BED97525}.Release|Any CPU.Build.0 = Release|Any CPU
+		{596C0F5B-72FE-4F67-B8FC-1E62ECD87582}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{596C0F5B-72FE-4F67-B8FC-1E62ECD87582}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{596C0F5B-72FE-4F67-B8FC-1E62ECD87582}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{596C0F5B-72FE-4F67-B8FC-1E62ECD87582}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2EC22CBC-5AC3-4DAC-A13E-1A08A755D353}
+	EndGlobalSection
+EndGlobal
