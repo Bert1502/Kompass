@@ -17,6 +17,16 @@ public sealed class B56ImportPipelineErgebnis
 
     public int ImportierteModernisierungsalternativen { get; init; }
 
+    public IReadOnlyList<B56Bauteil> Bauteile { get; init; }
+        = Array.Empty<B56Bauteil>();
+
+    public IReadOnlyList<B56Kennwert> Bestandskennwerte { get; init; }
+        = Array.Empty<B56Kennwert>();
+
+    public IReadOnlyList<B56Modernisierungsalternative>
+        Modernisierungsalternativen { get; init; }
+        = Array.Empty<B56Modernisierungsalternative>();
+
     public IReadOnlyList<string> Warnungen { get; init; }
         = Array.Empty<string>();
 }

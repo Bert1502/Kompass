@@ -4,6 +4,8 @@ public sealed class B56Modernisierungsalternative
 {
     public string Bezeichnung { get; init; } = string.Empty;
 
+    public string Beschreibung { get; init; } = string.Empty;
+
     public IList<B56Bauteil> Bauteile
         { get; } = new List<B56Bauteil>();
 
