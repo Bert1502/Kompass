@@ -103,6 +103,65 @@ public sealed class B56ImportControllerTests
                     temporaererDateipfad)));
     }
 
+    [Fact]
+    public async Task Abgebrochener_Import_loescht_temporaere_Datei_und_bleibt_abgebrochen()
+    {
+        var projektId =
+            Guid.NewGuid();
+
+        string? temporaererDateipfad =
+            null;
+
+        var importService =
+            new ImportServiceFake(
+                (anfrage, cancellationToken) =>
+                {
+                    temporaererDateipfad =
+                        anfrage.Quelldateipfad;
+
+                    Assert.True(
+                        File.Exists(
+                            temporaererDateipfad));
+
+                    throw new OperationCanceledException(
+                        cancellationToken);
+                });
+
+        var controller =
+            new B56ImportController(
+                new ProjektServiceFake(
+                    new ProjektUebersicht(
+                        projektId,
+                        "Testprojekt",
+                        0)),
+                importService,
+                new ImportRegisterFake([]));
+
+        using var dateiStream =
+            new MemoryStream(
+                [0x50, 0x4B, 0x03, 0x04]);
+
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            () =>
+                controller.ImportierenAsync(
+                    projektId,
+                    ErzeugeFormDatei(
+                        dateiStream),
+                    CancellationToken.None));
+
+        Assert.NotNull(
+            temporaererDateipfad);
+
+        Assert.False(
+            File.Exists(
+                temporaererDateipfad));
+
+        Assert.False(
+            Directory.Exists(
+                Path.GetDirectoryName(
+                    temporaererDateipfad)));
+    }
+
     [Theory]
     [InlineData(
         B56ImportStatus.Erfolgreich,
