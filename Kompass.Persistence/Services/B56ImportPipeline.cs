@@ -37,11 +37,25 @@ public sealed class B56ImportPipeline : IB56ImportPipeline
             ImportierteTabellen =
                 tabellenErgebnis.ErfolgreichImportiert,
 
-            ImportierteBauteile = 0,
+            ImportierteBauteile =
+                tabellenErgebnis.Bauteile.Count,
 
-            ImportierteKennwerte = 0,
+            ImportierteKennwerte =
+                tabellenErgebnis.Bestandskennwerte.Count +
+                tabellenErgebnis.Modernisierungsalternativen.Sum(
+                    alternative => alternative.Kennwerte.Count),
 
-            ImportierteModernisierungsalternativen = 0,
+            ImportierteModernisierungsalternativen =
+                tabellenErgebnis.Modernisierungsalternativen.Count,
+
+            Bauteile =
+                tabellenErgebnis.Bauteile,
+
+            Bestandskennwerte =
+                tabellenErgebnis.Bestandskennwerte,
+
+            Modernisierungsalternativen =
+                tabellenErgebnis.Modernisierungsalternativen,
 
             Warnungen =
                 tabellenErgebnis.Warnungen
