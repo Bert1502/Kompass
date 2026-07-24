@@ -19,4 +19,6 @@ public sealed class B56ImportEintragEntity
     public DateTimeOffset ImportiertAm { get; set; }
 
     public string Dateiendung { get; set; } = string.Empty;
+
+    public string? FachdatenJson { get; set; }
 }

@@ -48,8 +48,9 @@ public sealed class EfB56ImportRegisterTests
         await register.EintragSpeichernAsync(
             aeltererEintrag);
 
-        await register.EintragSpeichernAsync(
-            neuererEintrag);
+        await register.EintragMitFachdatenSpeichernAsync(
+            neuererEintrag,
+            ErzeugeFachdaten());
 
         var nachHash =
             await register.NachHashSuchenAsync(
@@ -59,6 +60,16 @@ public sealed class EfB56ImportRegisterTests
         var alle =
             await register.AlleFuerProjektAbrufenAsync(
                 projektId);
+
+        var fachdaten =
+            await register.FachdatenAbrufenAsync(
+                projektId,
+                neuererEintrag.ImportId);
+
+        var fremdeFachdaten =
+            await register.FachdatenAbrufenAsync(
+                Guid.NewGuid(),
+                neuererEintrag.ImportId);
 
         Assert.Equal(
             neuererEintrag.ImportId,
@@ -70,6 +81,83 @@ public sealed class EfB56ImportRegisterTests
                 aeltererEintrag.ImportId
             ],
             alle.Select(x => x.ImportId));
+
+        Assert.NotNull(
+            fachdaten);
+
+        Assert.Equal(
+            "AW01",
+            Assert.Single(
+                    fachdaten.Bauteile)
+                .Bauteilcode);
+
+        Assert.Equal(
+            "Fenster",
+            Assert.Single(
+                    fachdaten.Modernisierungsalternativen)
+                .Bezeichnung);
+
+        Assert.Null(
+            fremdeFachdaten);
+    }
+
+    private static B56ImportPipelineErgebnis ErzeugeFachdaten()
+    {
+        var alternative =
+            new B56Modernisierungsalternative
+            {
+                Bezeichnung =
+                    "Fenster",
+                Beschreibung =
+                    "Fenstertausch"
+            };
+
+        alternative.Kennwerte.Add(
+            new B56Kennwert
+            {
+                Name =
+                    "Investitionskosten",
+                Wert =
+                    20000
+            });
+
+        return new B56ImportPipelineErgebnis
+        {
+            ImportierteArbeitsblaetter = 1,
+            ErkannteTabellen = 3,
+            ImportierteTabellen = 3,
+            ImportierteBauteile = 1,
+            ImportierteKennwerte = 2,
+            ImportierteModernisierungsalternativen = 1,
+            Bauteile =
+            [
+                new B56Bauteil
+                {
+                    Bauteilcode =
+                        "AW01",
+                    Bezeichnung =
+                        "Außenwand",
+                    Nachbarseite =
+                        "gegen Außenluft",
+                    UWert =
+                        0.24
+                }
+            ],
+            Bestandskennwerte =
+            [
+                new B56Kennwert
+                {
+                    Name =
+                        "Primärenergiebedarf Gebäude",
+                    Wert =
+                        200
+                }
+            ],
+            Modernisierungsalternativen =
+            [
+                alternative
+            ]
+        };
     }
 
     private static B56ImportEintrag ErzeugeEintrag(

@@ -606,5 +606,22 @@ public sealed class B56ImportControllerTests
         {
             throw new NotSupportedException();
         }
+
+        public Task EintragMitFachdatenSpeichernAsync(
+            B56ImportEintrag eintrag,
+            B56ImportPipelineErgebnis fachdaten,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<B56ImportPipelineErgebnis?>
+            FachdatenAbrufenAsync(
+                Guid projektId,
+                Guid importId,
+                CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
     }
 }

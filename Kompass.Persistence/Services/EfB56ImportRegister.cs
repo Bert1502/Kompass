@@ -2,11 +2,15 @@ using Kompass.Application.B56Import;
 using Kompass.Persistence.Data;
 using Kompass.Persistence.Data.Entities;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace Kompass.Persistence.Services;
 
 public sealed class EfB56ImportRegister : IB56ImportRegister
 {
+    private static readonly JsonSerializerOptions JsonOptionen =
+        new(JsonSerializerDefaults.Web);
+
     private readonly KompassDbContext _dbContext;
 
     public EfB56ImportRegister(
@@ -57,17 +61,72 @@ public sealed class EfB56ImportRegister : IB56ImportRegister
         B56ImportEintrag eintrag,
         CancellationToken cancellationToken = default)
     {
+        await EintragSpeichernAsync(
+            eintrag,
+            fachdaten: null,
+            cancellationToken);
+    }
+
+    public async Task EintragMitFachdatenSpeichernAsync(
+        B56ImportEintrag eintrag,
+        B56ImportPipelineErgebnis fachdaten,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(fachdaten);
+
+        await EintragSpeichernAsync(
+            eintrag,
+            fachdaten,
+            cancellationToken);
+    }
+
+    public async Task<B56ImportPipelineErgebnis?>
+        FachdatenAbrufenAsync(
+            Guid projektId,
+            Guid importId,
+            CancellationToken cancellationToken = default)
+    {
+        var fachdatenJson =
+            await _dbContext.B56ImportEintraege
+                .AsNoTracking()
+                .Where(
+                    eintrag =>
+                        eintrag.ProjektId == projektId &&
+                        eintrag.ImportId == importId)
+                .Select(
+                    eintrag =>
+                        eintrag.FachdatenJson)
+                .SingleOrDefaultAsync(
+                    cancellationToken);
+
+        return string.IsNullOrWhiteSpace(
+                fachdatenJson)
+            ? null
+            : JsonSerializer.Deserialize<
+                B56ImportPipelineErgebnis>(
+                    fachdatenJson,
+                    JsonOptionen);
+    }
+
+    private async Task EintragSpeichernAsync(
+        B56ImportEintrag eintrag,
+        B56ImportPipelineErgebnis? fachdaten,
+        CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(eintrag);
 
         _dbContext.B56ImportEintraege.Add(
-            ZuEntity(eintrag));
+            ZuEntity(
+                eintrag,
+                fachdaten));
 
         await _dbContext.SaveChangesAsync(
             cancellationToken);
     }
 
     private static B56ImportEintragEntity ZuEntity(
-        B56ImportEintrag eintrag)
+        B56ImportEintrag eintrag,
+        B56ImportPipelineErgebnis? fachdaten)
     {
         return new B56ImportEintragEntity
         {
@@ -79,7 +138,13 @@ public sealed class EfB56ImportRegister : IB56ImportRegister
             Sha256 = eintrag.Sha256,
             DateigroesseBytes = eintrag.DateigroesseBytes,
             ImportiertAm = eintrag.ImportiertAm,
-            Dateiendung = eintrag.Dateiendung
+            Dateiendung = eintrag.Dateiendung,
+            FachdatenJson =
+                fachdaten is null
+                    ? null
+                    : JsonSerializer.Serialize(
+                        fachdaten,
+                        JsonOptionen)
         };
     }
 
