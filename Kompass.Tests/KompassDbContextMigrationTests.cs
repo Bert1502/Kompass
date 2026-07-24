@@ -35,7 +35,8 @@ public sealed class KompassDbContextMigrationTests
                 [
                     "20260718205341_InitialCreate",
                     "20260719104649_ProjektverwaltungErweitert",
-                    "20260720073017_AddB56ImportRegister"
+                    "20260720073017_AddB56ImportRegister",
+                    "20260724184936_PersistB56DomainResults"
                 ],
                 angewendeteMigrationen);
         }

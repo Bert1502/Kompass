@@ -11,6 +11,16 @@ public interface IB56ImportRegister
         B56ImportEintrag eintrag,
         CancellationToken cancellationToken = default);
 
+    Task EintragMitFachdatenSpeichernAsync(
+        B56ImportEintrag eintrag,
+        B56ImportPipelineErgebnis fachdaten,
+        CancellationToken cancellationToken = default);
+
+    Task<B56ImportPipelineErgebnis?> FachdatenAbrufenAsync(
+        Guid projektId,
+        Guid importId,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<B56ImportEintrag>>
         AlleFuerProjektAbrufenAsync(
             Guid projektId,

@@ -34,6 +34,8 @@ public sealed class B56ImportEintragEntityConfiguration
             .HasMaxLength(20)
             .IsRequired();
 
+        builder.Property(x => x.FachdatenJson);
+
         builder.HasIndex(x => x.ProjektId);
 
         builder.HasIndex(x => new

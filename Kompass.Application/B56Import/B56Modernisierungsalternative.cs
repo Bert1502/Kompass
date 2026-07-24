@@ -7,8 +7,8 @@ public sealed class B56Modernisierungsalternative
     public string Beschreibung { get; init; } = string.Empty;
 
     public IList<B56Bauteil> Bauteile
-        { get; } = new List<B56Bauteil>();
+        { get; init; } = new List<B56Bauteil>();
 
     public IList<B56Kennwert> Kennwerte
-        { get; } = new List<B56Kennwert>();
+        { get; init; } = new List<B56Kennwert>();
 }

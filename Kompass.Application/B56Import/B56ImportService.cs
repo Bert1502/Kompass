@@ -158,8 +158,10 @@ public sealed class B56ImportService : IB56ImportService
                         },
                         cancellationToken);
 
-                await _importRegister.EintragSpeichernAsync(
+                await _importRegister
+                    .EintragMitFachdatenSpeichernAsync(
                     eintrag,
+                    pipelineErgebnis,
                     cancellationToken);
             }
             catch
