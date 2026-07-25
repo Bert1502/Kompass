@@ -19,6 +19,10 @@ public sealed class Projekt : AggregateRoot
 
     public string Name { get; private set; }
 
+    public Guid? QuellSnapshotId { get; private set; }
+
+    public int ProjektmodellVersion { get; private set; }
+
     public IReadOnlyCollection<Modernisierungsalternative> Alternativen =>
         _alternativen.AsReadOnly();
 
@@ -41,6 +45,40 @@ public sealed class Projekt : AggregateRoot
         }
 
         _alternativen.Add(alternative);
+    }
+
+    public void AusSnapshotErzeugen(
+        Guid snapshotId,
+        IEnumerable<Modernisierungsalternative> alternativen)
+    {
+        if (snapshotId == Guid.Empty)
+        {
+            throw new DomainException(
+                "Für die Projektübernahme ist eine gültige Snapshot-ID erforderlich.");
+        }
+
+        ArgumentNullException.ThrowIfNull(alternativen);
+
+        if (QuellSnapshotId.HasValue)
+        {
+            if (QuellSnapshotId == snapshotId)
+            {
+                return;
+            }
+
+            throw new DomainException(
+                "Das Projektmodell wurde bereits aus einem anderen B56-Snapshot erzeugt.");
+        }
+
+        foreach (var alternative in alternativen)
+        {
+            AlternativeHinzufuegen(
+                alternative);
+        }
+
+        QuellSnapshotId =
+            snapshotId;
+        ProjektmodellVersion = 1;
     }
 
     private static string BereinigeName(string name)

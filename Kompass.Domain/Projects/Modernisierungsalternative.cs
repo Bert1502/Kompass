@@ -17,7 +17,8 @@ public sealed class Modernisierungsalternative : Entity
     public Modernisierungsalternative(
         Guid id,
         string bezeichnung,
-        string kurztext)
+        string kurztext,
+        Guid? quellSnapshotId = null)
         : base(id)
     {
         if (string.IsNullOrWhiteSpace(bezeichnung))
@@ -28,11 +29,14 @@ public sealed class Modernisierungsalternative : Entity
 
         Bezeichnung = bezeichnung.Trim();
         Kurztext = kurztext?.Trim() ?? string.Empty;
+        QuellSnapshotId = quellSnapshotId;
     }
 
     public string Bezeichnung { get; private set; }
 
     public string Kurztext { get; private set; }
+
+    public Guid? QuellSnapshotId { get; private set; }
 
     public IReadOnlyCollection<AlternativeBauteil> Bauteile =>
         _bauteile.AsReadOnly();
