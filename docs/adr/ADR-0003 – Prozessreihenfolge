@@ -1,0 +1,26 @@
+# ADR-0003 – Fachliche Prozessreihenfolge
+
+## Status
+
+Akzeptiert
+
+## Entscheidung
+
+KOMPASS bildet den energetischen Arbeitsablauf in der fachlich korrekten Reihenfolge ab.
+
+1. Bauteilberechnung
+2. Bilanzierung
+3. Wärmeschutznachweis
+4. Sommerlicher Wärmeschutznachweis
+5. Wärmebrückennachweis
+6. Berichtserstellung
+
+## Begründung
+
+Der Wärmebrückennachweis erfolgt erst nach Abschluss der Bilanzierung und der beiden Wärmeschutznachweise.
+
+Diese Reihenfolge entspricht dem praktischen Ablauf in Energieberatungs- und GEG-Projekten.
+
+## Konsequenzen
+
+Module dürfen diese Reihenfolge nicht verändern.
