@@ -22,6 +22,8 @@ public sealed class ModernisierungsalternativeConfiguration
             .HasMaxLength(1000)
             .IsRequired();
 
+        builder.Property(alternative => alternative.QuellSnapshotId);
+
         builder.Ignore(alternative => alternative.Gesamtkosten);
 
         builder.HasMany(alternative => alternative.Bauteile)

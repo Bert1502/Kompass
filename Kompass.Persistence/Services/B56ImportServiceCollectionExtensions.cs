@@ -55,6 +55,10 @@ services.AddScoped<
             IB56SnapshotLebenszyklusService,
             B56SnapshotLebenszyklusService>();
 
+        services.AddScoped<
+            IB56ProjektmodellUebernahmeService,
+            B56ProjektmodellUebernahmeService>();
+
         services.AddSingleton(
             TimeProvider.System);
 

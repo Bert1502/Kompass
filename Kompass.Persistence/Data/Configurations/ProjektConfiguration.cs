@@ -16,6 +16,12 @@ public sealed class ProjektConfiguration : IEntityTypeConfiguration<Projekt>
             .HasMaxLength(250)
             .IsRequired();
 
+        builder.Property(projekt => projekt.QuellSnapshotId);
+
+        builder.Property(projekt => projekt.ProjektmodellVersion)
+            .HasDefaultValue(0)
+            .IsRequired();
+
         builder.HasMany(projekt => projekt.Alternativen)
             .WithOne()
             .HasForeignKey("ProjektId")
