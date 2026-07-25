@@ -1,0 +1,19 @@
+# ADR-0006 – IFC
+
+## Status
+
+Akzeptiert
+
+## Entscheidung
+
+KOMPASS importiert keine IFC-Dateien.
+
+IFC bleibt ausschließlich Datenquelle externer Programme.
+
+## Konsequenzen
+
+Keine IFC-Geometrie.
+
+Keine IFC-Auswertung.
+
+Keine IFC-Parser.
