@@ -24,6 +24,14 @@ public sealed class ModernisierungsalternativeConfiguration
 
         builder.Property(alternative => alternative.QuellSnapshotId);
 
+        builder.Property(alternative => alternative.B56Position);
+
+        builder.Property(
+                alternative =>
+                    alternative.IstImAktuellenB56SnapshotVorhanden)
+            .HasDefaultValue(true)
+            .IsRequired();
+
         builder.Ignore(alternative => alternative.Gesamtkosten);
 
         builder.HasMany(alternative => alternative.Bauteile)

@@ -22,4 +22,8 @@ Bei einem späteren B56-Import wird eine neue Version angelegt. KOMPASS zeigt di
 Modernisierungsalternativen werden dabei anhand ihrer stabilen
 B56-Position 1 bis 9 einander zugeordnet, nicht anhand ihres Namens.
 
+Fehlt eine zuvor belegte Position im neuen Snapshot, bleibt die
+Alternative mit Kosten, Kommentaren und Historie erhalten. KOMPASS
+kennzeichnet sie als „Im aktuellen B56-Snapshot nicht mehr vorhanden“.
+
 Anschließend kann ich Modernisierungsalternativen wirtschaftlich bewerten, Fördermöglichkeiten prüfen und Berichte erzeugen.

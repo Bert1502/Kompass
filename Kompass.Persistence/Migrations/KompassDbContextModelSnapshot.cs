@@ -151,6 +151,14 @@ namespace Kompass.Persistence.Migrations
                         .HasMaxLength(250)
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("B56Position")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IstImAktuellenB56SnapshotVorhanden")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(true);
+
                     b.Property<string>("Kurztext")
                         .IsRequired()
                         .HasMaxLength(1000)
