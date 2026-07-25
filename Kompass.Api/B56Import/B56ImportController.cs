@@ -272,7 +272,9 @@ public sealed record B56ImportHistorieAntwort(
     string Sha256,
     long DateigroesseBytes,
     DateTimeOffset ImportiertAm,
-    string Dateiendung)
+    string Dateiendung,
+    int SnapshotSchemaVersion,
+    string ParserVersion)
 {
     public static B56ImportHistorieAntwort Aus(
         B56ImportEintrag eintrag)
@@ -284,7 +286,9 @@ public sealed record B56ImportHistorieAntwort(
             eintrag.Sha256,
             eintrag.DateigroesseBytes,
             eintrag.ImportiertAm,
-            eintrag.Dateiendung);
+            eintrag.Dateiendung,
+            eintrag.SnapshotSchemaVersion,
+            eintrag.ParserVersion);
     }
 }
 
@@ -296,6 +300,8 @@ public sealed record B56ImportAntwort(
     string? Sha256,
     long? DateigroesseBytes,
     DateTimeOffset? ImportiertAm,
+    int? SnapshotSchemaVersion,
+    string? ParserVersion,
     B56ImportPipelineAntwort? Pipeline,
     IReadOnlyList<B56ImportMeldung> Meldungen)
 {
@@ -313,6 +319,8 @@ public sealed record B56ImportAntwort(
             eintrag?.Sha256,
             eintrag?.DateigroesseBytes,
             eintrag?.ImportiertAm,
+            eintrag?.SnapshotSchemaVersion,
+            eintrag?.ParserVersion,
             B56ImportPipelineAntwort.Aus(
                 ergebnis.PipelineErgebnis),
             ergebnis.Meldungen);

@@ -1,6 +1,9 @@
 using Kompass.Persistence.Data;
+using Kompass.Application.B56Import;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Kompass.Tests.Persistence;
 
@@ -36,9 +39,93 @@ public sealed class KompassDbContextMigrationTests
                     "20260718205341_InitialCreate",
                     "20260719104649_ProjektverwaltungErweitert",
                     "20260720073017_AddB56ImportRegister",
-                    "20260724184936_PersistB56DomainResults"
+                    "20260724184936_PersistB56DomainResults",
+                    "20260725075146_VersionB56Snapshots"
                 ],
                 angewendeteMigrationen);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+
+            LoescheFallsVorhanden(datenbankpfad);
+            LoescheFallsVorhanden($"{datenbankpfad}-shm");
+            LoescheFallsVorhanden($"{datenbankpfad}-wal");
+        }
+    }
+
+    [Fact]
+    public async Task Bestehender_Import_wird_als_Legacy_Snapshot_migriert()
+    {
+        var datenbankpfad =
+            Path.Combine(
+                Path.GetTempPath(),
+                $"kompass-legacy-migrationstest-{Guid.NewGuid():N}.db");
+
+        var importId =
+            Guid.NewGuid();
+
+        try
+        {
+            var options =
+                new DbContextOptionsBuilder<KompassDbContext>()
+                    .UseSqlite(
+                        $"Data Source={datenbankpfad}")
+                    .Options;
+
+            await using var context =
+                new KompassDbContext(options);
+
+            var migrator =
+                context.Database.GetService<IMigrator>();
+
+            await migrator.MigrateAsync(
+                "20260724184936_PersistB56DomainResults");
+
+            await context.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                INSERT INTO B56ImportEintraege (
+                    ImportId,
+                    ProjektId,
+                    Projektname,
+                    Originaldateiname,
+                    Archivdateipfad,
+                    Sha256,
+                    DateigroesseBytes,
+                    ImportiertAm,
+                    Dateiendung,
+                    FachdatenJson)
+                VALUES (
+                    {importId},
+                    {Guid.NewGuid()},
+                    {"Legacy-Projekt"},
+                    {"legacy.xlsx"},
+                    {"archiv/legacy.xlsx"},
+                    {new string('a', 64)},
+                    {1024L},
+                    {DateTimeOffset.Parse("2026-07-24T08:00:00+02:00")},
+                    {".xlsx"},
+                    {"{}"})
+                """);
+
+            await migrator.MigrateAsync();
+
+            var snapshot =
+                await context.B56ImportEintraege
+                    .AsNoTracking()
+                    .SingleAsync(
+                        eintrag =>
+                            eintrag.ImportId == importId);
+
+            Assert.Equal(
+                B56SnapshotVersionen.AktuelleSchemaVersion,
+                snapshot.SnapshotSchemaVersion);
+            Assert.Equal(
+                B56SnapshotVersionen.LegacyParserVersion,
+                snapshot.ParserVersion);
+            Assert.Equal(
+                "{}",
+                snapshot.FachdatenJson);
         }
         finally
         {

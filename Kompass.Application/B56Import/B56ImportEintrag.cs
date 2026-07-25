@@ -24,4 +24,10 @@ public sealed record B56ImportEintrag
 
     public string Dateiendung { get; init; } =
         string.Empty;
+
+    public int SnapshotSchemaVersion { get; init; } =
+        B56SnapshotVersionen.AktuelleSchemaVersion;
+
+    public string ParserVersion { get; init; } =
+        B56SnapshotVersionen.AktuelleParserVersion;
 }
