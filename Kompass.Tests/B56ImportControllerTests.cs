@@ -312,6 +312,87 @@ public sealed class B56ImportControllerTests
     }
 
     [Fact]
+    public async Task Details_liefern_gespeicherte_Fachdaten()
+    {
+        var projektId =
+            Guid.NewGuid();
+
+        var importId =
+            Guid.NewGuid();
+
+        var controller =
+            new B56ImportController(
+                new ProjektServiceFake(
+                    new ProjektUebersicht(
+                        projektId,
+                        "Testprojekt",
+                        0)),
+                new ImportServiceFake(),
+                new ImportRegisterFake(
+                    [],
+                    new B56ImportPipelineErgebnis
+                    {
+                        ImportierteBauteile = 1,
+                        Bauteile =
+                        [
+                            new B56Bauteil
+                            {
+                                Bauteilcode = "AW01",
+                                Bezeichnung = "Außenwand",
+                                Nachbarseite = "gegen Außenluft",
+                                UWert = 0.24
+                            }
+                        ]
+                    }));
+
+        var ergebnis =
+            await controller.DetailsAbrufenAsync(
+                projektId,
+                importId,
+                CancellationToken.None);
+
+        var ok =
+            Assert.IsType<OkObjectResult>(
+                ergebnis.Result);
+
+        var antwort =
+            Assert.IsType<B56ImportPipelineAntwort>(
+                ok.Value);
+
+        Assert.Equal(
+            "AW01",
+            Assert.Single(
+                    antwort.Bauteile)
+                .Bauteilcode);
+    }
+
+    [Fact]
+    public async Task Details_ohne_Fachdaten_liefern_NotFound()
+    {
+        var projektId =
+            Guid.NewGuid();
+
+        var controller =
+            new B56ImportController(
+                new ProjektServiceFake(
+                    new ProjektUebersicht(
+                        projektId,
+                        "Testprojekt",
+                        0)),
+                new ImportServiceFake(),
+                new ImportRegisterFake([]));
+
+        var ergebnis =
+            await controller.DetailsAbrufenAsync(
+                projektId,
+                Guid.NewGuid(),
+                CancellationToken.None);
+
+        Assert.IsType<NotFoundObjectResult>(
+            ergebnis.Result);
+    }
+
+    [Fact]
     public void Importantwort_enthaelt_fachliche_B56_Details()
     {
         var projektId =
@@ -576,11 +657,14 @@ public sealed class B56ImportControllerTests
         : IB56ImportRegister
     {
         private readonly IReadOnlyList<B56ImportEintrag> _eintraege;
+        private readonly B56ImportPipelineErgebnis? _fachdaten;
 
         public ImportRegisterFake(
-            IReadOnlyList<B56ImportEintrag> eintraege)
+            IReadOnlyList<B56ImportEintrag> eintraege,
+            B56ImportPipelineErgebnis? fachdaten = null)
         {
             _eintraege = eintraege;
+            _fachdaten = fachdaten;
         }
 
         public Task<IReadOnlyList<B56ImportEintrag>>
@@ -621,7 +705,8 @@ public sealed class B56ImportControllerTests
                 Guid importId,
                 CancellationToken cancellationToken = default)
         {
-            throw new NotSupportedException();
+            return Task.FromResult(
+                _fachdaten);
         }
     }
 }

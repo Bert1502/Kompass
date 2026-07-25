@@ -58,6 +58,52 @@ public sealed class B56ImportController : ControllerBase
                 B56ImportHistorieAntwort.Aus));
     }
 
+    [HttpGet("{importId:guid}")]
+    [ProducesResponseType(
+        typeof(B56ImportPipelineAntwort),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<B56ImportPipelineAntwort>>
+        DetailsAbrufenAsync(
+            Guid projektId,
+            Guid importId,
+            CancellationToken cancellationToken)
+    {
+        var projekt =
+            await _projektService.NachIdAbrufenAsync(
+                projektId,
+                cancellationToken);
+
+        if (projekt is null)
+        {
+            return NotFound(new
+            {
+                Nachricht =
+                    $"Das Projekt mit der ID '{projektId}' wurde nicht gefunden."
+            });
+        }
+
+        var fachdaten =
+            await _importRegister.FachdatenAbrufenAsync(
+                projektId,
+                importId,
+                cancellationToken);
+
+        if (fachdaten is null)
+        {
+            return NotFound(new
+            {
+                Nachricht =
+                    $"Für den B56-Import mit der ID '{importId}' wurden keine Fachdaten gefunden."
+            });
+        }
+
+        return Ok(
+            B56ImportPipelineAntwort.Aus(
+                fachdaten));
+    }
+
     [HttpPost]
     [Consumes("multipart/form-data")]
     [ProducesResponseType(

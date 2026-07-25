@@ -22,6 +22,9 @@ public sealed class B56ImportViewModel : ViewModelBase
     private string _dateityp = string.Empty;
     private string _statusText = "Bitte wählen Sie eine B56-Excel-Datei aus.";
     private string _historieStatusText = "Die Importhistorie wurde noch nicht geladen.";
+    private string _ergebnisStatusText = "Noch keine Importergebnisse ausgewählt.";
+    private B56ImportHistorieDto? _ausgewaehlterHistorieneintrag;
+    private B56ModernisierungsalternativeDto? _ausgewaehlteModernisierungsalternative;
     private bool _istDateiAusgewaehlt;
     private bool _istBeschaeftigt;
 
@@ -48,6 +51,11 @@ public sealed class B56ImportViewModel : ViewModelBase
             new AsyncRelayCommand(
                 ImportStartenAsync,
                 KannImportStarten);
+
+        ErgebnisseAnzeigenCommand =
+            new AsyncRelayCommand(
+                ErgebnisseAnzeigenAsync,
+                KannErgebnisseAnzeigen);
     }
 
     public Guid? ProjektId
@@ -156,8 +164,56 @@ public sealed class B56ImportViewModel : ViewModelBase
 
     public ICommand ImportStartenCommand { get; }
 
+    public ICommand ErgebnisseAnzeigenCommand { get; }
+
     public ObservableCollection<B56ImportHistorieDto> Importhistorie
         { get; } = [];
+
+    public ObservableCollection<B56KennwertDto> Bestandskennwerte
+        { get; } = [];
+
+    public ObservableCollection<B56BauteilDto> Bauteile
+        { get; } = [];
+
+    public ObservableCollection<B56ModernisierungsalternativeDto>
+        Modernisierungsalternativen
+        { get; } = [];
+
+    public B56ImportHistorieDto? AusgewaehlterHistorieneintrag
+    {
+        get => _ausgewaehlterHistorieneintrag;
+
+        set
+        {
+            if (SetProperty(
+                    ref _ausgewaehlterHistorieneintrag,
+                    value))
+            {
+                AktualisiereBefehle();
+            }
+        }
+    }
+
+    public B56ModernisierungsalternativeDto?
+        AusgewaehlteModernisierungsalternative
+    {
+        get => _ausgewaehlteModernisierungsalternative;
+
+        set =>
+            SetProperty(
+                ref _ausgewaehlteModernisierungsalternative,
+                value);
+    }
+
+    public string ErgebnisStatusText
+    {
+        get => _ergebnisStatusText;
+
+        private set =>
+            SetProperty(
+                ref _ergebnisStatusText,
+                value);
+    }
 
     public string HistorieStatusText
     {
@@ -318,6 +374,12 @@ public sealed class B56ImportViewModel : ViewModelBase
                 ErzeugeStatusText(
                     ergebnis);
 
+            if (ergebnis.Pipeline is not null)
+            {
+                ErgebnisseUebernehmen(
+                    ergebnis.Pipeline);
+            }
+
             if (ergebnis.Status is
                 B56ImportStatus.Abgelehnt or
                 B56ImportStatus.Fehlgeschlagen)
@@ -385,6 +447,49 @@ public sealed class B56ImportViewModel : ViewModelBase
                 AusgewaehlterDateipfad);
     }
 
+    private bool KannErgebnisseAnzeigen()
+    {
+        return !IstBeschaeftigt
+            && ProjektId.HasValue
+            && AusgewaehlterHistorieneintrag is not null;
+    }
+
+    private async Task ErgebnisseAnzeigenAsync()
+    {
+        if (!ProjektId.HasValue ||
+            AusgewaehlterHistorieneintrag is null)
+        {
+            return;
+        }
+
+        try
+        {
+            IstBeschaeftigt = true;
+            ErgebnisStatusText =
+                "Die gespeicherten B56-Importergebnisse werden geladen …";
+
+            var details =
+                await _importApiClient.DetailsAbrufenAsync(
+                    ProjektId.Value,
+                    AusgewaehlterHistorieneintrag.ImportId);
+
+            ErgebnisseUebernehmen(
+                details);
+        }
+        catch (Exception exception)
+        {
+            ErgebnisStatusText =
+                $"Die Importergebnisse konnten nicht geladen werden: {exception.Message}";
+
+            _dialogService.FehlerAnzeigen(
+                ErgebnisStatusText);
+        }
+        finally
+        {
+            IstBeschaeftigt = false;
+        }
+    }
+
     private void AktualisiereBefehle()
     {
         AktualisiereCommand(
@@ -395,6 +500,9 @@ public sealed class B56ImportViewModel : ViewModelBase
 
         AktualisiereCommand(
             ImportStartenCommand);
+
+        AktualisiereCommand(
+            ErgebnisseAnzeigenCommand);
     }
 
     private static void AktualisiereCommand(
@@ -504,5 +612,39 @@ public sealed class B56ImportViewModel : ViewModelBase
             Importhistorie.Count == 0
                 ? "Für dieses Projekt liegen noch keine B56-Importe vor."
                 : $"{Importhistorie.Count} B56-Import(e) vorhanden.";
+    }
+
+    private void ErgebnisseUebernehmen(
+        B56ImportPipelineAntwortDto pipeline)
+    {
+        Bestandskennwerte.Clear();
+        Bauteile.Clear();
+        Modernisierungsalternativen.Clear();
+
+        foreach (var kennwert in pipeline.Bestandskennwerte)
+        {
+            Bestandskennwerte.Add(
+                kennwert);
+        }
+
+        foreach (var bauteil in pipeline.Bauteile)
+        {
+            Bauteile.Add(
+                bauteil);
+        }
+
+        foreach (var alternative in pipeline.Modernisierungsalternativen)
+        {
+            Modernisierungsalternativen.Add(
+                alternative);
+        }
+
+        AusgewaehlteModernisierungsalternative =
+            Modernisierungsalternativen.FirstOrDefault();
+
+        ErgebnisStatusText =
+            $"{Bestandskennwerte.Count} Bestandskennwerte, " +
+            $"{Bauteile.Count} Bauteile und " +
+            $"{Modernisierungsalternativen.Count} Modernisierungsvarianten geladen.";
     }
 }
