@@ -40,7 +40,8 @@ public sealed class KompassDbContextMigrationTests
                     "20260719104649_ProjektverwaltungErweitert",
                     "20260720073017_AddB56ImportRegister",
                     "20260724184936_PersistB56DomainResults",
-                    "20260725075146_VersionB56Snapshots"
+                    "20260725075146_VersionB56Snapshots",
+                    "20260725084054_AddB56SnapshotLifecycle"
                 ],
                 angewendeteMigrationen);
         }
@@ -126,6 +127,13 @@ public sealed class KompassDbContextMigrationTests
             Assert.Equal(
                 "{}",
                 snapshot.FachdatenJson);
+            Assert.Equal(
+                B56SnapshotStatus.TechnischGeprueft,
+                snapshot.SnapshotStatus);
+            Assert.Null(
+                snapshot.BestaetigtAm);
+            Assert.Null(
+                snapshot.VerworfenAm);
         }
         finally
         {

@@ -696,6 +696,18 @@ public sealed class B56ImportControllerTests
             throw new NotSupportedException();
         }
 
+        public Task<B56ImportEintrag?> NachIdSuchenAsync(
+            Guid projektId,
+            Guid importId,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(
+                _eintraege.SingleOrDefault(
+                    eintrag =>
+                        eintrag.ProjektId == projektId &&
+                        eintrag.ImportId == importId));
+        }
+
         public Task EintragSpeichernAsync(
             B56ImportEintrag eintrag,
             CancellationToken cancellationToken = default)
@@ -719,6 +731,13 @@ public sealed class B56ImportControllerTests
         {
             return Task.FromResult(
                 _fachdaten);
+        }
+
+        public Task LebenszyklusSpeichernAsync(
+            B56ImportEintrag eintrag,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
         }
     }
 }

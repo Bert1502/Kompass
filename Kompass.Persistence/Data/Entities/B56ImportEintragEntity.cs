@@ -1,3 +1,5 @@
+using Kompass.Application.B56Import;
+
 namespace Kompass.Persistence.Data.Entities;
 
 public sealed class B56ImportEintragEntity
@@ -25,4 +27,10 @@ public sealed class B56ImportEintragEntity
     public int SnapshotSchemaVersion { get; set; }
 
     public string ParserVersion { get; set; } = string.Empty;
+
+    public B56SnapshotStatus SnapshotStatus { get; set; }
+
+    public DateTimeOffset? BestaetigtAm { get; set; }
+
+    public DateTimeOffset? VerworfenAm { get; set; }
 }

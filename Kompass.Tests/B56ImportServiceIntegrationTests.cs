@@ -427,6 +427,10 @@ public sealed class B56ImportServiceIntegrationTests
                 B56ImportStatus.Erfolgreich,
                 ergebnis.Status);
 
+            Assert.Equal(
+                B56SnapshotStatus.MitWarnungen,
+                ergebnis.ImportEintrag?.SnapshotStatus);
+
             Assert.NotNull(
                 ergebnis.PipelineErgebnis);
 

@@ -30,4 +30,11 @@ public sealed record B56ImportEintrag
 
     public string ParserVersion { get; init; } =
         B56SnapshotVersionen.AktuelleParserVersion;
+
+    public B56SnapshotStatus SnapshotStatus { get; init; } =
+        B56SnapshotStatus.TechnischGeprueft;
+
+    public DateTimeOffset? BestaetigtAm { get; init; }
+
+    public DateTimeOffset? VerworfenAm { get; init; }
 }

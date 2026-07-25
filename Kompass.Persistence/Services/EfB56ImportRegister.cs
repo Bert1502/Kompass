@@ -57,6 +57,25 @@ public sealed class EfB56ImportRegister : IB56ImportRegister
             .ToList();
     }
 
+    public async Task<B56ImportEintrag?> NachIdSuchenAsync(
+        Guid projektId,
+        Guid importId,
+        CancellationToken cancellationToken = default)
+    {
+        var entity =
+            await _dbContext.B56ImportEintraege
+                .AsNoTracking()
+                .SingleOrDefaultAsync(
+                    eintrag =>
+                        eintrag.ProjektId == projektId &&
+                        eintrag.ImportId == importId,
+                    cancellationToken);
+
+        return entity is null
+            ? null
+            : ZuModell(entity);
+    }
+
     public async Task EintragSpeichernAsync(
         B56ImportEintrag eintrag,
         CancellationToken cancellationToken = default)
@@ -130,6 +149,35 @@ public sealed class EfB56ImportRegister : IB56ImportRegister
         }
     }
 
+    public async Task LebenszyklusSpeichernAsync(
+        B56ImportEintrag eintrag,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(eintrag);
+
+        var entity =
+            await _dbContext.B56ImportEintraege
+                .SingleOrDefaultAsync(
+                    vorhandenerEintrag =>
+                        vorhandenerEintrag.ProjektId ==
+                            eintrag.ProjektId &&
+                        vorhandenerEintrag.ImportId ==
+                            eintrag.ImportId,
+                    cancellationToken)
+            ?? throw new InvalidOperationException(
+                "Der zu aktualisierende B56-Snapshot wurde nicht gefunden.");
+
+        entity.SnapshotStatus =
+            eintrag.SnapshotStatus;
+        entity.BestaetigtAm =
+            eintrag.BestaetigtAm;
+        entity.VerworfenAm =
+            eintrag.VerworfenAm;
+
+        await _dbContext.SaveChangesAsync(
+            cancellationToken);
+    }
+
     private async Task EintragSpeichernAsync(
         B56ImportEintrag eintrag,
         B56ImportPipelineErgebnis? fachdaten,
@@ -170,7 +218,13 @@ public sealed class EfB56ImportRegister : IB56ImportRegister
             SnapshotSchemaVersion =
                 eintrag.SnapshotSchemaVersion,
             ParserVersion =
-                eintrag.ParserVersion
+                eintrag.ParserVersion,
+            SnapshotStatus =
+                eintrag.SnapshotStatus,
+            BestaetigtAm =
+                eintrag.BestaetigtAm,
+            VerworfenAm =
+                eintrag.VerworfenAm
         };
     }
 
@@ -191,7 +245,13 @@ public sealed class EfB56ImportRegister : IB56ImportRegister
             SnapshotSchemaVersion =
                 entity.SnapshotSchemaVersion,
             ParserVersion =
-                entity.ParserVersion
+                entity.ParserVersion,
+            SnapshotStatus =
+                entity.SnapshotStatus,
+            BestaetigtAm =
+                entity.BestaetigtAm,
+            VerworfenAm =
+                entity.VerworfenAm
         };
     }
 }

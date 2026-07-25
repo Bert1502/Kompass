@@ -274,7 +274,10 @@ public sealed record B56ImportHistorieAntwort(
     DateTimeOffset ImportiertAm,
     string Dateiendung,
     int SnapshotSchemaVersion,
-    string ParserVersion)
+    string ParserVersion,
+    B56SnapshotStatus SnapshotStatus,
+    DateTimeOffset? BestaetigtAm,
+    DateTimeOffset? VerworfenAm)
 {
     public static B56ImportHistorieAntwort Aus(
         B56ImportEintrag eintrag)
@@ -288,7 +291,10 @@ public sealed record B56ImportHistorieAntwort(
             eintrag.ImportiertAm,
             eintrag.Dateiendung,
             eintrag.SnapshotSchemaVersion,
-            eintrag.ParserVersion);
+            eintrag.ParserVersion,
+            eintrag.SnapshotStatus,
+            eintrag.BestaetigtAm,
+            eintrag.VerworfenAm);
     }
 }
 
@@ -302,6 +308,7 @@ public sealed record B56ImportAntwort(
     DateTimeOffset? ImportiertAm,
     int? SnapshotSchemaVersion,
     string? ParserVersion,
+    B56SnapshotStatus? SnapshotStatus,
     B56ImportPipelineAntwort? Pipeline,
     IReadOnlyList<B56ImportMeldung> Meldungen)
 {
@@ -321,6 +328,7 @@ public sealed record B56ImportAntwort(
             eintrag?.ImportiertAm,
             eintrag?.SnapshotSchemaVersion,
             eintrag?.ParserVersion,
+            eintrag?.SnapshotStatus,
             B56ImportPipelineAntwort.Aus(
                 ergebnis.PipelineErgebnis),
             ergebnis.Meldungen);
@@ -338,7 +346,8 @@ public sealed record B56ImportPipelineAntwort(
     IReadOnlyList<B56KennwertAntwort> Bestandskennwerte,
     IReadOnlyList<B56ModernisierungsalternativeAntwort>
         Modernisierungsalternativen,
-    IReadOnlyList<string> Warnungen)
+    IReadOnlyList<string> Warnungen,
+    IReadOnlyList<string> BlockierendeFehler)
 {
     public static B56ImportPipelineAntwort? Aus(
         B56ImportPipelineErgebnis? ergebnis)
@@ -364,7 +373,8 @@ public sealed record B56ImportPipelineAntwort(
                     .Select(
                         B56ModernisierungsalternativeAntwort.Aus)
                     .ToList(),
-                ergebnis.Warnungen);
+                ergebnis.Warnungen,
+                ergebnis.BlockierendeFehler);
     }
 }
 

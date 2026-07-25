@@ -72,6 +72,24 @@ public sealed class EfB56ImportRegisterTests
                 Guid.NewGuid(),
                 neuererEintrag.ImportId);
 
+        var bestaetigungszeitpunkt =
+            DateTimeOffset.Parse(
+                "2026-07-25T09:00:00Z");
+
+        await register.LebenszyklusSpeichernAsync(
+            neuererEintrag with
+            {
+                SnapshotStatus =
+                    B56SnapshotStatus.FachlichBestaetigt,
+                BestaetigtAm =
+                    bestaetigungszeitpunkt
+            });
+
+        var bestaetigterSnapshot =
+            await register.NachIdSuchenAsync(
+                projektId,
+                neuererEintrag.ImportId);
+
         Assert.Equal(
             neuererEintrag.ImportId,
             nachHash?.ImportId);
@@ -86,6 +104,9 @@ public sealed class EfB56ImportRegisterTests
                 Assert.Equal(
                     B56SnapshotVersionen.AktuelleParserVersion,
                     eintrag.ParserVersion);
+                Assert.Equal(
+                    B56SnapshotStatus.TechnischGeprueft,
+                    eintrag.SnapshotStatus);
             });
 
         Assert.Equal(
@@ -112,6 +133,13 @@ public sealed class EfB56ImportRegisterTests
 
         Assert.Null(
             fremdeFachdaten);
+
+        Assert.Equal(
+            B56SnapshotStatus.FachlichBestaetigt,
+            bestaetigterSnapshot?.SnapshotStatus);
+        Assert.Equal(
+            bestaetigungszeitpunkt,
+            bestaetigterSnapshot?.BestaetigtAm);
     }
 
     [Fact]
