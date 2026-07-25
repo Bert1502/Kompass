@@ -162,6 +162,7 @@
                                Foreground="#687680"/>
 
                     <DataGrid ItemsSource="{Binding Importhistorie}"
+                              SelectedItem="{Binding AusgewaehlterHistorieneintrag}"
                               AutoGenerateColumns="False"
                               IsReadOnly="True"
                               CanUserAddRows="False"
@@ -186,8 +187,96 @@
 
                     </DataGrid>
 
+                    <Button Margin="0,14,0,0"
+                            Content="Ergebnisse anzeigen"
+                            Command="{Binding ErgebnisseAnzeigenCommand}"
+                            Width="180"
+                            Height="38"
+                            HorizontalAlignment="Left"/>
+
                 </StackPanel>
 
+            </Border>
+
+            <Border Margin="0,24,0,0"
+                    Background="White"
+                    BorderBrush="#D5DBDF"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="24">
+                <StackPanel>
+                    <TextBlock Text="Fachliche Importergebnisse"
+                               FontSize="20"
+                               FontWeight="SemiBold"/>
+                    <TextBlock Margin="0,6,0,16"
+                               Text="{Binding ErgebnisStatusText}"
+                               Foreground="#687680"/>
+
+                    <TextBlock Text="Bestandskennwerte"
+                               Margin="0,4,0,8"
+                               FontSize="16"
+                               FontWeight="SemiBold"/>
+                    <DataGrid ItemsSource="{Binding Bestandskennwerte}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              CanUserAddRows="False"
+                              MaxHeight="220">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Kennwert" Binding="{Binding Name}" Width="*"/>
+                            <DataGridTextColumn Header="Wert" Binding="{Binding Wert, StringFormat=N2}" Width="110"/>
+                            <DataGridTextColumn Header="Einheit" Binding="{Binding Einheit}" Width="140"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <TextBlock Text="Bauteile"
+                               Margin="0,20,0,8"
+                               FontSize="16"
+                               FontWeight="SemiBold"/>
+                    <DataGrid ItemsSource="{Binding Bauteile}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              CanUserAddRows="False"
+                              MaxHeight="260">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Code" Binding="{Binding Bauteilcode}" Width="90"/>
+                            <DataGridTextColumn Header="Bezeichnung" Binding="{Binding Bezeichnung}" Width="*"/>
+                            <DataGridTextColumn Header="Nachbarseite" Binding="{Binding Nachbarseite}" Width="180"/>
+                            <DataGridTextColumn Header="Fläche" Binding="{Binding Flaeche, StringFormat=N2}" Width="100"/>
+                            <DataGridTextColumn Header="U-Wert" Binding="{Binding UWert, StringFormat=N3}" Width="100"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <TextBlock Text="Modernisierungsvarianten"
+                               Margin="0,20,0,8"
+                               FontSize="16"
+                               FontWeight="SemiBold"/>
+                    <DataGrid ItemsSource="{Binding Modernisierungsalternativen}"
+                              SelectedItem="{Binding AusgewaehlteModernisierungsalternative}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              CanUserAddRows="False"
+                              MaxHeight="260">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Variante" Binding="{Binding Bezeichnung}" Width="220"/>
+                            <DataGridTextColumn Header="Beschreibung" Binding="{Binding Beschreibung}" Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <TextBlock Text="Kennwerte der ausgewählten Variante"
+                               Margin="0,16,0,8"
+                               FontWeight="SemiBold"/>
+                    <DataGrid ItemsSource="{Binding AusgewaehlteModernisierungsalternative.Kennwerte}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              CanUserAddRows="False"
+                              MaxHeight="240">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Kennwert" Binding="{Binding Name}" Width="*"/>
+                            <DataGridTextColumn Header="Wert" Binding="{Binding Wert, StringFormat=N2}" Width="110"/>
+                            <DataGridTextColumn Header="Einheit" Binding="{Binding Einheit}" Width="140"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
             </Border>
 
         </StackPanel>

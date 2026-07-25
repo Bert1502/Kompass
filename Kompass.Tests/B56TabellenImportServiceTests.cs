@@ -105,6 +105,94 @@ public sealed class B56TabellenImportServiceTests
                 .Beschreibung);
     }
 
+    [Fact]
+    public async Task Importiert_Neun_Modernisierungsalternativen()
+    {
+        var zeilen =
+            Enumerable.Range(
+                    1,
+                    9)
+                .SelectMany(
+                    nummer =>
+                    {
+                        var startzeile =
+                            nummer * 20;
+
+                        return new[]
+                        {
+                            Zeile(
+                                startzeile,
+                                ("A", $"Modernisierung {nummer}")),
+                            Zeile(
+                                startzeile + 1,
+                                ("B", "Bezeichnung"),
+                                ("C", $"Alternative {nummer}")),
+                            Zeile(
+                                startzeile + 2,
+                                ("B", "Primärenergiebedarf Gebäude"),
+                                ("C", $"{200 - nummer}"))
+                        };
+                    })
+                .Append(
+                    Zeile(
+                        220,
+                        ("A", "Bestand")))
+                .ToList();
+
+        var service =
+            new B56TabellenImportService(
+                new B56TabellenFinder());
+
+        var ergebnis =
+            await service.ImportierenAsync(
+                new B56ImportKontext
+                {
+                    ImportId =
+                        Guid.NewGuid(),
+                    ProjektId =
+                        Guid.NewGuid(),
+                    Projektname =
+                        "Testprojekt mit neun Alternativen",
+                    Quelldatei =
+                        "neun-modernisierungsalternativen.xlsm",
+                    Archivdatei =
+                        "neun-modernisierungsalternativen.xlsm",
+                    SHA256 =
+                        "0123456789abcdef",
+                    Importzeitpunkt =
+                        DateTimeOffset.UtcNow,
+                    Arbeitsmappe =
+                        new B56Arbeitsmappe
+                        {
+                            Dateipfad =
+                                "neun-modernisierungsalternativen.xlsm",
+                            Arbeitsblaetter =
+                            [
+                                new B56Arbeitsblatt
+                                {
+                                    Name =
+                                        "SCModernisierungen",
+                                    Zeilen =
+                                        zeilen
+                                }
+                            ]
+                        }
+                });
+
+        Assert.Equal(
+            9,
+            ergebnis.Modernisierungsalternativen.Count);
+
+        Assert.Equal(
+            Enumerable.Range(
+                    1,
+                    9)
+                .Select(
+                    nummer => $"Alternative {nummer}"),
+            ergebnis.Modernisierungsalternativen.Select(
+                alternative => alternative.Bezeichnung));
+    }
+
     private static IReadOnlyList<B56Zeile>
         ErzeugeReferenzzeilen()
     {
