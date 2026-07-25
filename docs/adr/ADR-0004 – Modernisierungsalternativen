@@ -1,0 +1,19 @@
+# ADR-0004 – Modernisierungsalternativen
+
+## Status
+
+Akzeptiert
+
+## Entscheidung
+
+Der Begriff "Modernisierungsalternative" entspricht der Terminologie von B56.
+
+Varianten sind unterschiedliche Planstände.
+
+Modernisierungsalternativen befinden sich innerhalb einer Variante.
+
+## Konsequenzen
+
+Im gesamten Quellcode werden ausschließlich diese Begriffe verwendet.
+
+Keine Synonyme wie Maßnahmenpakete oder Szenarien.

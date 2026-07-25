@@ -1,0 +1,23 @@
+# ADR-0005 – Wärmebrücken
+
+## Status
+
+Akzeptiert
+
+## Entscheidung
+
+KOMPASS berechnet keine Wärmebrücken.
+
+Alle Berechnungen erfolgen ausschließlich mit ThermCAD.
+
+KOMPASS übernimmt:
+
+- Verwaltung
+- Dokumentation
+- Zuordnung
+- Berichtserstellung
+- Bilanzierungsdaten
+
+## Konsequenzen
+
+Keine Psi-Berechnungen in KOMPASS.
