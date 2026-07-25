@@ -294,6 +294,18 @@ public sealed class B56ImportControllerTests
             ],
             antworten.Select(x => x.ImportId));
 
+        Assert.All(
+            antworten,
+            antwort =>
+            {
+                Assert.Equal(
+                    B56SnapshotVersionen.AktuelleSchemaVersion,
+                    antwort.SnapshotSchemaVersion);
+                Assert.Equal(
+                    B56SnapshotVersionen.AktuelleParserVersion,
+                    antwort.ParserVersion);
+            });
+
         var json =
             JsonSerializer.Serialize(
                 antworten,

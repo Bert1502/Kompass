@@ -1,4 +1,5 @@
 using Kompass.Persistence.Data.Entities;
+using Kompass.Application.B56Import;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -35,6 +36,17 @@ public sealed class B56ImportEintragEntityConfiguration
             .IsRequired();
 
         builder.Property(x => x.FachdatenJson);
+
+        builder.Property(x => x.SnapshotSchemaVersion)
+            .HasDefaultValue(
+                B56SnapshotVersionen.AktuelleSchemaVersion)
+            .IsRequired();
+
+        builder.Property(x => x.ParserVersion)
+            .HasMaxLength(50)
+            .HasDefaultValue(
+                B56SnapshotVersionen.LegacyParserVersion)
+            .IsRequired();
 
         builder.HasIndex(x => x.ProjektId);
 

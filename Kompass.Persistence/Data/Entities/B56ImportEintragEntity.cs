@@ -21,4 +21,8 @@ public sealed class B56ImportEintragEntity
     public string Dateiendung { get; set; } = string.Empty;
 
     public string? FachdatenJson { get; set; }
+
+    public int SnapshotSchemaVersion { get; set; }
+
+    public string ParserVersion { get; set; } = string.Empty;
 }

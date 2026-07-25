@@ -1,5 +1,6 @@
 using Kompass.Application.B56Import;
 using Kompass.Persistence.Data;
+using Kompass.Persistence.Data.Entities;
 using Kompass.Persistence.Services;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -75,6 +76,18 @@ public sealed class EfB56ImportRegisterTests
             neuererEintrag.ImportId,
             nachHash?.ImportId);
 
+        Assert.All(
+            alle,
+            eintrag =>
+            {
+                Assert.Equal(
+                    B56SnapshotVersionen.AktuelleSchemaVersion,
+                    eintrag.SnapshotSchemaVersion);
+                Assert.Equal(
+                    B56SnapshotVersionen.AktuelleParserVersion,
+                    eintrag.ParserVersion);
+            });
+
         Assert.Equal(
             [
                 neuererEintrag.ImportId,
@@ -99,6 +112,73 @@ public sealed class EfB56ImportRegisterTests
 
         Assert.Null(
             fremdeFachdaten);
+    }
+
+    [Fact]
+    public async Task Unbekannte_Schemaversion_wird_kontrolliert_abgelehnt()
+    {
+        await using var testdatenbank =
+            await ProjektTestdatenbank.ErstellenAsync();
+
+        var entity =
+            ErzeugeSnapshotEntity(
+                snapshotSchemaVersion: 999,
+                fachdatenJson: "{}");
+
+        testdatenbank.Context.B56ImportEintraege.Add(
+            entity);
+
+        await testdatenbank.Context.SaveChangesAsync();
+
+        var register =
+            new EfB56ImportRegister(
+                testdatenbank.Context);
+
+        var exception =
+            await Assert.ThrowsAsync<B56SnapshotFormatException>(
+                () => register.FachdatenAbrufenAsync(
+                    entity.ProjektId,
+                    entity.ImportId));
+
+        Assert.Equal(
+            entity.ImportId,
+            exception.ImportId);
+        Assert.Contains(
+            "999",
+            exception.Message);
+    }
+
+    [Fact]
+    public async Task Beschaedigte_Fachdaten_werden_kontrolliert_abgelehnt()
+    {
+        await using var testdatenbank =
+            await ProjektTestdatenbank.ErstellenAsync();
+
+        var entity =
+            ErzeugeSnapshotEntity(
+                B56SnapshotVersionen.AktuelleSchemaVersion,
+                "{ungueltig");
+
+        testdatenbank.Context.B56ImportEintraege.Add(
+            entity);
+
+        await testdatenbank.Context.SaveChangesAsync();
+
+        var register =
+            new EfB56ImportRegister(
+                testdatenbank.Context);
+
+        var exception =
+            await Assert.ThrowsAsync<B56SnapshotFormatException>(
+                () => register.FachdatenAbrufenAsync(
+                    entity.ProjektId,
+                    entity.ImportId));
+
+        Assert.Equal(
+            entity.ImportId,
+            exception.ImportId);
+        Assert.IsType<System.Text.Json.JsonException>(
+            exception.InnerException);
     }
 
     private static B56ImportPipelineErgebnis ErzeugeFachdaten()
@@ -175,6 +255,28 @@ public sealed class EfB56ImportRegisterTests
             DateigroesseBytes = 4,
             ImportiertAm = importiertAm,
             Dateiendung = ".xlsx"
+        };
+    }
+
+    private static B56ImportEintragEntity ErzeugeSnapshotEntity(
+        int snapshotSchemaVersion,
+        string fachdatenJson)
+    {
+        return new B56ImportEintragEntity
+        {
+            ImportId = Guid.NewGuid(),
+            ProjektId = Guid.NewGuid(),
+            Projektname = "Testprojekt",
+            Originaldateiname = "b56.xlsx",
+            Archivdateipfad = "archiv/b56.xlsx",
+            Sha256 = new string('a', 64),
+            DateigroesseBytes = 4,
+            ImportiertAm = DateTimeOffset.UtcNow,
+            Dateiendung = ".xlsx",
+            FachdatenJson = fachdatenJson,
+            SnapshotSchemaVersion = snapshotSchemaVersion,
+            ParserVersion =
+                B56SnapshotVersionen.AktuelleParserVersion
         };
     }
 }

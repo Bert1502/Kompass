@@ -86,26 +86,48 @@ public sealed class EfB56ImportRegister : IB56ImportRegister
             Guid importId,
             CancellationToken cancellationToken = default)
     {
-        var fachdatenJson =
+        var entity =
             await _dbContext.B56ImportEintraege
                 .AsNoTracking()
                 .Where(
                     eintrag =>
                         eintrag.ProjektId == projektId &&
                         eintrag.ImportId == importId)
-                .Select(
-                    eintrag =>
-                        eintrag.FachdatenJson)
                 .SingleOrDefaultAsync(
                     cancellationToken);
 
-        return string.IsNullOrWhiteSpace(
-                fachdatenJson)
-            ? null
-            : JsonSerializer.Deserialize<
+        if (entity is null ||
+            string.IsNullOrWhiteSpace(
+                entity.FachdatenJson))
+        {
+            return null;
+        }
+
+        if (entity.SnapshotSchemaVersion !=
+            B56SnapshotVersionen.AktuelleSchemaVersion)
+        {
+            throw new B56SnapshotFormatException(
+                importId,
+                $"Die B56-Snapshot-Schemaversion '{entity.SnapshotSchemaVersion}' wird nicht unterstützt.");
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<
                 B56ImportPipelineErgebnis>(
-                    fachdatenJson,
-                    JsonOptionen);
+                    entity.FachdatenJson,
+                    JsonOptionen)
+                ?? throw new B56SnapshotFormatException(
+                    importId,
+                    "Der B56-Snapshot enthält keine lesbaren Fachdaten.");
+        }
+        catch (JsonException exception)
+        {
+            throw new B56SnapshotFormatException(
+                importId,
+                "Der B56-Snapshot enthält beschädigte Fachdaten.",
+                exception);
+        }
     }
 
     private async Task EintragSpeichernAsync(
@@ -144,7 +166,11 @@ public sealed class EfB56ImportRegister : IB56ImportRegister
                     ? null
                     : JsonSerializer.Serialize(
                         fachdaten,
-                        JsonOptionen)
+                        JsonOptionen),
+            SnapshotSchemaVersion =
+                eintrag.SnapshotSchemaVersion,
+            ParserVersion =
+                eintrag.ParserVersion
         };
     }
 
@@ -161,7 +187,11 @@ public sealed class EfB56ImportRegister : IB56ImportRegister
             Sha256 = entity.Sha256,
             DateigroesseBytes = entity.DateigroesseBytes,
             ImportiertAm = entity.ImportiertAm,
-            Dateiendung = entity.Dateiendung
+            Dateiendung = entity.Dateiendung,
+            SnapshotSchemaVersion =
+                entity.SnapshotSchemaVersion,
+            ParserVersion =
+                entity.ParserVersion
         };
     }
 }
