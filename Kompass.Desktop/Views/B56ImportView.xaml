@@ -276,6 +276,44 @@
                             <DataGridTextColumn Header="Einheit" Binding="{Binding Einheit}" Width="140"/>
                         </DataGrid.Columns>
                     </DataGrid>
+
+                    <TextBlock Text="Bauteile der ausgewählten Variante"
+                               Margin="0,16,0,8"
+                               FontWeight="SemiBold"/>
+                    <DataGrid ItemsSource="{Binding AusgewaehlteModernisierungsalternative.Bauteile}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              CanUserAddRows="False"
+                              MaxHeight="260">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Code" Binding="{Binding Bauteilcode}" Width="90"/>
+                            <DataGridTextColumn Header="Bezeichnung" Binding="{Binding Bezeichnung}" Width="*"/>
+                            <DataGridTextColumn Header="Nachbarseite" Binding="{Binding Nachbarseite}" Width="180"/>
+                            <DataGridTextColumn Header="Fläche" Binding="{Binding Flaeche, StringFormat=N2}" Width="100"/>
+                            <DataGridTextColumn Header="U-Wert" Binding="{Binding UWert, StringFormat=N3}" Width="100"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <TextBlock Text="Importhinweise"
+                               Margin="0,20,0,8"
+                               FontSize="16"
+                               FontWeight="SemiBold"/>
+                    <ItemsControl ItemsSource="{Binding Importwarnungen}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Margin="0,0,0,6"
+                                        Padding="10"
+                                        Background="#FFF7E6"
+                                        BorderBrush="#E6C878"
+                                        BorderThickness="1"
+                                        CornerRadius="3">
+                                    <TextBlock Text="{Binding}"
+                                               Foreground="#624D17"
+                                               TextWrapping="Wrap"/>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                 </StackPanel>
             </Border>
 

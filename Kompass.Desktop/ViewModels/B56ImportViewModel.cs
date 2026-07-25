@@ -175,6 +175,9 @@ public sealed class B56ImportViewModel : ViewModelBase
     public ObservableCollection<B56BauteilDto> Bauteile
         { get; } = [];
 
+    public ObservableCollection<string> Importwarnungen
+        { get; } = [];
+
     public ObservableCollection<B56ModernisierungsalternativeDto>
         Modernisierungsalternativen
         { get; } = [];
@@ -620,6 +623,7 @@ public sealed class B56ImportViewModel : ViewModelBase
         Bestandskennwerte.Clear();
         Bauteile.Clear();
         Modernisierungsalternativen.Clear();
+        Importwarnungen.Clear();
 
         foreach (var kennwert in pipeline.Bestandskennwerte)
         {
@@ -639,12 +643,19 @@ public sealed class B56ImportViewModel : ViewModelBase
                 alternative);
         }
 
+        foreach (var warnung in pipeline.Warnungen)
+        {
+            Importwarnungen.Add(
+                warnung);
+        }
+
         AusgewaehlteModernisierungsalternative =
             Modernisierungsalternativen.FirstOrDefault();
 
         ErgebnisStatusText =
             $"{Bestandskennwerte.Count} Bestandskennwerte, " +
             $"{Bauteile.Count} Bauteile und " +
-            $"{Modernisierungsalternativen.Count} Modernisierungsvarianten geladen.";
+            $"{Modernisierungsalternativen.Count} Modernisierungsvarianten geladen. " +
+            $"{Importwarnungen.Count} Importwarnung(en).";
     }
 }
