@@ -56,7 +56,12 @@ public sealed record B56ImportHistorieDto(
     string Sha256,
     long DateigroesseBytes,
     DateTimeOffset ImportiertAm,
-    string Dateiendung)
+    string Dateiendung,
+    int SnapshotSchemaVersion,
+    string ParserVersion,
+    B56SnapshotStatus SnapshotStatus,
+    DateTimeOffset? BestaetigtAm,
+    DateTimeOffset? VerworfenAm)
 {
     public string ImportiertAmText =>
         ImportiertAm
@@ -91,3 +96,19 @@ public sealed record B56ImportHistorieDto(
         return $"{bytes} Byte";
     }
 }
+
+public sealed record B56SnapshotAktionAntwortDto(
+    B56SnapshotAktionStatus Status,
+    Guid? ImportId,
+    B56SnapshotStatus? SnapshotStatus,
+    DateTimeOffset? BestaetigtAm,
+    DateTimeOffset? VerworfenAm,
+    string Nachricht);
+
+public sealed record B56ProjektmodellUebernahmeAntwortDto(
+    B56ProjektmodellUebernahmeStatus Status,
+    Guid ProjektId,
+    Guid ImportId,
+    int ProjektmodellVersion,
+    int UebernommeneAlternativen,
+    string Nachricht);

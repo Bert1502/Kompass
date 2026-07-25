@@ -180,6 +180,9 @@
                             <DataGridTextColumn Header="Größe"
                                                 Binding="{Binding DateigroesseText}"
                                                 Width="100"/>
+                            <DataGridTextColumn Header="Status"
+                                                Binding="{Binding SnapshotStatus}"
+                                                Width="190"/>
                             <DataGridTextColumn Header="SHA-256"
                                                 Binding="{Binding KurzHash}"
                                                 Width="120"/>
@@ -193,6 +196,24 @@
                             Width="180"
                             Height="38"
                             HorizontalAlignment="Left"/>
+
+                    <StackPanel Margin="0,12,0,0"
+                                Orientation="Horizontal">
+                        <Button Content="Fachlich bestätigen"
+                                Command="{Binding SnapshotBestaetigenCommand}"
+                                Width="170"
+                                Height="38"/>
+                        <Button Content="Verwerfen"
+                                Command="{Binding SnapshotVerwerfenCommand}"
+                                Width="120"
+                                Height="38"
+                                Margin="10,0,0,0"/>
+                        <Button Content="Ins Projektmodell übernehmen"
+                                Command="{Binding InProjektmodellUebernehmenCommand}"
+                                Width="230"
+                                Height="38"
+                                Margin="10,0,0,0"/>
+                    </StackPanel>
 
                 </StackPanel>
 

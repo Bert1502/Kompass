@@ -17,4 +17,20 @@ public interface IB56ImportApiClient
         Guid projektId,
         string dateipfad,
         CancellationToken cancellationToken = default);
+
+    Task<B56SnapshotAktionAntwortDto> BestaetigenAsync(
+        Guid projektId,
+        Guid importId,
+        CancellationToken cancellationToken = default);
+
+    Task<B56SnapshotAktionAntwortDto> VerwerfenAsync(
+        Guid projektId,
+        Guid importId,
+        CancellationToken cancellationToken = default);
+
+    Task<B56ProjektmodellUebernahmeAntwortDto>
+        InProjektmodellUebernehmenAsync(
+            Guid projektId,
+            Guid importId,
+            CancellationToken cancellationToken = default);
 }
