@@ -191,6 +191,13 @@ public sealed class B56TabellenImportServiceTests
                     nummer => $"Alternative {nummer}"),
             ergebnis.Modernisierungsalternativen.Select(
                 alternative => alternative.Bezeichnung));
+
+        Assert.Equal(
+            Enumerable.Range(
+                1,
+                9),
+            ergebnis.Modernisierungsalternativen.Select(
+                alternative => alternative.Position));
     }
 
     private static IReadOnlyList<B56Zeile>

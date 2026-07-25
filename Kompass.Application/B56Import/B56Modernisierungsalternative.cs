@@ -2,6 +2,8 @@ namespace Kompass.Application.B56Import;
 
 public sealed class B56Modernisierungsalternative
 {
+    public int Position { get; set; }
+
     public string Bezeichnung { get; init; } = string.Empty;
 
     public string Beschreibung { get; init; } = string.Empty;

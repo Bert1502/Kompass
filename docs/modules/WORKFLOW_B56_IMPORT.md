@@ -19,4 +19,7 @@ Ich bestätige den Import erst nach Prüfung. Danach wird aus dem unveränderlic
 
 Bei einem späteren B56-Import wird eine neue Version angelegt. KOMPASS zeigt die Unterschiede. Meine bisherigen Kosten, Kommentare und sonstigen Ergänzungen werden nicht automatisch überschrieben.
 
+Modernisierungsalternativen werden dabei anhand ihrer stabilen
+B56-Position 1 bis 9 einander zugeordnet, nicht anhand ihres Namens.
+
 Anschließend kann ich Modernisierungsalternativen wirtschaftlich bewerten, Fördermöglichkeiten prüfen und Berichte erzeugen.

@@ -285,6 +285,8 @@ public sealed partial class B56TabellenImportService
             var alternative =
                 new B56Modernisierungsalternative
                 {
+                    Position =
+                        index + 1,
                     Bezeichnung =
                         bezeichnung,
                     Beschreibung =

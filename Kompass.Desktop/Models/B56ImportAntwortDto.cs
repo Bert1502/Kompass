@@ -47,7 +47,8 @@ public sealed record B56ModernisierungsalternativeDto(
     string Bezeichnung,
     string Beschreibung,
     IReadOnlyList<B56BauteilDto> Bauteile,
-    IReadOnlyList<B56KennwertDto> Kennwerte);
+    IReadOnlyList<B56KennwertDto> Kennwerte,
+    int Position = 0);
 
 public sealed record B56ImportHistorieDto(
     Guid ImportId,

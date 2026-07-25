@@ -278,6 +278,7 @@
                               CanUserAddRows="False"
                               MaxHeight="260">
                         <DataGrid.Columns>
+                            <DataGridTextColumn Header="Position" Binding="{Binding Position}" Width="75"/>
                             <DataGridTextColumn Header="Variante" Binding="{Binding Bezeichnung}" Width="220"/>
                             <DataGridTextColumn Header="Beschreibung" Binding="{Binding Beschreibung}" Width="*"/>
                         </DataGrid.Columns>
