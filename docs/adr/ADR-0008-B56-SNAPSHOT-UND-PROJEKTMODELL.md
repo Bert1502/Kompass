@@ -137,28 +137,28 @@ Schema-Version zu verwechseln:
 
 Ein Import durchläuft fachlich folgende Zustände:
 
-1. **Empfangen**  
+1. **Empfangen**
    Die Datei wurde projektbezogen entgegengenommen, ist aber noch
    nicht fachlich verwertbar.
 
-2. **Validiert**  
+2. **Validiert**
    Dateiendung, Dateigröße, OpenXML-Struktur und Projektbezug sind
    gültig. Der Datei-Hash wurde bestimmt.
 
-3. **Archiviert**  
+3. **Archiviert**
    Die unveränderte Quelldatei wurde projektbezogen und
    überschreibgeschützt abgelegt.
 
-4. **Analysiert**  
+4. **Analysiert**
    Arbeitsblätter und bekannte B56-Bereiche wurden gelesen.
    Unbekannte oder nicht freigegebene Bereiche erzeugen Warnungen und
    werden nicht fachlich erfunden.
 
-5. **Persistiert**  
+5. **Persistiert**
    Metadaten, Snapshot-Payload, Versionen, Warnungen und
    Herkunftsinformationen wurden gemeinsam gespeichert.
 
-6. **Verfügbar**  
+6. **Verfügbar**
    Der Snapshot kann angezeigt, verglichen und ausdrücklich in das
    Projektmodell übernommen werden.
 
