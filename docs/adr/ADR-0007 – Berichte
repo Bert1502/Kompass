@@ -1,0 +1,19 @@
+# ADR-0007 – Berichtswesen
+
+## Status
+
+Akzeptiert
+
+## Entscheidung
+
+Alle Berichte basieren auf denselben Projektdaten.
+
+Es existiert keine doppelte Datenhaltung für Berichte.
+
+Die Berichtsgenerierung greift ausschließlich auf das Domänenmodell zu.
+
+## Konsequenzen
+
+Keine separaten Berichtsdatenbanken.
+
+Keine redundanten Datenstrukturen.
