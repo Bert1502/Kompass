@@ -18,7 +18,8 @@ public sealed class Modernisierungsalternative : Entity
         Guid id,
         string bezeichnung,
         string kurztext,
-        Guid? quellSnapshotId = null)
+        Guid? quellSnapshotId = null,
+        int? b56Position = null)
         : base(id)
     {
         if (string.IsNullOrWhiteSpace(bezeichnung))
@@ -27,9 +28,17 @@ public sealed class Modernisierungsalternative : Entity
                 "Die Bezeichnung der Modernisierungsalternative darf nicht leer sein.");
         }
 
+        if (b56Position is < 1 or > 9)
+        {
+            throw new DomainException(
+                "Die B56-Position muss zwischen 1 und 9 liegen.");
+        }
+
         Bezeichnung = bezeichnung.Trim();
         Kurztext = kurztext?.Trim() ?? string.Empty;
         QuellSnapshotId = quellSnapshotId;
+        B56Position = b56Position;
+        IstImAktuellenB56SnapshotVorhanden = true;
     }
 
     public string Bezeichnung { get; private set; }
@@ -37,6 +46,10 @@ public sealed class Modernisierungsalternative : Entity
     public string Kurztext { get; private set; }
 
     public Guid? QuellSnapshotId { get; private set; }
+
+    public int? B56Position { get; private set; }
+
+    public bool IstImAktuellenB56SnapshotVorhanden { get; private set; } = true;
 
     public IReadOnlyCollection<AlternativeBauteil> Bauteile =>
         _bauteile.AsReadOnly();
@@ -64,6 +77,16 @@ public sealed class Modernisierungsalternative : Entity
         string kurztext)
     {
         Kurztext = kurztext?.Trim() ?? string.Empty;
+    }
+
+    public void AlsNichtMehrImAktuellenB56SnapshotVorhandenKennzeichnen()
+    {
+        IstImAktuellenB56SnapshotVorhanden = false;
+    }
+
+    public void AlsImAktuellenB56SnapshotVorhandenKennzeichnen()
+    {
+        IstImAktuellenB56SnapshotVorhanden = true;
     }
 
     public void BauteilHinzufuegen(

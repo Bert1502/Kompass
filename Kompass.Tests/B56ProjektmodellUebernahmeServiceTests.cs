@@ -91,6 +91,11 @@ public sealed class B56ProjektmodellUebernahmeServiceTests
         Assert.Equal(
             snapshot.ImportId,
             alternative.QuellSnapshotId);
+        Assert.Equal(
+            1,
+            alternative.B56Position);
+        Assert.True(
+            alternative.IstImAktuellenB56SnapshotVorhanden);
         Assert.Single(
             alternative.Bauteile);
         Assert.Equal(
@@ -178,6 +183,7 @@ public sealed class B56ProjektmodellUebernahmeServiceTests
             [
                 new B56Modernisierungsalternative
                 {
+                    Position = 1,
                     Bezeichnung = "Fenstertausch",
                     Beschreibung = "Fenster erneuern",
                     Bauteile =

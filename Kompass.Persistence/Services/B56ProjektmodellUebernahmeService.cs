@@ -157,7 +157,8 @@ public sealed class B56ProjektmodellUebernahmeService
                 Guid.NewGuid(),
                 quelle.Bezeichnung,
                 quelle.Beschreibung,
-                snapshotId);
+                snapshotId,
+                quelle.Position);
 
         foreach (var quellBauteil in quelle.Bauteile)
         {

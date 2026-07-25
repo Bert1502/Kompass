@@ -102,4 +102,40 @@ public sealed class ProjektDomainTests
                     "Dach",
                     "")));
     }
+
+    [Fact]
+    public void B56_Alternative_behaelt_Position_und_kann_als_nicht_vorhanden_markiert_werden()
+    {
+        var alternative =
+            new Modernisierungsalternative(
+                Guid.NewGuid(),
+                "Fenster",
+                "Fenstertausch",
+                Guid.NewGuid(),
+                3);
+
+        alternative
+            .AlsNichtMehrImAktuellenB56SnapshotVorhandenKennzeichnen();
+
+        Assert.Equal(
+            3,
+            alternative.B56Position);
+        Assert.False(
+            alternative.IstImAktuellenB56SnapshotVorhanden);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(10)]
+    public void B56_Alternative_lehnt_ungueltige_Position_ab(
+        int position)
+    {
+        Assert.Throws<DomainException>(
+            () => new Modernisierungsalternative(
+                Guid.NewGuid(),
+                "Fenster",
+                "Fenstertausch",
+                Guid.NewGuid(),
+                position));
+    }
 }

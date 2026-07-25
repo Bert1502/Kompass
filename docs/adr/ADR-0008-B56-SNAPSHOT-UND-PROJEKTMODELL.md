@@ -34,6 +34,11 @@ fachliche Position von 1 bis 9. Diese Position ist der Schlüssel für
 den Vergleich zwischen zwei Snapshots. Bezeichnung und Beschreibung
 dürfen sich ändern und sind deshalb keine Identitätsmerkmale.
 
+Ist eine zuvor vorhandene Position in einem neuen Snapshot nicht mehr
+belegt, wird die zugehörige Alternative im Projektmodell nicht gelöscht.
+Sie wird als „Im aktuellen B56-Snapshot nicht mehr vorhanden“
+gekennzeichnet. Kosten, Kommentare und Historie bleiben erhalten.
+
 ## Konsequenzen
 
 - Importierte B56-Werte bleiben nachweisbar.
