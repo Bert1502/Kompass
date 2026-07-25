@@ -120,7 +120,8 @@ public sealed class ProjektServiceTests
                     Guid.NewGuid(),
                     "Fenster",
                     "",
-                    snapshotId)
+                    snapshotId,
+                    1)
             ]);
 
         testdatenbank.Context.Projekte.Add(

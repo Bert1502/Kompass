@@ -138,4 +138,94 @@ public sealed class ProjektDomainTests
                 Guid.NewGuid(),
                 position));
     }
+
+    [Fact]
+    public void Erneuter_Snapshot_synchronisiert_nach_Position_ohne_manuelle_Alternative_zu_veraendern()
+    {
+        var ersterSnapshotId =
+            Guid.NewGuid();
+
+        var projekt =
+            new Projekt(
+                Guid.NewGuid(),
+                "Rathaus");
+
+        projekt.AusSnapshotErzeugen(
+            ersterSnapshotId,
+            [
+                new Modernisierungsalternative(
+                    Guid.NewGuid(),
+                    "Fenster alt",
+                    "",
+                    ersterSnapshotId,
+                    1),
+                new Modernisierungsalternative(
+                    Guid.NewGuid(),
+                    "Dach",
+                    "",
+                    ersterSnapshotId,
+                    2)
+            ]);
+
+        var manuelleAlternative =
+            new Modernisierungsalternative(
+                Guid.NewGuid(),
+                "Manuell",
+                "");
+
+        projekt.AlternativeHinzufuegen(
+            manuelleAlternative);
+
+        var zweiterSnapshotId =
+            Guid.NewGuid();
+
+        var hinzugefuegt =
+            projekt.AusSnapshotErzeugen(
+                zweiterSnapshotId,
+                [
+                    new Modernisierungsalternative(
+                        Guid.NewGuid(),
+                        "Fenster neu",
+                        "",
+                        zweiterSnapshotId,
+                        1),
+                    new Modernisierungsalternative(
+                        Guid.NewGuid(),
+                        "Heizung",
+                        "",
+                        zweiterSnapshotId,
+                        3)
+                ]);
+
+        var position1 =
+            projekt.Alternativen.Single(
+                alternative =>
+                    alternative.B56Position == 1);
+        var position2 =
+            projekt.Alternativen.Single(
+                alternative =>
+                    alternative.B56Position == 2);
+
+        Assert.Equal(
+            "Fenster neu",
+            position1.Bezeichnung);
+        Assert.True(
+            position1.IstImAktuellenB56SnapshotVorhanden);
+        Assert.False(
+            position2.IstImAktuellenB56SnapshotVorhanden);
+        Assert.Same(
+            manuelleAlternative,
+            projekt.Alternativen.Single(
+                alternative =>
+                    alternative.B56Position is null));
+        Assert.Equal(
+            3,
+            Assert.Single(hinzugefuegt).B56Position);
+        Assert.Equal(
+            2,
+            projekt.ProjektmodellVersion);
+        Assert.Equal(
+            zweiterSnapshotId,
+            projekt.QuellSnapshotId);
+    }
 }
