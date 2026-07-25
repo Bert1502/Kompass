@@ -1,6 +1,6 @@
 # Architekturreview KOMPASS
 
-Stand: 25. Juli 2026  
+Stand: 25. Juli 2026
 Analysierter Commit: `2840858e9612221d61bdb5c26122fa38686c1892`
 
 ## 1. Auftrag und Methode
