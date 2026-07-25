@@ -29,6 +29,11 @@ Ein erneuter Import erzeugt einen neuen Snapshot. Er überschreibt weder ältere
 
 Änderungen werden verglichen und nach fachlicher Bestätigung übernommen.
 
+Modernisierungsalternativen besitzen im B56-Export eine stabile
+fachliche Position von 1 bis 9. Diese Position ist der Schlüssel für
+den Vergleich zwischen zwei Snapshots. Bezeichnung und Beschreibung
+dürfen sich ändern und sind deshalb keine Identitätsmerkmale.
+
 ## Konsequenzen
 
 - Importierte B56-Werte bleiben nachweisbar.

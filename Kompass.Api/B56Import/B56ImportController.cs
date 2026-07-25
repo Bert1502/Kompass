@@ -416,7 +416,8 @@ public sealed record B56ModernisierungsalternativeAntwort(
     string Bezeichnung,
     string Beschreibung,
     IReadOnlyList<B56BauteilAntwort> Bauteile,
-    IReadOnlyList<B56KennwertAntwort> Kennwerte)
+    IReadOnlyList<B56KennwertAntwort> Kennwerte,
+    int Position = 0)
 {
     public static B56ModernisierungsalternativeAntwort Aus(
         B56Modernisierungsalternative alternative)
@@ -431,6 +432,7 @@ public sealed record B56ModernisierungsalternativeAntwort(
             alternative.Kennwerte
                 .Select(
                     B56KennwertAntwort.Aus)
-                .ToList());
+                .ToList(),
+            alternative.Position);
     }
 }

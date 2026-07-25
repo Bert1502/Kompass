@@ -125,11 +125,16 @@ public sealed class EfB56ImportRegisterTests
                     fachdaten.Bauteile)
                 .Bauteilcode);
 
+        var alternative =
+            Assert.Single(
+                fachdaten.Modernisierungsalternativen);
+
         Assert.Equal(
             "Fenster",
-            Assert.Single(
-                    fachdaten.Modernisierungsalternativen)
-                .Bezeichnung);
+            alternative.Bezeichnung);
+        Assert.Equal(
+            1,
+            alternative.Position);
 
         Assert.Null(
             fremdeFachdaten);

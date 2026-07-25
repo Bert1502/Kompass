@@ -132,13 +132,30 @@ public sealed class EfB56ImportRegister : IB56ImportRegister
 
         try
         {
-            return JsonSerializer.Deserialize<
-                B56ImportPipelineErgebnis>(
-                    entity.FachdatenJson,
-                    JsonOptionen)
+            var fachdaten =
+                JsonSerializer.Deserialize<
+                    B56ImportPipelineErgebnis>(
+                        entity.FachdatenJson,
+                        JsonOptionen)
                 ?? throw new B56SnapshotFormatException(
                     importId,
                     "Der B56-Snapshot enthält keine lesbaren Fachdaten.");
+
+            for (var index = 0;
+                 index < fachdaten.Modernisierungsalternativen.Count;
+                 index++)
+            {
+                var alternative =
+                    fachdaten.Modernisierungsalternativen[index];
+
+                if (alternative.Position == 0)
+                {
+                    alternative.Position =
+                        index + 1;
+                }
+            }
+
+            return fachdaten;
         }
         catch (JsonException exception)
         {
