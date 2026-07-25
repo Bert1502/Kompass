@@ -115,6 +115,9 @@ public sealed class B56ProjektmodellUebernahmeService
             projekt.AusSnapshotErzeugen(
                 importId,
                 alternativen);
+
+            _dbContext.Set<Modernisierungsalternative>().AddRange(
+                alternativen);
         }
         catch (DomainException exception)
         {
@@ -144,7 +147,7 @@ public sealed class B56ProjektmodellUebernahmeService
             "Der B56-Snapshot wurde in das Projektmodell übernommen.");
     }
 
-    private static Modernisierungsalternative ErzeugeAlternative(
+    private Modernisierungsalternative ErzeugeAlternative(
         B56Modernisierungsalternative quelle,
         Guid snapshotId,
         IDictionary<string, Bauteilcode> bauteilcodes)
@@ -167,6 +170,9 @@ public sealed class B56ProjektmodellUebernahmeService
                         Guid.NewGuid(),
                         quellBauteil.Bauteilcode,
                         quellBauteil.Bezeichnung);
+
+                _dbContext.Set<Bauteilcode>().Add(
+                    bauteilcode);
 
                 bauteilcodes.Add(
                     quellBauteil.Bauteilcode,

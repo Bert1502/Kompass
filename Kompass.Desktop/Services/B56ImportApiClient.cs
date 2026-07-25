@@ -202,4 +202,92 @@ public sealed class B56ImportApiClient : IB56ImportApiClient
                 exception);
         }
     }
+
+    public Task<B56SnapshotAktionAntwortDto> BestaetigenAsync(
+        Guid projektId,
+        Guid importId,
+        CancellationToken cancellationToken = default)
+    {
+        return SnapshotAktionAsync(
+            projektId,
+            importId,
+            "bestaetigen",
+            cancellationToken);
+    }
+
+    public Task<B56SnapshotAktionAntwortDto> VerwerfenAsync(
+        Guid projektId,
+        Guid importId,
+        CancellationToken cancellationToken = default)
+    {
+        return SnapshotAktionAsync(
+            projektId,
+            importId,
+            "verwerfen",
+            cancellationToken);
+    }
+
+    public async Task<B56ProjektmodellUebernahmeAntwortDto>
+        InProjektmodellUebernehmenAsync(
+            Guid projektId,
+            Guid importId,
+            CancellationToken cancellationToken = default)
+    {
+        return await PostUndAntwortLesenAsync<
+            B56ProjektmodellUebernahmeAntwortDto>(
+                projektId,
+                importId,
+                "in-projektmodell-uebernehmen",
+                cancellationToken);
+    }
+
+    private Task<B56SnapshotAktionAntwortDto> SnapshotAktionAsync(
+        Guid projektId,
+        Guid importId,
+        string aktion,
+        CancellationToken cancellationToken)
+    {
+        return PostUndAntwortLesenAsync<B56SnapshotAktionAntwortDto>(
+            projektId,
+            importId,
+            aktion,
+            cancellationToken);
+    }
+
+    private async Task<TAntwort> PostUndAntwortLesenAsync<TAntwort>(
+        Guid projektId,
+        Guid importId,
+        string aktion,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response =
+                await _httpClient.PostAsync(
+                    $"api/projekte/{projektId}/b56-importe/{importId}/{aktion}",
+                    null,
+                    cancellationToken);
+
+            var antwort =
+                await response.Content.ReadFromJsonAsync<TAntwort>(
+                    JsonOptionen,
+                    cancellationToken);
+
+            return antwort
+                ?? throw new ProjektApiException(
+                    "Die Antwort der B56-Snapshotaktion konnte nicht gelesen werden.");
+        }
+        catch (HttpRequestException exception)
+        {
+            throw new ProjektApiException(
+                "Die B56-Snapshotaktion konnte nicht ausgefuehrt werden.",
+                exception);
+        }
+        catch (JsonException exception)
+        {
+            throw new ProjektApiException(
+                "Die Antwort der B56-Snapshotaktion konnte nicht gelesen werden.",
+                exception);
+        }
+    }
 }

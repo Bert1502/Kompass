@@ -56,6 +56,21 @@ public sealed class B56ImportViewModel : ViewModelBase
             new AsyncRelayCommand(
                 ErgebnisseAnzeigenAsync,
                 KannErgebnisseAnzeigen);
+
+        SnapshotBestaetigenCommand =
+            new AsyncRelayCommand(
+                SnapshotBestaetigenAsync,
+                KannSnapshotBestaetigen);
+
+        SnapshotVerwerfenCommand =
+            new AsyncRelayCommand(
+                SnapshotVerwerfenAsync,
+                KannSnapshotVerwerfen);
+
+        InProjektmodellUebernehmenCommand =
+            new AsyncRelayCommand(
+                InProjektmodellUebernehmenAsync,
+                KannInProjektmodellUebernehmen);
     }
 
     public Guid? ProjektId
@@ -165,6 +180,12 @@ public sealed class B56ImportViewModel : ViewModelBase
     public ICommand ImportStartenCommand { get; }
 
     public ICommand ErgebnisseAnzeigenCommand { get; }
+
+    public ICommand SnapshotBestaetigenCommand { get; }
+
+    public ICommand SnapshotVerwerfenCommand { get; }
+
+    public ICommand InProjektmodellUebernehmenCommand { get; }
 
     public ObservableCollection<B56ImportHistorieDto> Importhistorie
         { get; } = [];
@@ -457,6 +478,151 @@ public sealed class B56ImportViewModel : ViewModelBase
             && AusgewaehlterHistorieneintrag is not null;
     }
 
+    private bool KannSnapshotBestaetigen()
+    {
+        return KannSnapshotAktionAusfuehren(
+            B56SnapshotStatus.TechnischGeprueft,
+            B56SnapshotStatus.MitWarnungen);
+    }
+
+    private bool KannSnapshotVerwerfen()
+    {
+        return KannSnapshotAktionAusfuehren(
+            B56SnapshotStatus.TechnischGeprueft,
+            B56SnapshotStatus.MitWarnungen,
+            B56SnapshotStatus.Blockiert);
+    }
+
+    private bool KannInProjektmodellUebernehmen()
+    {
+        return KannSnapshotAktionAusfuehren(
+            B56SnapshotStatus.FachlichBestaetigt);
+    }
+
+    private bool KannSnapshotAktionAusfuehren(
+        params B56SnapshotStatus[] erlaubteStatus)
+    {
+        return !IstBeschaeftigt
+            && ProjektId.HasValue
+            && AusgewaehlterHistorieneintrag is not null
+            && erlaubteStatus.Contains(
+                AusgewaehlterHistorieneintrag.SnapshotStatus);
+    }
+
+    private Task SnapshotBestaetigenAsync()
+    {
+        return SnapshotAktionAusfuehrenAsync(
+            (projektId, importId) =>
+                _importApiClient.BestaetigenAsync(
+                    projektId,
+                    importId));
+    }
+
+    private Task SnapshotVerwerfenAsync()
+    {
+        return SnapshotAktionAusfuehrenAsync(
+            (projektId, importId) =>
+                _importApiClient.VerwerfenAsync(
+                    projektId,
+                    importId));
+    }
+
+    private async Task SnapshotAktionAusfuehrenAsync(
+        Func<Guid, Guid, Task<B56SnapshotAktionAntwortDto>> aktion)
+    {
+        if (!ProjektId.HasValue ||
+            AusgewaehlterHistorieneintrag is null)
+        {
+            return;
+        }
+
+        try
+        {
+            IstBeschaeftigt = true;
+
+            var importId =
+                AusgewaehlterHistorieneintrag.ImportId;
+
+            var antwort =
+                await aktion(
+                    ProjektId.Value,
+                    importId);
+
+            ErgebnisStatusText =
+                antwort.Nachricht;
+
+            await AktualisiereHistorieAsync(
+                importId);
+
+            if (antwort.Status !=
+                B56SnapshotAktionStatus.Erfolgreich)
+            {
+                _dialogService.FehlerAnzeigen(
+                    antwort.Nachricht);
+            }
+        }
+        catch (Exception exception)
+        {
+            ErgebnisStatusText =
+                $"Die Snapshotaktion ist fehlgeschlagen: {exception.Message}";
+
+            _dialogService.FehlerAnzeigen(
+                ErgebnisStatusText);
+        }
+        finally
+        {
+            IstBeschaeftigt = false;
+        }
+    }
+
+    private async Task InProjektmodellUebernehmenAsync()
+    {
+        if (!ProjektId.HasValue ||
+            AusgewaehlterHistorieneintrag is null)
+        {
+            return;
+        }
+
+        try
+        {
+            IstBeschaeftigt = true;
+
+            var importId =
+                AusgewaehlterHistorieneintrag.ImportId;
+
+            var antwort =
+                await _importApiClient
+                    .InProjektmodellUebernehmenAsync(
+                        ProjektId.Value,
+                        importId);
+
+            ErgebnisStatusText =
+                antwort.Nachricht;
+
+            await AktualisiereHistorieAsync(
+                importId);
+
+            if (antwort.Status !=
+                B56ProjektmodellUebernahmeStatus.Erfolgreich)
+            {
+                _dialogService.FehlerAnzeigen(
+                    antwort.Nachricht);
+            }
+        }
+        catch (Exception exception)
+        {
+            ErgebnisStatusText =
+                $"Die Projektuebernahme ist fehlgeschlagen: {exception.Message}";
+
+            _dialogService.FehlerAnzeigen(
+                ErgebnisStatusText);
+        }
+        finally
+        {
+            IstBeschaeftigt = false;
+        }
+    }
+
     private async Task ErgebnisseAnzeigenAsync()
     {
         if (!ProjektId.HasValue ||
@@ -506,6 +672,15 @@ public sealed class B56ImportViewModel : ViewModelBase
 
         AktualisiereCommand(
             ErgebnisseAnzeigenCommand);
+
+        AktualisiereCommand(
+            SnapshotBestaetigenCommand);
+
+        AktualisiereCommand(
+            SnapshotVerwerfenCommand);
+
+        AktualisiereCommand(
+            InProjektmodellUebernehmenCommand);
     }
 
     private static void AktualisiereCommand(
@@ -597,7 +772,8 @@ public sealed class B56ImportViewModel : ViewModelBase
         return string.Empty;
     }
 
-    private async Task AktualisiereHistorieAsync()
+    private async Task AktualisiereHistorieAsync(
+        Guid? auszuwaehlendeImportId = null)
     {
         var historie =
             await _importApiClient.HistorieAbrufenAsync(
@@ -609,6 +785,15 @@ public sealed class B56ImportViewModel : ViewModelBase
         {
             Importhistorie.Add(
                 eintrag);
+        }
+
+        if (auszuwaehlendeImportId.HasValue)
+        {
+            AusgewaehlterHistorieneintrag =
+                Importhistorie.FirstOrDefault(
+                    eintrag =>
+                        eintrag.ImportId ==
+                        auszuwaehlendeImportId.Value);
         }
 
         HistorieStatusText =
