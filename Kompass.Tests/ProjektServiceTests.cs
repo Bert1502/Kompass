@@ -100,6 +100,54 @@ public sealed class ProjektServiceTests
     }
 
     [Fact]
+    public async Task NachIdAbrufen_liefert_Projektmodellversion_und_Snapshot_Herkunft()
+    {
+        await using var testdatenbank =
+            await ProjektTestdatenbank.ErstellenAsync();
+
+        var snapshotId =
+            Guid.NewGuid();
+
+        var projekt =
+            new Projekt(
+                Guid.NewGuid(),
+                "Rathaus");
+
+        projekt.AusSnapshotErzeugen(
+            snapshotId,
+            [
+                new Modernisierungsalternative(
+                    Guid.NewGuid(),
+                    "Fenster",
+                    "",
+                    snapshotId)
+            ]);
+
+        testdatenbank.Context.Projekte.Add(
+            projekt);
+
+        await testdatenbank.Context.SaveChangesAsync();
+
+        var service =
+            new ProjektService(
+                testdatenbank.Context);
+
+        var gelesen =
+            await service.NachIdAbrufenAsync(
+                projekt.Id);
+
+        Assert.Equal(
+            snapshotId,
+            gelesen?.QuellSnapshotId);
+        Assert.Equal(
+            1,
+            gelesen?.ProjektmodellVersion);
+        Assert.Equal(
+            1,
+            gelesen?.AnzahlAlternativen);
+    }
+
+    [Fact]
     public async Task Erstellen_lehnt_doppelten_bereinigten_Namen_ab()
     {
         await using var testdatenbank =

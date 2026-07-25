@@ -288,11 +288,11 @@
 
                                 <StackPanel>
 
-                                    <TextBlock Text="Nächster Schritt"
+                                    <TextBlock Text="Projektmodell"
                                                Foreground="#687680"
                                                FontSize="12"/>
 
-                                    <TextBlock Text="B56-Datei importieren"
+                                    <TextBlock Text="{Binding ProjektmodellStatus}"
                                                Margin="0,7,0,0"
                                                Foreground="#263746"
                                                FontSize="19"
@@ -304,6 +304,23 @@
                             </Border>
 
                         </Grid>
+
+                        <Border Margin="0,18,0,0"
+                                Background="White"
+                                BorderBrush="#D5DBDF"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="18">
+                            <StackPanel>
+                                <TextBlock Text="Quell-Snapshot"
+                                           Foreground="#687680"
+                                           FontSize="12"/>
+                                <TextBlock Text="{Binding QuellSnapshotId}"
+                                           Margin="0,7,0,0"
+                                           Foreground="#263746"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
 
                         <Border Margin="0,28,0,0"
                                 Background="White"
