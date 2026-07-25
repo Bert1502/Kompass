@@ -48,6 +48,16 @@ public sealed class B56ImportEintragEntityConfiguration
                 B56SnapshotVersionen.LegacyParserVersion)
             .IsRequired();
 
+        builder.Property(x => x.SnapshotStatus)
+            .HasConversion<int>()
+            .HasDefaultValue(
+                B56SnapshotStatus.TechnischGeprueft)
+            .IsRequired();
+
+        builder.Property(x => x.BestaetigtAm);
+
+        builder.Property(x => x.VerworfenAm);
+
         builder.HasIndex(x => x.ProjektId);
 
         builder.HasIndex(x => new

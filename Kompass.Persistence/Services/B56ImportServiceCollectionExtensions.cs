@@ -51,6 +51,13 @@ services.AddScoped<
             IB56ImportService,
             B56ImportService>();
 
+        services.AddScoped<
+            IB56SnapshotLebenszyklusService,
+            B56SnapshotLebenszyklusService>();
+
+        services.AddSingleton(
+            TimeProvider.System);
+
         services.AddSingleton<
             IB56DateiPruefer,
             B56Import.B56DateiPruefer>();

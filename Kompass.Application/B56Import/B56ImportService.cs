@@ -158,6 +158,14 @@ public sealed class B56ImportService : IB56ImportService
                         },
                         cancellationToken);
 
+                eintrag =
+                    eintrag with
+                    {
+                        SnapshotStatus =
+                            ErmittleSnapshotStatus(
+                                pipelineErgebnis)
+                    };
+
                 await _importRegister
                     .EintragMitFachdatenSpeichernAsync(
                     eintrag,
@@ -220,5 +228,18 @@ public sealed class B56ImportService : IB56ImportService
         {
             // Der ursprüngliche Fehler bleibt maßgeblich.
         }
+    }
+
+    private static B56SnapshotStatus ErmittleSnapshotStatus(
+        B56ImportPipelineErgebnis pipelineErgebnis)
+    {
+        if (pipelineErgebnis.BlockierendeFehler.Count > 0)
+        {
+            return B56SnapshotStatus.Blockiert;
+        }
+
+        return pipelineErgebnis.Warnungen.Count > 0
+            ? B56SnapshotStatus.MitWarnungen
+            : B56SnapshotStatus.TechnischGeprueft;
     }
 }

@@ -7,6 +7,11 @@ public interface IB56ImportRegister
         string sha256,
         CancellationToken cancellationToken = default);
 
+    Task<B56ImportEintrag?> NachIdSuchenAsync(
+        Guid projektId,
+        Guid importId,
+        CancellationToken cancellationToken = default);
+
     Task EintragSpeichernAsync(
         B56ImportEintrag eintrag,
         CancellationToken cancellationToken = default);
@@ -19,6 +24,10 @@ public interface IB56ImportRegister
     Task<B56ImportPipelineErgebnis?> FachdatenAbrufenAsync(
         Guid projektId,
         Guid importId,
+        CancellationToken cancellationToken = default);
+
+    Task LebenszyklusSpeichernAsync(
+        B56ImportEintrag eintrag,
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<B56ImportEintrag>>

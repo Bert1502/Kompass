@@ -29,4 +29,7 @@ public sealed class B56ImportPipelineErgebnis
 
     public IReadOnlyList<string> Warnungen { get; init; }
         = Array.Empty<string>();
+
+    public IReadOnlyList<string> BlockierendeFehler { get; init; }
+        = Array.Empty<string>();
 }
