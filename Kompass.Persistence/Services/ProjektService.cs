@@ -23,7 +23,9 @@ public sealed class ProjektService : IProjektService
             .Select(projekt => new ProjektUebersicht(
                 projekt.Id,
                 projekt.Name,
-                projekt.Alternativen.Count))
+                projekt.Alternativen.Count,
+                projekt.QuellSnapshotId,
+                projekt.ProjektmodellVersion))
             .ToListAsync(cancellationToken);
     }
 
@@ -42,7 +44,9 @@ public sealed class ProjektService : IProjektService
             .Select(projekt => new ProjektUebersicht(
                 projekt.Id,
                 projekt.Name,
-                projekt.Alternativen.Count))
+                projekt.Alternativen.Count,
+                projekt.QuellSnapshotId,
+                projekt.ProjektmodellVersion))
             .SingleOrDefaultAsync(cancellationToken);
     }
 
@@ -157,6 +161,8 @@ public sealed class ProjektService : IProjektService
         return new ProjektUebersicht(
             projekt.Id,
             projekt.Name,
-            projekt.Alternativen.Count);
+            projekt.Alternativen.Count,
+            projekt.QuellSnapshotId,
+            projekt.ProjektmodellVersion);
     }
 }

@@ -76,6 +76,12 @@ public sealed class ProjektWorkspaceViewModel : ViewModelBase
 
             OnPropertyChanged(
                 nameof(AnzahlAlternativen));
+
+            OnPropertyChanged(
+                nameof(ProjektmodellStatus));
+
+            OnPropertyChanged(
+                nameof(QuellSnapshotId));
         }
     }
 
@@ -105,6 +111,15 @@ public sealed class ProjektWorkspaceViewModel : ViewModelBase
     public int AnzahlAlternativen =>
         Projekt?.AnzahlAlternativen
         ?? 0;
+
+    public string ProjektmodellStatus =>
+        Projekt?.ProjektmodellVersion > 0
+            ? $"Version {Projekt.ProjektmodellVersion}"
+            : "Noch nicht erzeugt";
+
+    public string QuellSnapshotId =>
+        Projekt?.QuellSnapshotId?.ToString()
+        ?? "Kein B56-Snapshot übernommen";
 
     public string AktiverBereich
     {

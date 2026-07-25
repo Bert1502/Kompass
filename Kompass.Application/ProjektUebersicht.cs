@@ -3,4 +3,6 @@
 public sealed record ProjektUebersicht(
     Guid Id,
     string Name,
-    int AnzahlAlternativen);
+    int AnzahlAlternativen,
+    Guid? QuellSnapshotId = null,
+    int ProjektmodellVersion = 0);
