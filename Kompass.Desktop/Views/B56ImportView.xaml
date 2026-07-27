@@ -279,12 +279,12 @@
                               MaxHeight="260">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Position" Binding="{Binding Position}" Width="75"/>
-                            <DataGridTextColumn Header="Variante" Binding="{Binding Bezeichnung}" Width="220"/>
+                            <DataGridTextColumn Header="Modernisierungsalternative" Binding="{Binding Bezeichnung}" Width="220"/>
                             <DataGridTextColumn Header="Beschreibung" Binding="{Binding Beschreibung}" Width="*"/>
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <TextBlock Text="Kennwerte der ausgewählten Variante"
+                    <TextBlock Text="Kennwerte der ausgewählten Modernisierungsalternative"
                                Margin="0,16,0,8"
                                FontWeight="SemiBold"/>
                     <DataGrid ItemsSource="{Binding AusgewaehlteModernisierungsalternative.Kennwerte}"
@@ -299,7 +299,7 @@
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <TextBlock Text="Bauteile der ausgewählten Variante"
+                    <TextBlock Text="Bauteile der ausgewählten Modernisierungsalternative"
                                Margin="0,16,0,8"
                                FontWeight="SemiBold"/>
                     <DataGrid ItemsSource="{Binding AusgewaehlteModernisierungsalternative.Bauteile}"
