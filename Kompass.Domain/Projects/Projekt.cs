@@ -4,6 +4,8 @@ namespace Kompass.Domain.Projects;
 
 public sealed class Projekt : AggregateRoot
 {
+    public const int MaxInterneBezeichnungLaenge = 200;
+
     private readonly List<Modernisierungsalternative> _alternativen = new();
 
     private Projekt()
@@ -44,10 +46,10 @@ public sealed class Projekt : AggregateRoot
         {
             var bereinigt = interneBezeichnung.Trim();
 
-            if (bereinigt.Length > 200)
+            if (bereinigt.Length > MaxInterneBezeichnungLaenge)
             {
                 throw new DomainException(
-                    "Die interne Bezeichnung darf höchstens 200 Zeichen enthalten.");
+                    $"Die interne Bezeichnung darf höchstens {MaxInterneBezeichnungLaenge} Zeichen enthalten.");
             }
 
             InterneBezeichnung = bereinigt.Length == 0 ? null : bereinigt;
