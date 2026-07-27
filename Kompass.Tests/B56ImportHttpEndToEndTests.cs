@@ -169,6 +169,185 @@ public sealed class B56ImportHttpEndToEndTests
         }
     }
 
+    [Fact]
+    public async Task Http_Vertrag_zweiter_Import_und_Vergleich_zeigen_Aenderungen()
+    {
+        var testverzeichnis =
+            Path.Combine(
+                Path.GetTempPath(),
+                $"kompass-b56-vergleich-{Guid.NewGuid():N}");
+
+        Directory.CreateDirectory(
+            testverzeichnis);
+
+        try
+        {
+            await using var factory =
+                new B56ApiFactory(
+                    testverzeichnis);
+
+            using var client =
+                factory.CreateClient();
+
+            // Projekt anlegen
+            var projektAntwort =
+                await client.PostAsJsonAsync(
+                    "/api/projekte",
+                    new { Name = "Vergleich-Testprojekt" });
+
+            Assert.Equal(
+                HttpStatusCode.Created,
+                projektAntwort.StatusCode);
+
+            using var projektJson =
+                await JsonDocument.ParseAsync(
+                    await projektAntwort.Content.ReadAsStreamAsync());
+
+            var projektId =
+                projektJson.RootElement
+                    .GetProperty("id")
+                    .GetGuid();
+
+            // Ersten Import hochladen
+            using var upload1 =
+                new MultipartFormDataContent();
+
+            upload1.Add(
+                new ByteArrayContent(
+                    ErzeugeB56Arbeitsmappe()),
+                "datei",
+                "b56-v1.xlsx");
+
+            var import1Antwort =
+                await client.PostAsync(
+                    $"/api/projekte/{projektId}/b56-importe",
+                    upload1);
+
+            Assert.Equal(
+                HttpStatusCode.Created,
+                import1Antwort.StatusCode);
+
+            using var import1Json =
+                await JsonDocument.ParseAsync(
+                    await import1Antwort.Content.ReadAsStreamAsync());
+
+            var import1Id =
+                import1Json.RootElement
+                    .GetProperty("importId")
+                    .GetGuid();
+
+            // Zweiten Import mit geändertem Kennwert hochladen
+            using var upload2 =
+                new MultipartFormDataContent();
+
+            upload2.Add(
+                new ByteArrayContent(
+                    ErzeugeB56ArbeitsmappeGeaendert()),
+                "datei",
+                "b56-v2.xlsx");
+
+            var import2Antwort =
+                await client.PostAsync(
+                    $"/api/projekte/{projektId}/b56-importe",
+                    upload2);
+
+            Assert.Equal(
+                HttpStatusCode.Created,
+                import2Antwort.StatusCode);
+
+            using var import2Json =
+                await JsonDocument.ParseAsync(
+                    await import2Antwort.Content.ReadAsStreamAsync());
+
+            var import2Id =
+                import2Json.RootElement
+                    .GetProperty("importId")
+                    .GetGuid();
+
+            // Vergleich abrufen
+            var vergleichAntwort =
+                await client.GetAsync(
+                    $"/api/projekte/{projektId}/b56-importe/{import2Id}/vergleich?vorgaenger={import1Id}");
+
+            vergleichAntwort.EnsureSuccessStatusCode();
+
+            using var vergleichJson =
+                await JsonDocument.ParseAsync(
+                    await vergleichAntwort.Content.ReadAsStreamAsync());
+
+            Assert.Equal(
+                projektId,
+                vergleichJson.RootElement
+                    .GetProperty("projektId")
+                    .GetGuid());
+
+            Assert.Equal(
+                import1Id,
+                vergleichJson.RootElement
+                    .GetProperty("vorgaengerSnapshotId")
+                    .GetGuid());
+
+            Assert.Equal(
+                import2Id,
+                vergleichJson.RootElement
+                    .GetProperty("nachfolgerSnapshotId")
+                    .GetGuid());
+
+            Assert.True(
+                vergleichJson.RootElement
+                    .GetProperty("hatAenderungen")
+                    .GetBoolean());
+
+            // Der Bestandskennwert hat sich geändert (200 → 180)
+            var kennwerte =
+                vergleichJson.RootElement
+                    .GetProperty("bestandskennwertVergleiche")
+                    .EnumerateArray()
+                    .ToList();
+
+            var geaendert =
+                Assert.Single(
+                    kennwerte,
+                    k =>
+                        k.GetProperty("name").GetString() ==
+                            "Primärenergiebedarf Gebäude" &&
+                        k.GetProperty("aenderung").GetInt32() == 1);
+
+            Assert.Equal(
+                200,
+                geaendert
+                    .GetProperty("alterWert")
+                    .GetDouble());
+
+            Assert.Equal(
+                180,
+                geaendert
+                    .GetProperty("neuerWert")
+                    .GetDouble());
+
+            // Fehlende Vorgänger-Snapshot-ID liefert 404
+            var fehlendeAntwort =
+                await client.GetAsync(
+                    $"/api/projekte/{projektId}/b56-importe/{import2Id}/vergleich?vorgaenger={Guid.NewGuid()}");
+
+            Assert.Equal(
+                HttpStatusCode.NotFound,
+                fehlendeAntwort.StatusCode);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+
+            if (Directory.Exists(
+                    testverzeichnis))
+            {
+                Directory.Delete(
+                    testverzeichnis,
+                    recursive: true);
+            }
+        }
+    }
+
     private static byte[] ErzeugeB56Arbeitsmappe()
     {
         using var stream =
@@ -210,6 +389,85 @@ public sealed class B56ImportHttpEndToEndTests
                             228,
                             ("B", "Primärenergiebedarf Gebäude"),
                             ("C", "200")),
+                        Zeile(
+                            245,
+                            ("A", "Tabelle U-Werte der Bauteile")),
+                        Zeile(
+                            247,
+                            ("B", "Bauteilcode"),
+                            ("C", "Bauteil"),
+                            ("D", "Nachbarseite"),
+                            ("E", "U-Wert")),
+                        Zeile(
+                            249,
+                            ("B", "AW01"),
+                            ("C", "Außenwand"),
+                            ("D", "gegen Außenluft"),
+                            ("E", "0.24"))));
+
+            var sheets =
+                workbookPart.Workbook.AppendChild(
+                    new Sheets());
+
+            sheets.Append(
+                new Sheet
+                {
+                    Id =
+                        workbookPart.GetIdOfPart(
+                            worksheetPart),
+                    SheetId = 1,
+                    Name = "SCModernisierungen"
+                });
+
+            workbookPart.Workbook.Save();
+        }
+
+        return stream.ToArray();
+    }
+
+    private static byte[] ErzeugeB56ArbeitsmappeGeaendert()
+    {
+        using var stream =
+            new MemoryStream();
+
+        using (var dokument =
+            SpreadsheetDocument.Create(
+                stream,
+                SpreadsheetDocumentType.Workbook,
+                autoSave: true))
+        {
+            var workbookPart =
+                dokument.AddWorkbookPart();
+
+            workbookPart.Workbook =
+                new Workbook();
+
+            var worksheetPart =
+                workbookPart.AddNewPart<WorksheetPart>();
+
+            // Gleiche Struktur wie ErzeugeB56Arbeitsmappe,
+            // aber Bestandskennwert 180 statt 200 → anderer Hash
+            worksheetPart.Worksheet =
+                new Worksheet(
+                    new SheetData(
+                        Zeile(
+                            4,
+                            ("A", "Modernisierung in einem Zug")),
+                        Zeile(
+                            5,
+                            ("B", "Bezeichnung"),
+                            ("C", "Gesamtpaket")),
+                        Zeile(
+                            8,
+                            ("B", "Primärenergiebedarf Gebäude"),
+                            ("C", "100")),
+                        Zeile(
+                            227,
+                            ("A", "Bestand")),
+                        Zeile(
+                            228,
+                            ("B", "Primärenergiebedarf Gebäude"),
+                            ("C", "180")),
                         Zeile(
                             245,
                             ("A", "Tabelle U-Werte der Bauteile")),
