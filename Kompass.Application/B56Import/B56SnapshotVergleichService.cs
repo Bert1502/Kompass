@@ -3,6 +3,8 @@ namespace Kompass.Application.B56Import;
 public sealed class B56SnapshotVergleichService
     : IB56SnapshotVergleichService
 {
+    private const double Gleichheitstoleranz = 1e-9;
+
     private readonly IB56ImportRegister _importRegister;
 
     public B56SnapshotVergleichService(
@@ -119,7 +121,7 @@ public sealed class B56SnapshotVergleichService
                 aenderung =
                     Math.Abs(
                         altKennwert!.Wert -
-                        neuKennwert!.Wert) < 1e-9
+                        neuKennwert!.Wert) < Gleichheitstoleranz
                         ? B56VergleichsAenderung.Unveraendert
                         : B56VergleichsAenderung.Geaendert;
             }
@@ -205,10 +207,10 @@ public sealed class B56SnapshotVergleichService
                 aenderung =
                     Math.Abs(
                         altBauteil!.UWert -
-                        neuBauteil!.UWert) < 1e-9 &&
+                        neuBauteil!.UWert) < Gleichheitstoleranz &&
                     Math.Abs(
                         altBauteil.Flaeche -
-                        neuBauteil.Flaeche) < 1e-9
+                        neuBauteil.Flaeche) < Gleichheitstoleranz
                         ? B56VergleichsAenderung.Unveraendert
                         : B56VergleichsAenderung.Geaendert;
             }

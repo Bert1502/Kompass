@@ -761,6 +761,9 @@ public sealed class B56SnapshotVergleichServiceTests
                 Projektname = "Testprojekt",
                 Originaldateiname = "b56.xlsx",
                 Archivdateipfad = "archiv/b56.xlsx",
+                // Deterministischer 64-Zeichen-Hash: Wiederholung eines aus
+                // der Import-ID abgeleiteten Buchstabens, damit verschiedene
+                // Import-IDs unterschiedliche Hashes erzeugen.
                 Sha256 = new string(
                     (char)('a' + (importId.ToByteArray()[0] % 26)),
                     64),
