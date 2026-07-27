@@ -382,6 +382,15 @@ public sealed class ProjekteControllerTests
                 _aktualisieren);
         }
 
+        public Task<ProjektUebersicht?> ProjektdatenAktualisierenAsync(
+            Guid id,
+            string? interneBezeichnung,
+            Kompass.Domain.Projects.Bearbeitungsstatus bearbeitungsstatus,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
         public Task<bool> LoeschenAsync(
             Guid id,
             CancellationToken cancellationToken = default)

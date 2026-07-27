@@ -129,6 +129,37 @@ public sealed class ProjektService : IProjektService
         return ErzeugeUebersicht(projekt);
     }
 
+    public async Task<ProjektUebersicht?> ProjektdatenAktualisierenAsync(
+        Guid id,
+        string? interneBezeichnung,
+        Bearbeitungsstatus bearbeitungsstatus,
+        CancellationToken cancellationToken = default)
+    {
+        if (id == Guid.Empty)
+        {
+            return null;
+        }
+
+        var projekt = await _dbContext.Projekte
+            .Include(eintrag => eintrag.Alternativen)
+            .SingleOrDefaultAsync(
+                eintrag => eintrag.Id == id,
+                cancellationToken);
+
+        if (projekt is null)
+        {
+            return null;
+        }
+
+        projekt.ProjektdatenAktualisieren(
+            interneBezeichnung,
+            bearbeitungsstatus);
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return ErzeugeUebersicht(projekt);
+    }
+
     public async Task<bool> LoeschenAsync(
         Guid id,
         CancellationToken cancellationToken = default)
@@ -163,6 +194,8 @@ public sealed class ProjektService : IProjektService
             projekt.Name,
             projekt.Alternativen.Count,
             projekt.QuellSnapshotId,
-            projekt.ProjektmodellVersion);
+            projekt.ProjektmodellVersion,
+            projekt.InterneBezeichnung,
+            projekt.Bearbeitungsstatus);
     }
 }

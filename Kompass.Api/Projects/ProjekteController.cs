@@ -195,4 +195,51 @@ public sealed class ProjekteController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpPatch("{id:guid}/projektdaten")]
+    [ProducesResponseType(
+        typeof(ProjektUebersicht),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(
+        StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProjektUebersicht>>
+        ProjektdatenAktualisierenAsync(
+            Guid id,
+            [FromBody] ProjektdatenAktualisierenRequest request,
+            CancellationToken cancellationToken)
+    {
+        try
+        {
+            var projekt =
+                await _projektService.ProjektdatenAktualisierenAsync(
+                    id,
+                    request.InterneBezeichnung,
+                    request.Bearbeitungsstatus,
+                    cancellationToken);
+
+            if (projekt is null)
+            {
+                return NotFound(new
+                {
+                    Nachricht =
+                        $"Das Projekt mit der ID '{id}' wurde nicht gefunden."
+                });
+            }
+
+            return Ok(projekt);
+        }
+        catch (DomainException exception)
+        {
+            _logger.LogWarning(
+                exception,
+                "Projektdaten konnten wegen ungültiger Daten nicht aktualisiert werden.");
+
+            return BadRequest(new
+            {
+                Nachricht = exception.Message
+            });
+        }
+    }
 }

@@ -19,6 +19,11 @@ public sealed class Projekt : AggregateRoot
 
     public string Name { get; private set; }
 
+    public string? InterneBezeichnung { get; private set; }
+
+    public Bearbeitungsstatus Bearbeitungsstatus { get; private set; }
+        = Bearbeitungsstatus.InBearbeitung;
+
     public Guid? QuellSnapshotId { get; private set; }
 
     public int ProjektmodellVersion { get; private set; }
@@ -29,6 +34,30 @@ public sealed class Projekt : AggregateRoot
     public void Umbenennen(string name)
     {
         Name = BereinigeName(name);
+    }
+
+    public void ProjektdatenAktualisieren(
+        string? interneBezeichnung,
+        Bearbeitungsstatus bearbeitungsstatus)
+    {
+        if (interneBezeichnung is not null)
+        {
+            var bereinigt = interneBezeichnung.Trim();
+
+            if (bereinigt.Length > 200)
+            {
+                throw new DomainException(
+                    "Die interne Bezeichnung darf höchstens 200 Zeichen enthalten.");
+            }
+
+            InterneBezeichnung = bereinigt.Length == 0 ? null : bereinigt;
+        }
+        else
+        {
+            InterneBezeichnung = null;
+        }
+
+        Bearbeitungsstatus = bearbeitungsstatus;
     }
 
     public void AlternativeHinzufuegen(
