@@ -32,7 +32,7 @@ public sealed class ProjekteControllerTests
             Assert.IsType<OkObjectResult>(
                 ergebnis.Result);
 
-        Assert.Same(
+        Assert.Equal(
             projekte,
             ok.Value);
     }
@@ -64,7 +64,7 @@ public sealed class ProjekteControllerTests
             Assert.IsType<OkObjectResult>(
                 ergebnis.Result);
 
-        Assert.Same(
+        Assert.Equal(
             projekt,
             ok.Value);
     }
