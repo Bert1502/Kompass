@@ -25,7 +25,9 @@ public sealed class ProjektService : IProjektService
                 projekt.Name,
                 projekt.Alternativen.Count,
                 projekt.QuellSnapshotId,
-                projekt.ProjektmodellVersion))
+                projekt.ProjektmodellVersion,
+                projekt.InterneBezeichnung,
+                projekt.Bearbeitungsstatus))
             .ToListAsync(cancellationToken);
     }
 
@@ -46,7 +48,9 @@ public sealed class ProjektService : IProjektService
                 projekt.Name,
                 projekt.Alternativen.Count,
                 projekt.QuellSnapshotId,
-                projekt.ProjektmodellVersion))
+                projekt.ProjektmodellVersion,
+                projekt.InterneBezeichnung,
+                projekt.Bearbeitungsstatus))
             .SingleOrDefaultAsync(cancellationToken);
     }
 
