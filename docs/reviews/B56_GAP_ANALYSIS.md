@@ -1,5 +1,7 @@
 # B56-Gap-Analyse
 
+**Stand:** 27. Juli 2026 (aktualisiert nach Paket-3- bis Paket-5-Implementierung)
+
 ## 1. Auftrag und Bewertungsgrundlage
 
 Diese Analyse vergleicht den aktuellen Quellcode mit:
@@ -24,27 +26,27 @@ Bewertungsstufen:
 
 ## 2. Zusammenfassung
 
-Der vorhandene B56-Pfad ist ein stabiler technischer Import mit
-Archivierung, projektbezogener Duplikaterkennung, ausgewählter
-fachlicher Zuordnung, Persistenz, API-Abfrage und Desktopanzeige.
+Seit der ersten Gap-Analyse wurden die Pakete 3 bis 5 erfolgreich
+implementiert:
 
-Er ist noch nicht der in der Fachspezifikation beschriebene
-bestätigungs- und versionsgesteuerte Snapshot-Prozess:
+- Snapshot-Schema- und Parser-Versionierung mit Legacy-Migration;
+- fachlicher Snapshotlebenszyklus mit allen sieben Zuständen;
+- Bestätigung, Verwerfung und Übernahme in das Projektmodell;
+- Re-Import und Versionsvergleich anhand stabiler B56-Positionen;
+- B56-Position und Präsenzkennzeichnung für Alternativen.
 
-- `FachdatenJson` besitzt keine Schema- oder Parser-Version.
-- Der Importstatus beschreibt nur den unmittelbaren technischen
-  Aufruf, nicht den fachlichen Lebenszyklus.
-- Eine fachliche Bestätigung ist nicht modelliert.
-- Es gibt keinen expliziten Anwendungsfall zur Übernahme in das
-  Projektmodell.
-- Folgeimporte werden nicht verglichen.
-- Benutzerergänzungen und Konflikte sind noch nicht mit ihrer Herkunft
-  verbunden.
+Der aktuelle Implementierungsstand deckt damit den durchgängigen
+fachlichen B56-Importpfad vom Hochladen bis zur Projektmodellübernahme
+einschließlich Folgeimport-Vergleich vollständig ab. `dotnet test`
+bestätigt 95/95 Tests bestanden.
 
-Die nächste funktionale Änderung sollte deshalb weiterhin die
-Snapshot-Schema-Versionierung sein. Zusätzliche B56-Felder,
-Wirtschaftlichkeit und Berichtswesen sollten diesem Fundament nicht
-vorgezogen werden.
+Offene Schwerpunkte für die nächste Ausbaustufe:
+
+- bearbeitbarer vollständiger Projektstand (Kontakte, Standort,
+  Kosten, Förderung, Wirtschaftlichkeit);
+- persistierte Vergleichs- und Konfliktergebnisse;
+- vollständiger End-to-End-Prozesstest über alle elf Abnahmeschritte;
+- Wirtschaftlichkeit, Förderung und Berichtswesen.
 
 ## 3. Bereits erfüllt
 
@@ -149,61 +151,165 @@ Nachweise:
 - `Kompass.Tests/ProjektDomainTests.cs`
 - `Kompass.Tests/ProjektServiceTests.cs`
 
+### 3.7 Snapshot-Schema- und Parser-Versionierung
+
+- `B56SnapshotVersionen` enthält `AktuelleSchemaVersion = 1` und
+  `AktuelleParserVersion = "1.1"` sowie `LegacyParserVersion = "legacy"`.
+- `SnapshotSchemaVersion` und `ParserVersion` werden relational in
+  `B56ImportEintraege` gespeichert.
+- Bestandsdaten erhalten durch die Migration Standardwerte
+  (`SnapshotSchemaVersion = 1`, `ParserVersion = "legacy"`).
+- `EfB56ImportRegister` wirft `B56SnapshotFormatException` bei einer
+  unbekannten Schema-Version; der Payload wird nicht lautlos falsch
+  deserialisiert.
+- `B56ImportEintrag` und `B56ImportEintragEntity` führen beide Felder.
+
+Nachweise:
+
+- `Kompass.Application/B56Import/B56SnapshotVersionen.cs`
+- `Kompass.Application/B56Import/B56SnapshotFormatException.cs`
+- `Kompass.Persistence/Data/Entities/B56ImportEintragEntity.cs`
+- `Kompass.Persistence/Migrations/20260725075146_VersionB56Snapshots.cs`
+- `Kompass.Persistence/Services/EfB56ImportRegister.cs`
+- `Kompass.Tests/KompassDbContextMigrationTests.cs`
+- `Kompass.Tests/EfB56ImportRegisterTests.cs`
+
+### 3.8 Fachlicher Snapshotlebenszyklus
+
+- `B56SnapshotStatus` bildet alle sieben geforderten Zustände ab:
+  `TechnischGeprueft`, `MitWarnungen`, `Blockiert`, `FachlichBestaetigt`,
+  `InProjektmodellUebernommen`, `Verworfen`.
+- `B56SnapshotLebenszyklusService` implementiert `BestaetigenAsync` und
+  `VerwerfenAsync` mit expliziten, geprüften Statusübergängen.
+- Blockierte Snapshots können nicht bestätigt, aber verworfen werden.
+- Bestätigungs- und Verwerfungszeitpunkt werden in `BestaetigtAm`
+  beziehungsweise `VerworfenAm` gespeichert.
+- `B56SnapshotLebenszyklusController` bildet Anwendungsergebnisse auf
+  HTTP-Status ab.
+- Migration `AddB56SnapshotLifecycle` fügt alle drei Felder rückwärts­
+  kompatibel mit dem Standardstatus `TechnischGeprueft` hinzu.
+
+Nachweise:
+
+- `Kompass.Application/B56Import/B56SnapshotStatus.cs`
+- `Kompass.Application/B56Import/B56SnapshotLebenszyklusService.cs`
+- `Kompass.Api/B56Import/B56SnapshotLebenszyklusController.cs`
+- `Kompass.Persistence/Migrations/20260725084054_AddB56SnapshotLifecycle.cs`
+- `Kompass.Tests/B56SnapshotLebenszyklusServiceTests.cs`
+- `Kompass.Tests/B56SnapshotLebenszyklusControllerTests.cs`
+
+### 3.9 Übernahme in das Projektmodell
+
+- `B56ProjektmodellUebernahmeService` überträgt Modernisierungs­
+  alternativen und Bauteilreferenzen aus einem fachlich bestätigten
+  Snapshot in das Projektmodell.
+- Nur Snapshots mit Status `FachlichBestaetigt` dürfen übernommen werden.
+- Die erneute Übernahme desselben Snapshots ist idempotent.
+- Herkunft wird als `QuellSnapshotId` am Projekt und an jeder
+  übernommenen Alternative gespeichert.
+- `ProjektmodellVersion` am Projekt steigt nach jeder Übernahme.
+- Nach erfolgreicher Übernahme erhält der Snapshot den Status
+  `InProjektmodellUebernommen`.
+- `B56ProjektmodellController` bildet die Ergebnisse auf HTTP ab.
+- Migration `AddB56ProjectModelOrigin` ergänzt `QuellSnapshotId` und
+  `ProjektmodellVersion` rückwärtskompatibel.
+
+Nachweise:
+
+- `Kompass.Application/B56Import/IB56ProjektmodellUebernahmeService.cs`
+- `Kompass.Persistence/Services/B56ProjektmodellUebernahmeService.cs`
+- `Kompass.Api/B56Import/B56ProjektmodellController.cs`
+- `Kompass.Persistence/Migrations/20260725085558_AddB56ProjectModelOrigin.cs`
+- `Kompass.Tests/B56ProjektmodellUebernahmeServiceTests.cs`
+- `Kompass.Tests/B56ProjektmodellControllerTests.cs`
+
+### 3.10 Re-Import und Versionsvergleich
+
+- `B56SnapshotVergleichService` vergleicht zwei Snapshots anhand
+  Kennwertname, Bauteilcode und B56-Position (1–9).
+- Hinzugefügte, geänderte und entfernte Kennwerte, Bauteile und
+  Alternativen werden erkannt und im Ergebnis ausgewiesen.
+- Bezeichnungsänderungen bei Alternativen werden als inhaltliche
+  Änderung behandelt.
+- `B56SnapshotVergleichController` stellt den Vergleich als
+  HTTP-Endpunkt bereit.
+- Der HTTP-End-to-End-Test prüft zweiten Import und Vergleich über
+  echte HTTP-Serialisierung.
+
+Nachweise:
+
+- `Kompass.Application/B56Import/B56SnapshotVergleichService.cs`
+- `Kompass.Api/B56Import/B56SnapshotVergleichController.cs`
+- `Kompass.Tests/B56SnapshotVergleichServiceTests.cs` (12 Tests)
+- `Kompass.Tests/B56ImportHttpEndToEndTests.cs`
+
+### 3.11 B56-Position und Präsenzkennzeichnung für Alternativen
+
+- `B56Position` wird beim Import aus `SCModernisierungen` extrahiert
+  und als stabiler Schlüssel in `Modernisierungsalternativen` gespeichert.
+- `IstImAktuellenB56SnapshotVorhanden` kennzeichnet Alternativen, die
+  im letzten Snapshot nicht mehr belegt sind.
+- Damit ist der ADR-0008-Grundsatz umgesetzt: Kosten, Kommentare und
+  Historie bleiben erhalten; die Alternative wird nicht gelöscht.
+- Migration `TrackB56AlternativePresence` ergänzt beide Spalten.
+
+Nachweise:
+
+- `Kompass.Persistence/Migrations/20260725101500_TrackB56AlternativePresence.cs`
+- `Kompass.Application/B56Import/B56Modernisierungsalternative.cs`
+- `Kompass.Tests/B56SnapshotVergleichServiceTests.cs`
+
 ## 4. Teilweise erfüllt
 
 ### 4.1 Unveränderlicher Snapshot
 
-`B56ImportEintragEntity` und `FachdatenJson` bilden technisch bereits
-einen importbezogenen Datenstand. Es existiert kein Updatepfad für den
-JSON-Inhalt.
+`B56ImportEintragEntity`, `FachdatenJson`, Schema-Version und
+Lebenszyklusstatus bilden zusammen einen nachvollziehbaren,
+versionierten Snapshot.
 
-Es fehlen jedoch:
+Noch nicht vollständig:
 
-- expliziter Snapshot-Begriff im Datenmodell;
-- Snapshot-Schema-Version;
-- Parser-Version;
-- fachliche Snapshot-Version beziehungsweise Reihenfolge;
-- persistierter Lebenszyklusstatus;
-- persistierte Bestätigung und Verwerfung;
-- klare Behandlung unbekannter Payload-Versionen.
-
-Damit beruht die Unveränderlichkeit derzeit auf fehlenden
-Änderungsoperationen, nicht auf einem ausdrücklich modellierten
-Snapshot-Vertrag.
+- Der explizite Begriff „Snapshot" taucht im Datenmodell und in der
+  API erst als Pfadbestandteil auf; `B56ImportEintrag` verwendet noch
+  „Import"-Terminologie.
+- Eine fachlich explizite, monoton wachsende Snapshot-Nummer pro
+  Projekt (unabhängig vom Zeitstempel) ist nicht implementiert.
+- Die Behandlung eines beschädigten Payloads bei gültiger Schema-Version
+  ist nicht gesondert getestet.
 
 ### 4.2 Warnungen und Validierungsergebnisse
 
-Pipeline-Warnungen sind Bestandteil von `FachdatenJson` und werden
-angezeigt. Technische Ablehnungen werden im unmittelbaren
-`B56ImportErgebnis` zurückgegeben.
+Pipeline-Warnungen sind Bestandteil von `FachdatenJson` und werden im
+Snapshot mit dem Lebenszyklus verbunden. Der Importstatus
+`MitWarnungen` ermöglicht die Bestätigung trotz Warnungen; `Blockiert`
+verhindert sie.
 
-Es fehlen:
+Noch offen:
 
-- dauerhaft gespeicherte technische Validierungsergebnisse;
-- strukturierte Fehler- und Warnungscodes im Snapshot;
-- Unterscheidung blockierender und nicht blockierender fachlicher
-  Befunde;
-- Statusübergang von „mit Warnungen“ zu „fachlich bestätigt“;
-- Auditdaten zur bestätigenden Person und zum Zeitpunkt.
+- Strukturierte, maschinenlesbare Fehler- und Warnungscodes im
+  Snapshot (derzeit freier Text im JSON);
+- Auditdaten zur bestätigenden Person – bewusst offen bis zur
+  Entscheidung über das Rollenmodell;
+- dauerhaft gespeicherte Liste der einzelnen blockierenden Befunde
+  getrennt vom Pipeline-Ergebnis.
 
 ### 4.3 Modernisierungsalternativen
 
-Bezeichnung, Beschreibung, Kennwerte und Bauteile werden aus einem
-freigegebenen B56-Bereich importiert und dargestellt. Leere
-Alternativenplätze werden übersprungen.
+Bezeichnung, Beschreibung, Kennwerte, Bauteile und B56-Position werden
+importiert und dargestellt. Die B56-Position dient als stabiler
+Vergleichsschlüssel.
 
-Es fehlen:
+Noch offen:
 
-- explizite B56-Nummer beziehungsweise Position;
-- Zuordnung zu einer B56-Variante oder einem Berechnungsstand;
-- technische Begrenzung und Nachweis „bis zu neun je Variante“;
-- stabile importierte Identität für spätere Vergleiche;
+- Zuordnung zu einer B56-Variante oder einem Berechnungsstand (fachlich
+  noch nicht freigegeben);
+- technisch erzwungene Begrenzung auf neun Alternativen je Variante;
 - eindeutige Trennung zwischen B56-Bezeichnung und ergänzender interner
-  Bezeichnung;
+  Bezeichnung im Projektmodell;
 - vollständige energetische Ergebnisse je Energieträger.
 
 Die Desktopansicht verwendet an einzelnen Stellen noch den Begriff
-„Variante“ für importierte Modernisierungsalternativen. Das widerspricht
+„Variante" für importierte Modernisierungsalternativen. Das widerspricht
 der verbindlichen Terminologie.
 
 ### 4.4 Bauteile und Kennwerte
@@ -262,65 +368,16 @@ Es fehlen:
 
 ## 5. Nicht erfüllt
 
-### 5.1 Snapshot-Schema- und Parser-Versionierung
+### 5.1 Bearbeitbarer vollständiger Projektstand
 
-Weder Anwendung noch Datenbank speichern eine Snapshot-Schema-Version
-oder Parser-Version. `FachdatenJson` wird unmittelbar als aktueller
-`B56ImportPipelineErgebnis`-Typ deserialisiert.
-
-Folgen:
-
-- zukünftige Modelländerungen können alte Payloads unlesbar machen;
-- Legacy-Daten sind nicht ausdrücklich erkennbar;
-- unbekannte zukünftige Versionen werden nicht kontrolliert
-  abgewiesen;
-- Parseränderungen sind nicht auditierbar.
-
-### 5.2 Fachlicher Importlebenszyklus
-
-Die vorhandenen Statuswerte `Erfolgreich`, `BereitsImportiert`,
-`Abgelehnt` und `Fehlgeschlagen` beschreiben einen technischen
-Aufruf.
-
-Nicht modelliert sind die fachlich geforderten Zustände:
-
-- hochgeladen;
-- technisch geprüft;
-- mit Warnungen;
-- blockiert;
-- fachlich bestätigt;
-- in das Projektmodell übernommen;
-- verworfen.
-
-Es gibt keine zulässigen Statusübergänge und keine Auditierung dieser
-Übergänge.
-
-### 5.3 Bestätigung und Übernahme in das Projektmodell
-
-Es existiert kein eigener Application-Use-Case für:
-
-- Import prüfen und bestätigen;
-- blockierende Befunde vor Bestätigung verhindern;
-- initiales Projektmodell aus einem Snapshot erzeugen;
-- Herkunft jedes übernommenen Werts speichern;
-- wiederholbare beziehungsweise idempotente Übernahme;
-- Verwerfung eines Snapshots.
-
-Das vorhandene Projekt-Domänenmodell wird durch den Import nicht
-befüllt.
-
-### 5.4 Bearbeitbarer vollständiger Projektstand
-
-Das Projektmodell enthält derzeit im Wesentlichen Name,
-Modernisierungsalternativen, alternative Bauteile und Kostenpositionen.
+Das Projektmodell enthält derzeit Name, Modernisierungsalternativen,
+alternative Bauteile, Kostenpositionen und Herkunftsreferenz.
 
 Noch nicht modelliert sind unter anderem:
 
 - Auftraggeber und Ansprechpartner;
 - Standortdaten und Gebäudetyp;
 - Bearbeitungs- und Freigabestatus;
-- Herkunftsverweise auf Snapshots;
-- Varianten beziehungsweise Berechnungsstände;
 - Förderparameter;
 - Energiepreise und Preissteigerungen;
 - CO₂-Preisannahmen;
@@ -328,95 +385,53 @@ Noch nicht modelliert sind unter anderem:
 - Berichtseinstellungen;
 - nachvollziehbare abweichende Annahmen.
 
-### 5.5 Re-Import und Versionsvergleich
+### 5.2 Persistierte Vergleichs- und Konfliktergebnisse
 
-Ein neuer Hash kann als weiterer Import gespeichert werden. Darüber
-hinaus fehlen:
+Der Snapshot-Vergleich wird berechnet, aber nicht dauerhaft
+gespeichert. Es fehlen:
 
-- fachliche Versionsnummer innerhalb des Projekts;
-- Auswahl eines Vorgänger-Snapshots;
-- Vergleich von Projektdaten, Varianten, Alternativen, Bauteilen,
-  Flächen, U-Werten, Kennwerten und Energieträgern;
-- Erkennung hinzugefügter und entfernter Datensätze;
-- Konfliktmodell;
-- feldweise Bestätigung;
-- Schutz manueller Ergänzungen durch einen expliziten
-  Synchronisationsprozess.
+- persistierte Vergleichsergebnisse für spätere Auswertung;
+- Konfliktmodell für feldweise Bestätigung;
+- explizite Synchronisations-Use-Case (nach fachlicher Spezifikation);
+- Schutzregel, die verhindert, dass manuelle Ergänzungen automatisch
+  durch Snapshot-Werte überschrieben werden.
 
-### 5.6 Vollständiger produktiver End-to-End-Prozess
+### 5.3 Vollständiger produktiver End-to-End-Prozess
 
-Der technische Smoke-Test verwendet Controller und Services direkt.
-Es fehlt ein vollständiger Test über echte HTTP-Serialisierung und den
-persistierten fachlichen Ablauf:
+HTTP-End-to-End-Tests prüfen Upload, Historie, Details und
+Folgeimport-Vergleich. Noch nicht durch einen vollständigen Test
+abgedeckt ist der Ablauf aus `FUNCTIONAL_SPECIFICATION.md`
+Abschnitt 21:
 
-1. Projekt anlegen;
-2. Datei hochladen;
-3. Snapshot anzeigen;
-4. Warnungen prüfen;
-5. Import bestätigen;
-6. Projektmodell erzeugen;
+5. Import bestätigen (HTTP);
+6. Projektmodell erzeugen (HTTP);
 7. Ergänzung speichern;
-8. Projekt neu öffnen;
-9. zweiten Snapshot importieren;
-10. Unterschiede anzeigen;
+8. Projekt schließen und neu öffnen;
+9. zweiten Snapshot importieren (HTTP) ← vorhanden;
+10. Unterschiede anzeigen (HTTP) ← vorhanden;
 11. Ergänzung unverändert nachweisen.
 
-## 6. Notwendige Datenbankmigrationen
+## 6. Datenbankmigrationen – Überblick
 
-Die folgenden Migrationen ergeben sich unmittelbar aus ADR-0008 und
-der Fachspezifikation. Sie sollten in getrennten, rückwärtskompatiblen
-Arbeitspaketen umgesetzt werden.
+### 6.1 Abgeschlossene Migrationen
 
-### 6.1 Migration 1: Snapshot-Versionierung
+| Migration | Inhalt | Status |
+|-----------|--------|--------|
+| `20260725075146_VersionB56Snapshots` | `SnapshotSchemaVersion`, `ParserVersion` | ✅ umgesetzt |
+| `20260725084054_AddB56SnapshotLifecycle` | `SnapshotStatus`, `BestaetigtAm`, `VerworfenAm` | ✅ umgesetzt |
+| `20260725085558_AddB56ProjectModelOrigin` | `QuellSnapshotId`, `ProjektmodellVersion` | ✅ umgesetzt |
+| `20260725101500_TrackB56AlternativePresence` | `B56Position`, `IstImAktuellenB56SnapshotVorhanden` | ✅ umgesetzt |
 
-`B56ImportEintraege` mindestens ergänzen um:
+### 6.2 Ausstehende Migrationen
 
-- `SnapshotSchemaVersion`, nicht nullable;
-- `ParserVersion`, nicht nullable;
-- eine projektbezogene fachliche Snapshot-Reihenfolge oder
-  Snapshot-Version;
-- einen persistierten Snapshot-/Lebenszyklusstatus;
-- optional einen strukturierten Payload-Typ, falls
-  `FachdatenJson` als Legacy-Name abgelöst wird.
+**Migration: Persistente Vergleichs- und Konfliktergebnisse**
 
-Bestandsdaten müssen deterministisch als Legacy beziehungsweise
-Schema-Version 1 markiert werden. Die Migration darf vorhandenes
-`FachdatenJson` nicht umschreiben oder verlieren.
+Für spätere feldweise Bestätigung und Konfliktlösung werden voraussichtlich
+benötigt:
 
-### 6.2 Migration 2: Bestätigung und Audit
-
-Nach Spezifikation des Statusmodells werden mindestens benötigt:
-
-- Bestätigungs- beziehungsweise Verwerfungszeitpunkt;
-- verantwortliche Person oder technischer Akteur, soweit im lokalen
-  Betriebsmodell verfügbar;
-- Statushistorie oder separate Auditereignisse;
-- unveränderlicher Verweis auf den bestätigten Snapshot.
-
-Die genaue Akteurmodellierung ist vor einer Mehrbenutzerlösung noch
-fachlich offen.
-
-### 6.3 Migration 3: Herkunft im Projektmodell
-
-Vor der ersten Snapshot-Übernahme sind Herkunftsangaben erforderlich:
-
-- Quell-Snapshot-ID;
-- Quellobjekt beziehungsweise stabiler Quellschlüssel;
-- Originalwert oder belastbarer Verweis darauf;
-- Projektmodellversion;
-- Änderungs- und Übernahmezeitpunkt.
-
-Ob diese Angaben pro Projektwert, pro Fachobjekt oder in einem
-separaten Herkunftsmodell gespeichert werden, muss vor Umsetzung des
-Übernahme-Use-Cases spezifiziert werden.
-
-### 6.4 Migration 4: Vergleich und Konflikte
-
-Für Re-Import werden voraussichtlich persistente Vergleichs- oder
-Konfliktdaten benötigt:
-
-- alter und neuer Snapshot;
-- betroffener stabiler Fachschlüssel;
+- Tabelle oder JSON-Spalte für persistierte Vergleichsergebnisse;
+- betroffener stabiler Fachschlüssel (B56Position, Kennwertname,
+  Bauteilcode);
 - alter Originalwert, neuer Originalwert und aktueller Arbeitswert;
 - Konfliktstatus und Benutzerentscheidung;
 - Zeitpunkt und Auditinformation.
@@ -424,186 +439,176 @@ Konfliktdaten benötigt:
 Diese Migration darf erst nach Klärung der offenen Feldidentitäten und
 Konfliktregeln entworfen werden.
 
-### 6.5 Keine kaskadierende Löschung einführen
-
-Eine neue relationale Verbindung zwischen Projekt und Snapshot darf
-Snapshots nicht automatisch mit dem Projekt löschen. Die
-Aufbewahrungsentscheidung ist offen, während ADR-0008 und der Workflow
-die Nachweisbarkeit historischer Quellen verlangen.
+**Hinweis:** Eine kaskadierende Löschung zwischen Projekt und Snapshot
+darf nicht eingeführt werden. Snapshots müssen nach Projektlöschung
+für die Nachweisbarkeit erhalten bleiben.
 
 ## 7. Notwendige Tests
 
-### 7.1 Für die unmittelbar nächste Snapshot-Versionierung
+### 7.1 Bereits implementierte Tests (Übersicht)
 
-- Migration einer bestehenden Datenbank mit `FachdatenJson`;
-- Legacy-Eintrag wird als Version 1 gelesen;
-- aktueller Snapshot-Roundtrip mit expliziter Schema-Version;
-- Parser-Version wird beim Import gespeichert und zurückgegeben;
-- unbekannte Schema-Version wird kontrolliert und ohne Datenverlust
-  behandelt;
-- beschädigter Payload erzeugt einen definierten Fehler;
-- neue Imports erhalten eine monotone projektbezogene Version;
-- parallele Imports erzeugen keine doppelte Version;
-- vorhandene Hash-Duplikaterkennung bleibt wirksam;
-- Migration entfernt oder verändert keine Archiv- und Hashdaten.
+| Testdatei | Inhalt | Anzahl |
+|-----------|--------|--------|
+| `B56DateiPrueferTests.cs` | Dateiprüfung | 7 |
+| `B56ImportControllerTests.cs` | API-Controller | 9 |
+| `B56ImportDependencyInjectionTests.cs` | DI-Komposition | 1 |
+| `B56ImportEndToEndSmokeTests.cs` | Smoke-Test | 1 |
+| `B56ImportHttpEndToEndTests.cs` | HTTP E2E (Import + Vergleich) | 2 |
+| `B56ImportServiceIntegrationTests.cs` | Import-Pipeline | 3 |
+| `B56ProjektmodellControllerTests.cs` | Übernahme-Controller | 2 |
+| `B56ProjektmodellUebernahmeServiceTests.cs` | Übernahme-Service | 2 |
+| `B56SnapshotLebenszyklusControllerTests.cs` | Lebenszyklus-Controller | 1 |
+| `B56SnapshotLebenszyklusServiceTests.cs` | Lebenszyklus-Service | 4 |
+| `B56SnapshotVergleichServiceTests.cs` | Vergleich (alle Fälle) | 12 |
+| `B56TabellenImportServiceTests.cs` | Tabellenimport | 2 |
+| `EfB56ImportRegisterTests.cs` | EF-Register inkl. Versionen | 3 |
+| `KompassDbContextMigrationTests.cs` | Migrationen | 2 |
+| `OpenXmlB56ArbeitsmappenLeserTests.cs` | OpenXML-Leser | 2 |
+| `ProjektB56ImportBeziehungTests.cs` | Projekt-Import-Beziehung | 2 |
+| `ProjektDomainTests.cs` | Domain-Invarianten | 8 |
+| `ProjektServiceTests.cs` | Projektservice | 6 |
+| `ProjekteControllerTests.cs` | Projekte-API | 12 |
+| `Sha256HashServiceTests.cs` | Hash-Service | 2 |
+| `B56ArchivServiceTests.cs` | Archivservice | 2 |
+| **Gesamt** | | **95** |
 
-### 7.2 Für Bestätigung und Projektübernahme
+### 7.2 Noch fehlende Tests
 
-- blockierender Befund verhindert Bestätigung;
-- Warnungen erlauben Bestätigung, bleiben aber sichtbar;
-- Bestätigung wird auditierbar gespeichert;
-- verworfener Snapshot kann nicht übernommen werden;
-- Erstübernahme erzeugt ein Projektmodell mit Herkunft;
-- wiederholte Übernahme ist idempotent;
-- B56-Originalwerte bleiben unverändert;
-- Benutzerergänzungen werden getrennt gespeichert;
-- gelöschtes Projekt löscht keinen Snapshot.
+- vollständiger HTTP-End-to-End-Test der elf Abnahmeschritte aus
+  `FUNCTIONAL_SPECIFICATION.md` Abschnitt 21 (Schritte 5–8 und 11
+  fehlen noch);
+- beschädigter Payload bei gültiger Schema-Version erzeugt definierten
+  Fehler;
+- Benutzerergänzung bleibt nach Folgeimport unverändert (Schutz
+  manueller Daten);
+- Snapshot nach Projektlöschung erreichbar halten (sobald Use-Case
+  entschieden);
+- Persistiertes Vergleichsergebnis (sobald Datenmodell entschieden).
 
-### 7.3 Für Re-Import und Vergleich
-
-- gleicher Hash wird als Duplikat behandelt;
-- neuer Hash erzeugt einen neuen Snapshot;
-- hinzugefügte, entfernte und geänderte Objekte werden erkannt;
-- bis zu neun Alternativen je Variante werden stabil identifiziert;
-- Umbenennung wird gemäß noch festzulegender Regel behandelt;
-- manueller Arbeitswert wird nicht automatisch überschrieben;
-- bestätigte und abgelehnte Konfliktentscheidungen sind
-  nachvollziehbar.
-
-### 7.4 Für API und Desktop
-
-- echte HTTP-Tests für Upload, Historie, Details und Fehlerantworten;
-- JSON-Kompatibilität zwischen API und Desktop;
-- Anzeige von Schema-, Parser- und Snapshot-Version;
-- Anzeige blockierender Fehler getrennt von Warnungen;
-- Bestätigungs- und Verwerfungsaktionen;
-- Anzeige von Originalwert, Arbeitswert und Abweichung;
-- Timeout, ungültiges JSON und unbekannte Version;
-- vollständiger End-to-End-Test des verbindlichen Anwenderablaufs.
-
-## 8. Risiken
+## 8. Risiken (aktualisiert)
 
 ### R1 – Alte Snapshots werden durch Modelländerungen unlesbar
 
-**Priorität: hoch.** Die direkte Deserialisierung von `FachdatenJson`
-in den aktuellen Typ besitzt keine Versionsgrenze.
+**Priorität: erledigt/mitigiert.**
+`B56SnapshotVersionen`, `B56SnapshotFormatException` und die Migration
+`VersionB56Snapshots` setzen eine explizite Versionsgrenze.
 
-**Maßnahme:** Snapshot-Schema-Versionierung und Legacy-Leser vor jeder
-Erweiterung des Payloadmodells.
+**Restrisiko:** Der `FachdatenJson`-Payload selbst besitzt noch keine
+interne Feldversionierung. Neue Felder im `B56ImportPipelineErgebnis`
+müssen abwärtskompatibel hinzugefügt werden.
 
 ### R2 – Zwei fachliche Wahrheiten entstehen
 
-**Priorität: hoch.** Importmodell und Projektmodell existieren bereits,
-aber ein expliziter Übernahme- und Herkunftsprozess fehlt.
+**Priorität: mitigiert.**
+Der explizite Übernahme-Use-Case (`B56ProjektmodellUebernahmeService`)
+und der Lebenszyklusstatus stellen sicher, dass das Projektmodell nur
+aus fachlich bestätigten Snapshots befüllt wird.
 
-**Maßnahme:** Keine direkte Befüllung des Projektmodells außerhalb
-eines bestätigten Application-Use-Cases.
+**Restrisiko:** Der bearbeitbare Projektstand ist noch nicht vollständig
+modelliert. Bis dahin gibt es keinen Konflikterkennung für manuelle
+Ergänzungen.
 
 ### R3 – Benutzeränderungen werden bei Re-Import überschrieben
 
-**Priorität: hoch.** Ohne Herkunfts- und Konfliktmodell wäre ein
-automatisches Update nicht sicher.
+**Priorität: mitigiert.**
+Re-Import erzeugt nur einen neuen Snapshot. Die Synchronisation in das
+Projektmodell bleibt einem separaten, fachlich noch zu spezifizierenden
+Use-Case vorbehalten. `IstImAktuellenB56SnapshotVorhanden` schützt
+vorhandene Alternativen.
 
-**Maßnahme:** Re-Import zunächst nur als neuen Snapshot speichern;
-Synchronisation erst nach spezifizierter Konfliktentscheidung.
+**Restrisiko:** Sobald der Synchronisations-Use-Case implementiert wird,
+ist eine feldweise Konfliktlösung erforderlich.
 
 ### R4 – Erhaltene Snapshots sind nach Projektlöschung unerreichbar
 
-**Priorität: hoch.** Die Daten bleiben erhalten, die reguläre API
-verweigert aber Historie und Details für ein nicht mehr vorhandenes
-Projekt.
+**Priorität: hoch.** Unverändert: Die reguläre API verweigert Zugriff
+auf Snapshots eines nicht mehr vorhandenen Projekts.
 
 **Maßnahme:** Vor Ausbau der Projektlöschung eine Archivierungs-,
-Aufbewahrungs- und Zugriffslösung entscheiden. Bis dahin keine
-kaskadierende Löschung ergänzen.
+Aufbewahrungs- und Zugriffslösung entscheiden. Keine kaskadierende
+Löschung einführen.
 
 ### R5 – Alternativen können über Versionen nicht stabil verglichen werden
 
-**Priorität: hoch.** Importierte Alternativen besitzen weder Position
-noch stabile Identität und keine explizite Variante.
+**Priorität: mitigiert.**
+B56-Position ist als stabiler Schlüssel implementiert und wird im
+Vergleich genutzt.
 
-**Maßnahme:** B56-Position, Variante und stabilen Vergleichsschlüssel
-erst nach fachlicher Bestätigung modellieren.
+**Restrisiko:** Die Behandlung bei Variantenwechsel oder
+Positionsneuordnung ist fachlich noch nicht spezifiziert.
 
 ### R6 – Statusbegriffe vermischen Technik und Fachlichkeit
 
-**Priorität: mittel.** Der aktuelle technische Ergebnisstatus kann
-leicht mit dem geforderten fachlichen Snapshotstatus verwechselt
-werden.
-
-**Maßnahme:** Technisches Aufrufergebnis und persistierten
-Snapshot-Lebenszyklus getrennt benennen und modellieren.
+**Priorität: erledigt.**
+Technisches Aufruf­ergebnis (`B56ImportErgebnis`) und persistierter
+Snapshot-Lebenszyklus (`B56SnapshotStatus`) sind explizit getrennt.
 
 ### R7 – Archiv und Datenbank driften auseinander
 
-**Priorität: mittel.** Kompensation ist vorhanden, aber nicht gegen
-Prozessabbruch, Datenträgerfehler oder fehlgeschlagenes Cleanup
-abgesichert.
+**Priorität: mittel.** Unverändert: Kompensation bei Fehler ist
+vorhanden, aber kein Reconciliation-Prozess für Prozessabbrüche oder
+Datenträgerfehler.
 
-**Maßnahme:** Reconciliation und Betriebs-/Recovery-Verfahren nach dem
-Snapshot-Fundament ergänzen.
+**Maßnahme:** Reconciliation- und Recovery-Verfahren nach dem nächsten
+funktionalen Ausbaupunkt ergänzen.
 
 ### R8 – Fachlich nicht freigegebene Felder werden voreilig erfunden
 
-**Priorität: mittel.** Feldlisten, Projektidentifikation,
-Bauteilcode-Mapping und Umbenennungslogik sind ausdrücklich offen.
+**Priorität: mittel.** Unverändert: Feldlisten, Bauteilcode-Mapping und
+weitere B56-Exportbereiche sind ausdrücklich offen.
 
-**Maßnahme:** Unbekannte Bereiche weiter als Warnung behandeln und
-keine freie Zuordnung implementieren.
+**Maßnahme:** Unbekannte Bereiche weiter als Warnung behandeln.
 
 ### R9 – Dokumentpfade und Terminologie sind inkonsistent
 
 **Priorität: niedrig.**
 
-- Der Folgeauftrag verweist auf
-  `docs/FUNCTIONAL_SPECIFICATION.md`; die Datei liegt aktuell im
-  Repository-Stamm als `FUNCTIONAL_SPECIFICATION.md`.
+- `FUNCTIONAL_SPECIFICATION.md` liegt im Repository-Stamm, nicht unter
+  `docs/`.
 - Die Desktopansicht bezeichnet Modernisierungsalternativen teilweise
-  als „Variante“ beziehungsweise „Modernisierungsvariante“.
+  als „Variante" beziehungsweise „Modernisierungsvariante".
 
-**Maßnahme:** In einem getrennten Dokumentations-/Terminologiepaket
-vereinheitlichen, ohne fachliches Verhalten zu ändern.
+**Maßnahme:** In einem getrennten Terminologiepaket bereinigen.
 
 ## 9. Priorisierte nächste Arbeitspakete
 
-### P1 – Snapshot-Schema-Versionierung
+### P1 – Vollständiger erster Anwenderprozess (Paket 6)
 
-Als nächstes freigegeben und technisch notwendig:
+Der gesamte fachliche Ablauf gemäß `FUNCTIONAL_SPECIFICATION.md`
+Abschnitt 21 muss in einem einzigen durchgängigen HTTP-End-to-End-Test
+nachgewiesen werden:
 
-1. Versionskonstanten und versionierten Snapshot-Vertrag definieren.
-2. Schema- und Parser-Version relational speichern.
-3. Bestandsdaten als Legacy-/Version-1-Daten lesbar halten.
-4. EF-Core-Migration und Kompatibilitätstests ergänzen.
-5. Unbekannte oder beschädigte Versionen kontrolliert behandeln.
+1. Projekt anlegen.
+2. Datei importieren.
+3. Snapshot bestätigen.
+4. Projektmodell erzeugen.
+5. Ergänzbare Projektdaten bearbeiten und speichern.
+6. Projekt schließen und wieder öffnen.
+7. Zweiten Snapshot importieren.
+8. Unterschiede anzeigen.
+9. Manuelle Ergänzung unverändert nachweisen.
 
-Dieses Paket darf noch keine automatische Projektübernahme enthalten.
+Dazu sind mindestens einfache Felder für ergänzbare Projektdaten
+(z. B. interne Bezeichnung oder Bearbeitungsstatus) zu modellieren,
+damit Schritt 5 prüfbar ist.
 
-### P1 – Echter HTTP-End-to-End-Test
+### P2 – Wirtschaftlichkeit
 
-Danach Upload, Historie und Details über einen echten Testserver
-prüfen. Der Test muss Serialisierung, Datenbank und Archiv umfassen.
+Erst nach Abschluss von Paket 6 gemäß `FUNCTIONAL_SPECIFICATION.md`
+Abschnitt 14.
 
-### P1 – Fachlicher Lebenszyklus und Bestätigung
+### P3 – Förderung
 
-Persistierten Snapshotstatus, blockierende Befunde, Warnungen,
-Bestätigung und Verwerfung als getrennten Application-Use-Case
-implementieren.
+Nach Wirtschaftlichkeit gemäß `FUNCTIONAL_SPECIFICATION.md`
+Abschnitt 15.
 
-### P1 – Projektübernahme mit Herkunft
+### P4 – Berichtswesen
 
-Erst nach Bestätigung einen expliziten, idempotenten
-Übernahme-Use-Case entwickeln. Originalwerte und bearbeitbare
-Ergänzungen müssen sichtbar getrennt bleiben.
+Nach Förderung gemäß `FUNCTIONAL_SPECIFICATION.md` Abschnitt 17.
 
-### P2 – Re-Import und Versionsvergleich
+### P5 – Wärmebrückenmanagement
 
-Nach Klärung stabiler Fachschlüssel und Konfliktregeln neue Snapshots
-vergleichen. Keine automatische Überschreibung des Projektmodells.
-
-### P3 – Zusätzliche B56-Bereiche
-
-Erst nach fachlicher Freigabe der Feldlisten, Pflichtregeln und
-Mappings weitere Exportbereiche zuordnen.
+Gemäß Gesamtprozess und `FUNCTIONAL_SPECIFICATION.md` Abschnitt 16.
 
 ## 10. Abgrenzung
 
@@ -613,7 +618,8 @@ Diese Analyse autorisiert nicht:
 - IFC- oder gbXML-Auswertung;
 - editierbare B56-Originalwerte;
 - automatische Snapshot-Überschreibung;
-- automatische Übernahme in das Projektmodell;
+- automatische Übernahme in das Projektmodell außerhalb des bestätigten
+  Use-Cases;
 - freie Interpretation unbekannter B56-Felder;
 - neue Förder-, Wirtschafts- oder Berichtsregeln.
 
