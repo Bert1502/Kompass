@@ -7,25 +7,6 @@ namespace Kompass.Persistence.Data.Configurations;
 public sealed class EnergietraegerAnnahmeConfiguration
     : IEntityTypeConfiguration<EnergietraegerAnnahme>
 {
-<<<<<<< HEAD
-    public void Configure(EntityTypeBuilder<EnergietraegerAnnahme> builder)
-    {
-        builder.ToTable("EnergietraegerAnnahmen");
-
-        builder.HasKey(a => a.Id);
-
-        builder.Property(a => a.Energietraeger)
-            .HasConversion<int>()
-            .IsRequired();
-
-        builder.Property(a => a.PreisProKwh)
-            .HasPrecision(18, 6)
-            .IsRequired();
-
-        builder.Property(a => a.JaehrlicherPreisanstiegProzent)
-            .HasPrecision(10, 4)
-            .IsRequired();
-=======
     public void Configure(
         EntityTypeBuilder<EnergietraegerAnnahme> builder)
     {
@@ -66,6 +47,5 @@ public sealed class EnergietraegerAnnahmeConfiguration
             .IsRequired();
 
         builder.Ignore(annahme => annahme.Einsparung);
->>>>>>> origin/main
     }
 }

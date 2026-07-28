@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Kompass.Api.B56Import;
 
 [ApiController]
-[Route("api/projekte/{projektId:guid}/b56-importe")]
+[Route("api/projekte/{projektId:guid}/b56-importe/{nachfolgerImportId:guid}/vergleich")]
 public sealed class B56SnapshotVergleichController : ControllerBase
 {
     private readonly IB56SnapshotVergleichService _vergleichService;
@@ -15,7 +15,7 @@ public sealed class B56SnapshotVergleichController : ControllerBase
         _vergleichService = vergleichService;
     }
 
-    [HttpGet("vergleich")]
+    [HttpGet]
     [ProducesResponseType(
         typeof(B56SnapshotVergleichAntwort),
         StatusCodes.Status200OK)]
@@ -24,77 +24,65 @@ public sealed class B56SnapshotVergleichController : ControllerBase
     public async Task<ActionResult<B56SnapshotVergleichAntwort>>
         VergleichenAsync(
             Guid projektId,
-            [FromQuery] Guid altSnapshotId,
-            [FromQuery] Guid neuSnapshotId,
+            Guid nachfolgerImportId,
+            [FromQuery] Guid vorgaenger,
             CancellationToken cancellationToken)
     {
-        var aktionsErgebnis =
+        if (vorgaenger == Guid.Empty)
+        {
+            return BadRequest(new
+            {
+                Nachricht =
+                    "Der Query-Parameter 'vorgaenger' muss eine gültige Import-ID enthalten."
+            });
+        }
+
+        var ergebnis =
             await _vergleichService.VergleichenAsync(
                 projektId,
-                altSnapshotId,
-                neuSnapshotId,
+                vorgaenger,
+                nachfolgerImportId,
                 cancellationToken);
 
-        if (aktionsErgebnis.Status ==
+        if (ergebnis.Status ==
             B56SnapshotVergleichStatus.NichtGefunden)
         {
             return NotFound(new
             {
-                Nachricht = aktionsErgebnis.Nachricht
+                ergebnis.Nachricht
             });
         }
 
         return Ok(
             B56SnapshotVergleichAntwort.Aus(
-                aktionsErgebnis.Ergebnis!));
+                ergebnis.Vergleich!));
     }
 }
 
 public sealed record B56SnapshotVergleichAntwort(
-    Guid AltSnapshotId,
-    Guid NeuSnapshotId,
-    IReadOnlyList<B56AlternativenVergleichAntwort> Alternativen,
-    IReadOnlyList<B56KennwertVergleichAntwort> Bestandskennwerte,
-    IReadOnlyList<B56BauteilVergleichAntwort> Bauteile)
+    Guid ProjektId,
+    Guid VorgaengerSnapshotId,
+    Guid NachfolgerSnapshotId,
+    bool HatAenderungen,
+    IReadOnlyList<B56KennwertVergleichAntwort> BestandskennwertVergleiche,
+    IReadOnlyList<B56AlternativeVergleichAntwort> AlternativVergleiche,
+    IReadOnlyList<B56BauteilVergleichAntwort> GesamtbauteilVergleiche)
 {
     public static B56SnapshotVergleichAntwort Aus(
-        B56SnapshotVergleichErgebnis ergebnis)
+        B56SnapshotVergleich vergleich)
     {
         return new B56SnapshotVergleichAntwort(
-            ergebnis.AltSnapshotId,
-            ergebnis.NeuSnapshotId,
-            ergebnis.Alternativen
-                .Select(B56AlternativenVergleichAntwort.Aus)
-                .ToList(),
-            ergebnis.Bestandskennwerte
+            vergleich.ProjektId,
+            vergleich.VorgaengerSnapshotId,
+            vergleich.NachfolgerSnapshotId,
+            vergleich.HatAenderungen,
+            vergleich.BestandskennwertVergleiche
                 .Select(B56KennwertVergleichAntwort.Aus)
                 .ToList(),
-            ergebnis.Bauteile
-                .Select(B56BauteilVergleichAntwort.Aus)
-                .ToList());
-    }
-}
-
-public sealed record B56AlternativenVergleichAntwort(
-    int Position,
-    B56VergleichsArt Art,
-    string? AlteBezeichnung,
-    string? NeueBezeichnung,
-    IReadOnlyList<B56KennwertVergleichAntwort> Kennwerte,
-    IReadOnlyList<B56BauteilVergleichAntwort> Bauteile)
-{
-    public static B56AlternativenVergleichAntwort Aus(
-        B56AlternativenVergleich vergleich)
-    {
-        return new B56AlternativenVergleichAntwort(
-            vergleich.Position,
-            vergleich.Art,
-            vergleich.AlteBezeichnung,
-            vergleich.NeueBezeichnung,
-            vergleich.Kennwerte
-                .Select(B56KennwertVergleichAntwort.Aus)
+            vergleich.AlternativVergleiche
+                .Select(B56AlternativeVergleichAntwort.Aus)
                 .ToList(),
-            vergleich.Bauteile
+            vergleich.GesamtbauteilVergleiche
                 .Select(B56BauteilVergleichAntwort.Aus)
                 .ToList());
     }
@@ -103,43 +91,66 @@ public sealed record B56AlternativenVergleichAntwort(
 public sealed record B56KennwertVergleichAntwort(
     string Name,
     string Einheit,
-    B56VergleichsArt Art,
     double? AlterWert,
-    double? NeuerWert)
+    double? NeuerWert,
+    B56VergleichsAenderung Aenderung)
 {
     public static B56KennwertVergleichAntwort Aus(
-        B56KennwertVergleich vergleich)
+        B56KennwertVergleich kennwert)
     {
         return new B56KennwertVergleichAntwort(
-            vergleich.Name,
-            vergleich.Einheit,
-            vergleich.Art,
-            vergleich.AlterWert,
-            vergleich.NeuerWert);
+            kennwert.Name,
+            kennwert.Einheit,
+            kennwert.AlterWert,
+            kennwert.NeuerWert,
+            kennwert.Aenderung);
     }
 }
 
 public sealed record B56BauteilVergleichAntwort(
     string Bauteilcode,
-    B56VergleichsArt Art,
-    string? AlteBezeichnung,
-    string? NeueBezeichnung,
+    string Bezeichnung,
     double? AlterUWert,
     double? NeuerUWert,
     double? AlteFlaeche,
-    double? NeueFlaeche)
+    double? NeueFlaeche,
+    B56VergleichsAenderung Aenderung)
 {
     public static B56BauteilVergleichAntwort Aus(
-        B56BauteilVergleich vergleich)
+        B56BauteilVergleich bauteil)
     {
         return new B56BauteilVergleichAntwort(
-            vergleich.Bauteilcode,
-            vergleich.Art,
-            vergleich.AlteBezeichnung,
-            vergleich.NeueBezeichnung,
-            vergleich.AlterUWert,
-            vergleich.NeuerUWert,
-            vergleich.AlteFlaeche,
-            vergleich.NeueFlaeche);
+            bauteil.Bauteilcode,
+            bauteil.Bezeichnung,
+            bauteil.AlterUWert,
+            bauteil.NeuerUWert,
+            bauteil.AlteFlaeche,
+            bauteil.NeueFlaeche,
+            bauteil.Aenderung);
+    }
+}
+
+public sealed record B56AlternativeVergleichAntwort(
+    int B56Position,
+    string AlteBezeichnung,
+    string NeueBezeichnung,
+    B56VergleichsAenderung Aenderung,
+    IReadOnlyList<B56KennwertVergleichAntwort> KennwertVergleiche,
+    IReadOnlyList<B56BauteilVergleichAntwort> BauteilVergleiche)
+{
+    public static B56AlternativeVergleichAntwort Aus(
+        B56AlternativeVergleich alternative)
+    {
+        return new B56AlternativeVergleichAntwort(
+            alternative.B56Position,
+            alternative.AlteBezeichnung,
+            alternative.NeueBezeichnung,
+            alternative.Aenderung,
+            alternative.KennwertVergleiche
+                .Select(B56KennwertVergleichAntwort.Aus)
+                .ToList(),
+            alternative.BauteilVergleiche
+                .Select(B56BauteilVergleichAntwort.Aus)
+                .ToList());
     }
 }

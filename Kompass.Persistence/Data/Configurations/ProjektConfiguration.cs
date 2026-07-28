@@ -16,6 +16,13 @@ public sealed class ProjektConfiguration : IEntityTypeConfiguration<Projekt>
             .HasMaxLength(250)
             .IsRequired();
 
+        builder.Property(projekt => projekt.InterneBezeichnung)
+            .HasMaxLength(Projekt.MaxInterneBezeichnungLaenge);
+
+        builder.Property(projekt => projekt.Bearbeitungsstatus)
+            .HasDefaultValue(Bearbeitungsstatus.InBearbeitung)
+            .IsRequired();
+
         builder.Property(projekt => projekt.QuellSnapshotId);
 
         builder.Property(projekt => projekt.ProjektmodellVersion)

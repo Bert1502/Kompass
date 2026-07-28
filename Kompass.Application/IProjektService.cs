@@ -1,4 +1,6 @@
-﻿namespace Kompass.Application.Projects;
+﻿using Kompass.Domain.Projects;
+
+namespace Kompass.Application.Projects;
 
 public interface IProjektService
 {
@@ -16,6 +18,12 @@ public interface IProjektService
     Task<ProjektUebersicht?> AktualisierenAsync(
         Guid id,
         string name,
+        CancellationToken cancellationToken = default);
+
+    Task<ProjektUebersicht?> ProjektdatenAktualisierenAsync(
+        Guid id,
+        string? interneBezeichnung,
+        Bearbeitungsstatus bearbeitungsstatus,
         CancellationToken cancellationToken = default);
 
     Task<bool> LoeschenAsync(

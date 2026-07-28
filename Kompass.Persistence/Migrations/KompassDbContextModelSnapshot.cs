@@ -92,17 +92,6 @@ namespace Kompass.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
-<<<<<<< HEAD
-                    b.Property<int>("Energietraeger")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("JaehrlicherPreisanstiegProzent")
-                        .HasPrecision(10, 4)
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("PreisProKwh")
-                        .HasPrecision(18, 6)
-=======
                     b.Property<decimal>("Co2Faktor")
                         .HasPrecision(10, 6)
                         .HasColumnType("TEXT");
@@ -132,7 +121,6 @@ namespace Kompass.Persistence.Migrations
 
                     b.Property<decimal>("Preissteigerungsrate")
                         .HasPrecision(8, 6)
->>>>>>> origin/main
                         .HasColumnType("TEXT");
 
                     b.Property<Guid?>("WirtschaftlichkeitsannahmenId")
@@ -179,25 +167,6 @@ namespace Kompass.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
-<<<<<<< HEAD
-                    b.Property<int>("BetrachtungszeitraumJahre")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("Co2PreisProTonne")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("DiskontsatzProzent")
-                        .HasPrecision(10, 4)
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("InflationsrateProzent")
-                        .HasPrecision(10, 4)
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("JaehrlicherCo2PreisanstiegProzent")
-                        .HasPrecision(10, 4)
-=======
                     b.Property<int>("Basis")
                         .HasColumnType("INTEGER");
 
@@ -218,35 +187,17 @@ namespace Kompass.Persistence.Migrations
 
                     b.Property<decimal>("JaehrlicheWartungsmehrkosten")
                         .HasPrecision(18, 2)
->>>>>>> origin/main
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("ModernisierungsalternativeId")
                         .HasColumnType("TEXT");
 
-<<<<<<< HEAD
-                    b.Property<int>("NutzungsdauerJahre")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("RestwertProzent")
-                        .HasPrecision(10, 4)
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("WartungUndInstandhaltungProJahr")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ModernisierungsalternativeId")
-=======
                     b.Property<int>("Nutzungsdauer")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ModernisierungsalternativeId", "Basis")
->>>>>>> origin/main
                         .IsUnique();
 
                     b.ToTable("Wirtschaftlichkeitsannahmen", (string)null);
@@ -319,6 +270,15 @@ namespace Kompass.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Bearbeitungsstatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("InterneBezeichnung")
+                        .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
@@ -427,11 +387,7 @@ namespace Kompass.Persistence.Migrations
             modelBuilder.Entity("Kompass.Domain.Economics.EnergietraegerAnnahme", b =>
                 {
                     b.HasOne("Kompass.Domain.Economics.Wirtschaftlichkeitsannahmen", null)
-<<<<<<< HEAD
-                        .WithMany("Energietraeger")
-=======
                         .WithMany("EnergietraegerAnnahmen")
->>>>>>> origin/main
                         .HasForeignKey("WirtschaftlichkeitsannahmenId")
                         .OnDelete(DeleteBehavior.Cascade);
                 });
@@ -442,15 +398,6 @@ namespace Kompass.Persistence.Migrations
                         .WithMany("Kostenpositionen")
                         .HasForeignKey("ModernisierungsalternativeId")
                         .OnDelete(DeleteBehavior.Cascade);
-                });
-
-            modelBuilder.Entity("Kompass.Domain.Economics.Wirtschaftlichkeitsannahmen", b =>
-                {
-                    b.HasOne("Kompass.Domain.Projects.Modernisierungsalternative", null)
-                        .WithOne()
-                        .HasForeignKey("Kompass.Domain.Economics.Wirtschaftlichkeitsannahmen", "ModernisierungsalternativeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Kompass.Domain.Projects.AlternativeBauteil", b =>
@@ -484,11 +431,7 @@ namespace Kompass.Persistence.Migrations
 
             modelBuilder.Entity("Kompass.Domain.Economics.Wirtschaftlichkeitsannahmen", b =>
                 {
-<<<<<<< HEAD
-                    b.Navigation("Energietraeger");
-=======
                     b.Navigation("EnergietraegerAnnahmen");
->>>>>>> origin/main
                 });
 
             modelBuilder.Entity("Kompass.Domain.Projects.Modernisierungsalternative", b =>

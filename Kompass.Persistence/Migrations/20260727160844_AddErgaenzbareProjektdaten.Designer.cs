@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Kompass.Persistence.Migrations
 {
     [DbContext(typeof(KompassDbContext))]
-    [Migration("20260728030949_AddWirtschaftlichkeitsannahmen")]
-    partial class AddWirtschaftlichkeitsannahmen
+    [Migration("20260727160844_AddErgaenzbareProjektdaten")]
+    partial class AddErgaenzbareProjektdaten
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -89,33 +89,6 @@ namespace Kompass.Persistence.Migrations
                     b.ToTable("B56ImportZeilen", (string)null);
                 });
 
-            modelBuilder.Entity("Kompass.Domain.Economics.EnergietraegerAnnahme", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Energietraeger")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("JaehrlicherPreisanstiegProzent")
-                        .HasPrecision(10, 4)
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("PreisProKwh")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid?>("WirtschaftlichkeitsannahmenId")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("WirtschaftlichkeitsannahmenId");
-
-                    b.ToTable("EnergietraegerAnnahmen", (string)null);
-                });
-
             modelBuilder.Entity("Kompass.Domain.Economics.Kostenposition", b =>
                 {
                     b.Property<Guid>("Id")
@@ -142,53 +115,6 @@ namespace Kompass.Persistence.Migrations
                     b.HasIndex("ModernisierungsalternativeId");
 
                     b.ToTable("Kostenpositionen", (string)null);
-                });
-
-            modelBuilder.Entity("Kompass.Domain.Economics.Wirtschaftlichkeitsannahmen", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("BetrachtungszeitraumJahre")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("Co2PreisProTonne")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("DiskontsatzProzent")
-                        .HasPrecision(10, 4)
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("InflationsrateProzent")
-                        .HasPrecision(10, 4)
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("JaehrlicherCo2PreisanstiegProzent")
-                        .HasPrecision(10, 4)
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("ModernisierungsalternativeId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("NutzungsdauerJahre")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("RestwertProzent")
-                        .HasPrecision(10, 4)
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("WartungUndInstandhaltungProJahr")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ModernisierungsalternativeId")
-                        .IsUnique();
-
-                    b.ToTable("Wirtschaftlichkeitsannahmen", (string)null);
                 });
 
             modelBuilder.Entity("Kompass.Domain.Projects.AlternativeBauteil", b =>
@@ -258,6 +184,15 @@ namespace Kompass.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Bearbeitungsstatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("InterneBezeichnung")
+                        .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
@@ -363,29 +298,12 @@ namespace Kompass.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade);
                 });
 
-            modelBuilder.Entity("Kompass.Domain.Economics.EnergietraegerAnnahme", b =>
-                {
-                    b.HasOne("Kompass.Domain.Economics.Wirtschaftlichkeitsannahmen", null)
-                        .WithMany("Energietraeger")
-                        .HasForeignKey("WirtschaftlichkeitsannahmenId")
-                        .OnDelete(DeleteBehavior.Cascade);
-                });
-
             modelBuilder.Entity("Kompass.Domain.Economics.Kostenposition", b =>
                 {
                     b.HasOne("Kompass.Domain.Projects.Modernisierungsalternative", null)
                         .WithMany("Kostenpositionen")
                         .HasForeignKey("ModernisierungsalternativeId")
                         .OnDelete(DeleteBehavior.Cascade);
-                });
-
-            modelBuilder.Entity("Kompass.Domain.Economics.Wirtschaftlichkeitsannahmen", b =>
-                {
-                    b.HasOne("Kompass.Domain.Projects.Modernisierungsalternative", null)
-                        .WithOne()
-                        .HasForeignKey("Kompass.Domain.Economics.Wirtschaftlichkeitsannahmen", "ModernisierungsalternativeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Kompass.Domain.Projects.AlternativeBauteil", b =>
@@ -415,11 +333,6 @@ namespace Kompass.Persistence.Migrations
             modelBuilder.Entity("Kompass.Domain.B56.Import.B56ImportDatei", b =>
                 {
                     b.Navigation("Zeilen");
-                });
-
-            modelBuilder.Entity("Kompass.Domain.Economics.Wirtschaftlichkeitsannahmen", b =>
-                {
-                    b.Navigation("Energietraeger");
                 });
 
             modelBuilder.Entity("Kompass.Domain.Projects.Modernisierungsalternative", b =>

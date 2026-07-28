@@ -3,6 +3,8 @@ namespace Kompass.Application.B56Import;
 public sealed class B56SnapshotVergleichService
     : IB56SnapshotVergleichService
 {
+    private const double Gleichheitstoleranz = 1e-9;
+
     private readonly IB56ImportRegister _importRegister;
 
     public B56SnapshotVergleichService(
@@ -11,221 +13,151 @@ public sealed class B56SnapshotVergleichService
         _importRegister = importRegister;
     }
 
-    public async Task<B56SnapshotVergleichAktionErgebnis> VergleichenAsync(
+    public async Task<B56SnapshotVergleichErgebnis> VergleichenAsync(
         Guid projektId,
-        Guid altSnapshotId,
-        Guid neuSnapshotId,
+        Guid vorgaengerSnapshotId,
+        Guid nachfolgerSnapshotId,
         CancellationToken cancellationToken = default)
     {
-        var altFachdaten =
+        var vorgaengerFachdaten =
             await _importRegister.FachdatenAbrufenAsync(
                 projektId,
-                altSnapshotId,
+                vorgaengerSnapshotId,
                 cancellationToken);
 
-        var neuFachdaten =
-            await _importRegister.FachdatenAbrufenAsync(
-                projektId,
-                neuSnapshotId,
-                cancellationToken);
-
-        if (altFachdaten is null || neuFachdaten is null)
+        if (vorgaengerFachdaten is null)
         {
-            return new B56SnapshotVergleichAktionErgebnis(
+            return new B56SnapshotVergleichErgebnis(
                 B56SnapshotVergleichStatus.NichtGefunden,
                 null,
-                "Mindestens einer der angegebenen B56-Snapshots wurde nicht gefunden.");
+                $"Der Vorgänger-Snapshot '{vorgaengerSnapshotId}' wurde nicht gefunden.");
         }
 
-        var ergebnis =
-            VergleicheSnapshots(
-                altSnapshotId,
-                neuSnapshotId,
-                altFachdaten,
-                neuFachdaten);
+        var nachfolgerFachdaten =
+            await _importRegister.FachdatenAbrufenAsync(
+                projektId,
+                nachfolgerSnapshotId,
+                cancellationToken);
 
-        return new B56SnapshotVergleichAktionErgebnis(
-            B56SnapshotVergleichStatus.Erfolgreich,
-            ergebnis,
-            "Der Vergleich der B56-Snapshots wurde erfolgreich durchgeführt.");
-    }
-
-    private static B56SnapshotVergleichErgebnis VergleicheSnapshots(
-        Guid altSnapshotId,
-        Guid neuSnapshotId,
-        B56ImportPipelineErgebnis alt,
-        B56ImportPipelineErgebnis neu)
-    {
-        return new B56SnapshotVergleichErgebnis(
-            altSnapshotId,
-            neuSnapshotId,
-            VergleicheAlternativen(alt, neu),
-            VergleicheKennwerte(
-                alt.Bestandskennwerte,
-                neu.Bestandskennwerte),
-            VergleicheBauteile(
-                alt.Bauteile,
-                neu.Bauteile));
-    }
-
-    private static IReadOnlyList<B56AlternativenVergleich> VergleicheAlternativen(
-        B56ImportPipelineErgebnis alt,
-        B56ImportPipelineErgebnis neu)
-    {
-        var altNachPosition =
-            alt.Modernisierungsalternativen
-                .Where(a => a.Position >= 1 && a.Position <= 9)
-                .ToDictionary(a => a.Position);
-
-        var neuNachPosition =
-            neu.Modernisierungsalternativen
-                .Where(a => a.Position >= 1 && a.Position <= 9)
-                .ToDictionary(a => a.Position);
-
-        var allePositionen =
-            altNachPosition.Keys
-                .Union(neuNachPosition.Keys)
-                .OrderBy(p => p);
-
-        var vergleiche = new List<B56AlternativenVergleich>();
-
-        foreach (var position in allePositionen)
+        if (nachfolgerFachdaten is null)
         {
-            var altAlternative =
-                altNachPosition.GetValueOrDefault(position);
-
-            var neuAlternative =
-                neuNachPosition.GetValueOrDefault(position);
-
-            B56VergleichsArt art;
-
-            if (altAlternative is null)
-            {
-                art = B56VergleichsArt.Hinzugefuegt;
-            }
-            else if (neuAlternative is null)
-            {
-                art = B56VergleichsArt.Entfernt;
-            }
-            else
-            {
-                art = B56VergleichsArt.Unveraendert;
-            }
-
-            var kennwerteVergleich =
-                VergleicheKennwerte(
-                    altAlternative?.Kennwerte ?? Array.Empty<B56Kennwert>(),
-                    neuAlternative?.Kennwerte ?? Array.Empty<B56Kennwert>());
-
-            var bauteilVergleich =
-                VergleicheBauteile(
-                    altAlternative?.Bauteile ?? Array.Empty<B56Bauteil>(),
-                    neuAlternative?.Bauteile ?? Array.Empty<B56Bauteil>());
-
-            if (art == B56VergleichsArt.Unveraendert &&
-                (kennwerteVergleich.Any(
-                     k => k.Art != B56VergleichsArt.Unveraendert) ||
-                 bauteilVergleich.Any(
-                     b => b.Art != B56VergleichsArt.Unveraendert) ||
-                 altAlternative?.Bezeichnung !=
-                 neuAlternative?.Bezeichnung))
-            {
-                art = B56VergleichsArt.Geaendert;
-            }
-
-            vergleiche.Add(
-                new B56AlternativenVergleich(
-                    position,
-                    art,
-                    altAlternative?.Bezeichnung,
-                    neuAlternative?.Bezeichnung,
-                    kennwerteVergleich,
-                    bauteilVergleich));
+            return new B56SnapshotVergleichErgebnis(
+                B56SnapshotVergleichStatus.NichtGefunden,
+                null,
+                $"Der Nachfolger-Snapshot '{nachfolgerSnapshotId}' wurde nicht gefunden.");
         }
 
-        return vergleiche;
+        var vergleich = new B56SnapshotVergleich
+        {
+            ProjektId = projektId,
+            VorgaengerSnapshotId = vorgaengerSnapshotId,
+            NachfolgerSnapshotId = nachfolgerSnapshotId,
+            BestandskennwertVergleiche =
+                VergleicheKennwerte(
+                    vorgaengerFachdaten.Bestandskennwerte,
+                    nachfolgerFachdaten.Bestandskennwerte),
+            AlternativVergleiche =
+                VergleicheAlternativen(
+                    vorgaengerFachdaten.Modernisierungsalternativen,
+                    nachfolgerFachdaten.Modernisierungsalternativen),
+            GesamtbauteilVergleiche =
+                VergleicheBauteile(
+                    vorgaengerFachdaten.Bauteile,
+                    nachfolgerFachdaten.Bauteile)
+        };
+
+        return new B56SnapshotVergleichErgebnis(
+            B56SnapshotVergleichStatus.Erfolgreich,
+            vergleich,
+            vergleich.HatAenderungen
+                ? "Der Vergleich enthält Änderungen."
+                : "Zwischen den beiden Snapshots wurden keine Änderungen festgestellt.");
     }
 
     private static IReadOnlyList<B56KennwertVergleich> VergleicheKennwerte(
-        IEnumerable<B56Kennwert> altKennwerte,
-        IEnumerable<B56Kennwert> neuKennwerte)
+        IReadOnlyList<B56Kennwert> alt,
+        IReadOnlyList<B56Kennwert> neu)
     {
         var altNachName =
-            altKennwerte
-                .GroupBy(k => k.Name, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.First(),
-                    StringComparer.OrdinalIgnoreCase);
+            alt.ToDictionary(
+                k => k.Name,
+                StringComparer.OrdinalIgnoreCase);
 
         var neuNachName =
-            neuKennwerte
-                .GroupBy(k => k.Name, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.First(),
-                    StringComparer.OrdinalIgnoreCase);
+            neu.ToDictionary(
+                k => k.Name,
+                StringComparer.OrdinalIgnoreCase);
 
         var alleNamen =
             altNachName.Keys
-                .Union(neuNachName.Keys, StringComparer.OrdinalIgnoreCase)
-                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase);
+                .Union(
+                    neuNachName.Keys,
+                    StringComparer.OrdinalIgnoreCase)
+                .OrderBy(
+                    n => n,
+                    StringComparer.OrdinalIgnoreCase)
+                .ToList();
 
-        var vergleiche = new List<B56KennwertVergleich>();
+        var ergebnisse =
+            new List<B56KennwertVergleich>(
+                alleNamen.Count);
 
         foreach (var name in alleNamen)
         {
-            var altKennwert =
-                altNachName.GetValueOrDefault(name);
+            var hatAlt =
+                altNachName.TryGetValue(
+                    name,
+                    out var altKennwert);
 
-            var neuKennwert =
-                neuNachName.GetValueOrDefault(name);
+            var hatNeu =
+                neuNachName.TryGetValue(
+                    name,
+                    out var neuKennwert);
 
-            var einheit =
-                altKennwert?.Einheit ??
-                neuKennwert?.Einheit ??
-                string.Empty;
+            B56VergleichsAenderung aenderung;
 
-            B56VergleichsArt art;
-
-            if (altKennwert is null)
+            if (hatAlt && hatNeu)
             {
-                art = B56VergleichsArt.Hinzugefuegt;
+                aenderung =
+                    Math.Abs(
+                        altKennwert!.Wert -
+                        neuKennwert!.Wert) < Gleichheitstoleranz
+                        ? B56VergleichsAenderung.Unveraendert
+                        : B56VergleichsAenderung.Geaendert;
             }
-            else if (neuKennwert is null)
+            else if (hatNeu)
             {
-                art = B56VergleichsArt.Entfernt;
-            }
-            else if (!AreApproximatelyEqual(
-                         altKennwert.Wert,
-                         neuKennwert.Wert))
-            {
-                art = B56VergleichsArt.Geaendert;
+                aenderung = B56VergleichsAenderung.Hinzugefuegt;
             }
             else
             {
-                art = B56VergleichsArt.Unveraendert;
+                aenderung = B56VergleichsAenderung.Entfernt;
             }
 
-            vergleiche.Add(
+            ergebnisse.Add(
                 new B56KennwertVergleich(
                     name,
-                    einheit,
-                    art,
-                    altKennwert?.Wert,
-                    neuKennwert?.Wert));
+                    altKennwert?.Einheit
+                        ?? neuKennwert?.Einheit
+                        ?? string.Empty,
+                    hatAlt
+                        ? altKennwert!.Wert
+                        : null,
+                    hatNeu
+                        ? neuKennwert!.Wert
+                        : null,
+                    aenderung));
         }
 
-        return vergleiche;
+        return ergebnisse;
     }
 
     private static IReadOnlyList<B56BauteilVergleich> VergleicheBauteile(
-        IEnumerable<B56Bauteil> altBauteile,
-        IEnumerable<B56Bauteil> neuBauteile)
+        IReadOnlyList<B56Bauteil> alt,
+        IReadOnlyList<B56Bauteil> neu)
     {
         var altNachCode =
-            altBauteile
-                .GroupBy(
+            alt.GroupBy(
                     b => b.Bauteilcode,
                     StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(
@@ -234,8 +166,7 @@ public sealed class B56SnapshotVergleichService
                     StringComparer.OrdinalIgnoreCase);
 
         var neuNachCode =
-            neuBauteile
-                .GroupBy(
+            neu.GroupBy(
                     b => b.Bauteilcode,
                     StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(
@@ -245,67 +176,177 @@ public sealed class B56SnapshotVergleichService
 
         var alleCodes =
             altNachCode.Keys
-                .Union(neuNachCode.Keys, StringComparer.OrdinalIgnoreCase)
-                .OrderBy(c => c, StringComparer.OrdinalIgnoreCase);
+                .Union(
+                    neuNachCode.Keys,
+                    StringComparer.OrdinalIgnoreCase)
+                .OrderBy(
+                    c => c,
+                    StringComparer.OrdinalIgnoreCase)
+                .ToList();
 
-        var vergleiche = new List<B56BauteilVergleich>();
+        var ergebnisse =
+            new List<B56BauteilVergleich>(
+                alleCodes.Count);
 
         foreach (var code in alleCodes)
         {
-            var altBauteil =
-                altNachCode.GetValueOrDefault(code);
+            var hatAlt =
+                altNachCode.TryGetValue(
+                    code,
+                    out var altBauteil);
 
-            var neuBauteil =
-                neuNachCode.GetValueOrDefault(code);
+            var hatNeu =
+                neuNachCode.TryGetValue(
+                    code,
+                    out var neuBauteil);
 
-            B56VergleichsArt art;
+            B56VergleichsAenderung aenderung;
 
-            if (altBauteil is null)
+            if (hatAlt && hatNeu)
             {
-                art = B56VergleichsArt.Hinzugefuegt;
+                aenderung =
+                    Math.Abs(
+                        altBauteil!.UWert -
+                        neuBauteil!.UWert) < Gleichheitstoleranz &&
+                    Math.Abs(
+                        altBauteil.Flaeche -
+                        neuBauteil.Flaeche) < Gleichheitstoleranz
+                        ? B56VergleichsAenderung.Unveraendert
+                        : B56VergleichsAenderung.Geaendert;
             }
-            else if (neuBauteil is null)
+            else if (hatNeu)
             {
-                art = B56VergleichsArt.Entfernt;
-            }
-            else if (!AreApproximatelyEqual(
-                         altBauteil.UWert,
-                         neuBauteil.UWert) ||
-                     !AreApproximatelyEqual(
-                         altBauteil.Flaeche,
-                         neuBauteil.Flaeche) ||
-                     !string.Equals(
-                         altBauteil.Bezeichnung,
-                         neuBauteil.Bezeichnung,
-                         StringComparison.OrdinalIgnoreCase))
-            {
-                art = B56VergleichsArt.Geaendert;
+                aenderung = B56VergleichsAenderung.Hinzugefuegt;
             }
             else
             {
-                art = B56VergleichsArt.Unveraendert;
+                aenderung = B56VergleichsAenderung.Entfernt;
             }
 
-            vergleiche.Add(
+            ergebnisse.Add(
                 new B56BauteilVergleich(
                     code,
-                    art,
-                    altBauteil?.Bezeichnung,
-                    neuBauteil?.Bezeichnung,
-                    altBauteil?.UWert,
-                    neuBauteil?.UWert,
-                    altBauteil?.Flaeche,
-                    neuBauteil?.Flaeche));
+                    altBauteil?.Bezeichnung
+                        ?? neuBauteil?.Bezeichnung
+                        ?? string.Empty,
+                    hatAlt
+                        ? altBauteil!.UWert
+                        : null,
+                    hatNeu
+                        ? neuBauteil!.UWert
+                        : null,
+                    hatAlt
+                        ? altBauteil!.Flaeche
+                        : null,
+                    hatNeu
+                        ? neuBauteil!.Flaeche
+                        : null,
+                    aenderung));
         }
 
-        return vergleiche;
+        return ergebnisse;
     }
 
-    private static bool AreApproximatelyEqual(
-        double a,
-        double b,
-        double toleranz = 1e-9)
+    private static IReadOnlyList<B56AlternativeVergleich> VergleicheAlternativen(
+        IReadOnlyList<B56Modernisierungsalternative> alt,
+        IReadOnlyList<B56Modernisierungsalternative> neu)
     {
-        return Math.Abs(a - b) <= toleranz;
+        var altNachPosition =
+            alt.ToDictionary(
+                a => a.Position);
+
+        var neuNachPosition =
+            neu.ToDictionary(
+                a => a.Position);
+
+        var allePositionen =
+            altNachPosition.Keys
+                .Union(neuNachPosition.Keys)
+                .OrderBy(p => p)
+                .ToList();
+
+        var ergebnisse =
+            new List<B56AlternativeVergleich>(
+                allePositionen.Count);
+
+        foreach (var position in allePositionen)
+        {
+            var hatAlt =
+                altNachPosition.TryGetValue(
+                    position,
+                    out var altAlternative);
+
+            var hatNeu =
+                neuNachPosition.TryGetValue(
+                    position,
+                    out var neuAlternative);
+
+            if (hatAlt && hatNeu)
+            {
+                var kennwertVergleiche =
+                    VergleicheKennwerte(
+                        altAlternative!.Kennwerte
+                            .ToList(),
+                        neuAlternative!.Kennwerte
+                            .ToList());
+
+                var bauteilVergleiche =
+                    VergleicheBauteile(
+                        altAlternative.Bauteile
+                            .ToList(),
+                        neuAlternative.Bauteile
+                            .ToList());
+
+                var istBezeichnungGeaendert =
+                    !string.Equals(
+                        altAlternative.Bezeichnung,
+                        neuAlternative.Bezeichnung,
+                        StringComparison.Ordinal);
+
+                var hatInhaltlicheAenderungen =
+                    istBezeichnungGeaendert ||
+                    kennwertVergleiche.Any(
+                        k => k.Aenderung !=
+                            B56VergleichsAenderung.Unveraendert) ||
+                    bauteilVergleiche.Any(
+                        b => b.Aenderung !=
+                            B56VergleichsAenderung.Unveraendert);
+
+                ergebnisse.Add(
+                    new B56AlternativeVergleich(
+                        position,
+                        altAlternative.Bezeichnung,
+                        neuAlternative.Bezeichnung,
+                        hatInhaltlicheAenderungen
+                            ? B56VergleichsAenderung.Geaendert
+                            : B56VergleichsAenderung.Unveraendert,
+                        kennwertVergleiche,
+                        bauteilVergleiche));
+            }
+            else if (hatNeu)
+            {
+                ergebnisse.Add(
+                    new B56AlternativeVergleich(
+                        position,
+                        string.Empty,
+                        neuAlternative!.Bezeichnung,
+                        B56VergleichsAenderung.Hinzugefuegt,
+                        Array.Empty<B56KennwertVergleich>(),
+                        Array.Empty<B56BauteilVergleich>()));
+            }
+            else
+            {
+                ergebnisse.Add(
+                    new B56AlternativeVergleich(
+                        position,
+                        altAlternative!.Bezeichnung,
+                        string.Empty,
+                        B56VergleichsAenderung.Entfernt,
+                        Array.Empty<B56KennwertVergleich>(),
+                        Array.Empty<B56BauteilVergleich>()));
+            }
+        }
+
+        return ergebnisse;
     }
 }

@@ -4,6 +4,8 @@ namespace Kompass.Domain.Projects;
 
 public sealed class Projekt : AggregateRoot
 {
+    public const int MaxInterneBezeichnungLaenge = 200;
+
     private readonly List<Modernisierungsalternative> _alternativen = new();
 
     private Projekt()
@@ -19,6 +21,11 @@ public sealed class Projekt : AggregateRoot
 
     public string Name { get; private set; }
 
+    public string? InterneBezeichnung { get; private set; }
+
+    public Bearbeitungsstatus Bearbeitungsstatus { get; private set; }
+        = Bearbeitungsstatus.InBearbeitung;
+
     public Guid? QuellSnapshotId { get; private set; }
 
     public int ProjektmodellVersion { get; private set; }
@@ -29,6 +36,30 @@ public sealed class Projekt : AggregateRoot
     public void Umbenennen(string name)
     {
         Name = BereinigeName(name);
+    }
+
+    public void ProjektdatenAktualisieren(
+        string? interneBezeichnung,
+        Bearbeitungsstatus bearbeitungsstatus)
+    {
+        if (interneBezeichnung is not null)
+        {
+            var bereinigt = interneBezeichnung.Trim();
+
+            if (bereinigt.Length > MaxInterneBezeichnungLaenge)
+            {
+                throw new DomainException(
+                    $"Die interne Bezeichnung darf höchstens {MaxInterneBezeichnungLaenge} Zeichen enthalten.");
+            }
+
+            InterneBezeichnung = bereinigt.Length == 0 ? null : bereinigt;
+        }
+        else
+        {
+            InterneBezeichnung = null;
+        }
+
+        Bearbeitungsstatus = bearbeitungsstatus;
     }
 
     public void AlternativeHinzufuegen(

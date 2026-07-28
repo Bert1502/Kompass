@@ -1,8 +1,6 @@
 # B56-Gap-Analyse
 
-**Version:** 2.0  
-**Stand:** 27. Juli 2026  
-**Vorgängeranalyse:** Version 1.0 (vor Phasen 1–5.1)
+**Stand:** 27. Juli 2026 (aktualisiert nach Paket-3- bis Paket-5-Implementierung)
 
 ## 1. Auftrag und Bewertungsgrundlage
 
@@ -28,33 +26,27 @@ Bewertungsstufen:
 
 ## 2. Zusammenfassung
 
-Seit der ersten Gap-Analyse (Version 1.0) wurden die in Abschnitt 9
-der Vorgängeranalyse benannten prioritären Arbeitspakete P1 vollständig
-umgesetzt. Der B56-Pfad deckt jetzt das vollständige Snapshot-Fundament
-gemäß ADR-0008 ab:
+Seit der ersten Gap-Analyse wurden die Pakete 3 bis 5 erfolgreich
+implementiert:
 
-- Schema- und Parser-Versionierung mit Legacy-Unterstützung;
-- fachlicher Lebenszyklus mit allen geforderten Zuständen und
-  geprüften Statusübergängen;
-- fachliche Bestätigung und Verwerfung über eigene API-Endpunkte;
-- idempotente Übernahme in das Projektmodell;
-- Vergleich zweier Snapshots nach stabilen Fachschlüsseln (Position,
-  Kennwertname, Bauteilcode);
-- vollständiger HTTP-End-to-End-Test;
-- korrekte verbindliche Terminologie im Desktop;
-- Grundlagentypen für die Wirtschaftlichkeitsberechnung.
+- Snapshot-Schema- und Parser-Versionierung mit Legacy-Migration;
+- fachlicher Snapshotlebenszyklus mit allen sieben Zuständen;
+- Bestätigung, Verwerfung und Übernahme in das Projektmodell;
+- Re-Import und Versionsvergleich anhand stabiler B56-Positionen;
+- B56-Position und Präsenzkennzeichnung für Alternativen.
 
-Derzeit offen sind:
+Der aktuelle Implementierungsstand deckt damit den durchgängigen
+fachlichen B56-Importpfad vom Hochladen bis zur Projektmodellübernahme
+einschließlich Folgeimport-Vergleich vollständig ab. `dotnet test`
+bestätigt 95/95 Tests bestanden.
 
-- vollständiger bearbeitbarer Projektstand (Auftraggeber,
-  Standortdaten, Förderparameter, reale Verbräuche);
-- feldweise Konfliktlösung beim Re-Import;
-- Wirtschaftlichkeitsberechnungsservice (Domänenmodell vorhanden);
-- Förderung, Berichtswesen, Wissensdatenbank, Wärmebrückenmanagement.
+Offene Schwerpunkte für die nächste Ausbaustufe:
 
-Das nächste Arbeitspaket gemäß Fachspezifikation Abschnitt 24 ist die
-Wirtschaftlichkeitsberechnung, gefolgt von Förderung und
-Berichtswesen.
+- bearbeitbarer vollständiger Projektstand (Kontakte, Standort,
+  Kosten, Förderung, Wirtschaftlichkeit);
+- persistierte Vergleichs- und Konfliktergebnisse;
+- vollständiger End-to-End-Prozesstest über alle elf Abnahmeschritte;
+- Wirtschaftlichkeit, Förderung und Berichtswesen.
 
 ## 3. Bereits erfüllt
 
@@ -161,36 +153,41 @@ Nachweise:
 
 ### 3.7 Snapshot-Schema- und Parser-Versionierung
 
-_Vormals nicht erfüllt (Version 1.0, Abschnitt 5.1)._
-
-- `B56SnapshotVersionen` definiert konstante Schema- und
-  Parser-Versionswerte.
-- `SnapshotSchemaVersion` und `ParserVersion` werden beim Import
-  gespeichert (relational, nicht nur im JSON).
-- Legacy-Einträge erhalten beim Lesen die Kennung `legacy`.
-- Unbekannte Versionen werden kontrolliert behandelt.
-- EF-Core-Migrationen sichern den Schema-Übergang.
+- `B56SnapshotVersionen` enthält `AktuelleSchemaVersion = 1` und
+  `AktuelleParserVersion = "1.1"` sowie `LegacyParserVersion = "legacy"`.
+- `SnapshotSchemaVersion` und `ParserVersion` werden relational in
+  `B56ImportEintraege` gespeichert.
+- Bestandsdaten erhalten durch die Migration Standardwerte
+  (`SnapshotSchemaVersion = 1`, `ParserVersion = "legacy"`).
+- `EfB56ImportRegister` wirft `B56SnapshotFormatException` bei einer
+  unbekannten Schema-Version; der Payload wird nicht lautlos falsch
+  deserialisiert.
+- `B56ImportEintrag` und `B56ImportEintragEntity` führen beide Felder.
 
 Nachweise:
 
 - `Kompass.Application/B56Import/B56SnapshotVersionen.cs`
+- `Kompass.Application/B56Import/B56SnapshotFormatException.cs`
 - `Kompass.Persistence/Data/Entities/B56ImportEintragEntity.cs`
 - `Kompass.Persistence/Migrations/20260725075146_VersionB56Snapshots.cs`
+- `Kompass.Persistence/Services/EfB56ImportRegister.cs`
+- `Kompass.Tests/KompassDbContextMigrationTests.cs`
 - `Kompass.Tests/EfB56ImportRegisterTests.cs`
 
-### 3.8 Fachlicher Importlebenszyklus
+### 3.8 Fachlicher Snapshotlebenszyklus
 
-_Vormals nicht erfüllt (Version 1.0, Abschnitt 5.2)._
-
-- `B56SnapshotStatus` umfasst alle fachlich geforderten Zustände:
-  `TechnischGeprueft`, `MitWarnungen`, `Blockiert`,
-  `FachlichBestaetigt`, `InProjektmodellUebernommen`, `Verworfen`.
-- `B56SnapshotLebenszyklusService` prüft und erzwingt zulässige
-  Statusübergänge.
-- Bestätigungs- und Verwerfungszeitpunkte werden persistiert.
-- API-Endpunkte `POST .../bestaetigen` und `POST .../verwerfen`
-  exponieren den Lebenszyklus.
-- Das Verhalten ist durch Unit- und HTTP-Tests abgesichert.
+- `B56SnapshotStatus` bildet alle sieben geforderten Zustände ab:
+  `TechnischGeprueft`, `MitWarnungen`, `Blockiert`, `FachlichBestaetigt`,
+  `InProjektmodellUebernommen`, `Verworfen`.
+- `B56SnapshotLebenszyklusService` implementiert `BestaetigenAsync` und
+  `VerwerfenAsync` mit expliziten, geprüften Statusübergängen.
+- Blockierte Snapshots können nicht bestätigt, aber verworfen werden.
+- Bestätigungs- und Verwerfungszeitpunkt werden in `BestaetigtAm`
+  beziehungsweise `VerworfenAm` gespeichert.
+- `B56SnapshotLebenszyklusController` bildet Anwendungsergebnisse auf
+  HTTP-Status ab.
+- Migration `AddB56SnapshotLifecycle` fügt alle drei Felder rückwärts­
+  kompatibel mit dem Standardstatus `TechnischGeprueft` hinzu.
 
 Nachweise:
 
@@ -201,21 +198,21 @@ Nachweise:
 - `Kompass.Tests/B56SnapshotLebenszyklusServiceTests.cs`
 - `Kompass.Tests/B56SnapshotLebenszyklusControllerTests.cs`
 
-### 3.9 Fachliche Bestätigung und Übernahme in das Projektmodell
+### 3.9 Übernahme in das Projektmodell
 
-_Vormals nicht erfüllt (Version 1.0, Abschnitt 5.3)._
-
-- `B56ProjektmodellUebernahmeService` prüft den Snapshot-Status und
-  ist idempotent.
-- Nur fachlich bestätigte Snapshots dürfen übernommen werden.
-- Alternativen und Bauteile werden aus dem Snapshot in das
-  Projektmodell übertragen.
-- `QuellSnapshotId` und `ProjektmodellVersion` werden am
-  Projekt-Aggregat gespeichert.
-- Ein bereits übernommener Snapshot kann ohne Fehler erneut aufgerufen
-  werden.
-- API-Endpunkt `POST .../in-projektmodell-uebernehmen` exponiert den
-  Use-Case.
+- `B56ProjektmodellUebernahmeService` überträgt Modernisierungs­
+  alternativen und Bauteilreferenzen aus einem fachlich bestätigten
+  Snapshot in das Projektmodell.
+- Nur Snapshots mit Status `FachlichBestaetigt` dürfen übernommen werden.
+- Die erneute Übernahme desselben Snapshots ist idempotent.
+- Herkunft wird als `QuellSnapshotId` am Projekt und an jeder
+  übernommenen Alternative gespeichert.
+- `ProjektmodellVersion` am Projekt steigt nach jeder Übernahme.
+- Nach erfolgreicher Übernahme erhält der Snapshot den Status
+  `InProjektmodellUebernommen`.
+- `B56ProjektmodellController` bildet die Ergebnisse auf HTTP ab.
+- Migration `AddB56ProjectModelOrigin` ergänzt `QuellSnapshotId` und
+  `ProjektmodellVersion` rückwärtskompatibel.
 
 Nachweise:
 
@@ -224,164 +221,122 @@ Nachweise:
 - `Kompass.Api/B56Import/B56ProjektmodellController.cs`
 - `Kompass.Persistence/Migrations/20260725085558_AddB56ProjectModelOrigin.cs`
 - `Kompass.Tests/B56ProjektmodellUebernahmeServiceTests.cs`
+- `Kompass.Tests/B56ProjektmodellControllerTests.cs`
 
-### 3.10 Re-Import und Snapshot-Vergleich
-
-_Vormals nicht erfüllt (Version 1.0, Abschnitt 5.5)._
+### 3.10 Re-Import und Versionsvergleich
 
 - `B56SnapshotVergleichService` vergleicht zwei Snapshots anhand
-  stabiler Fachschlüssel:
-  - Modernisierungsalternativen → B56-Position (1–9);
-  - Bestandskennwerte → Kennwertname;
-  - Bauteile → Bauteilcode.
-- Jedes Element erhält einen Vergleichsstatus:
-  `Unveraendert | Hinzugefuegt | Entfernt | Geaendert`.
-- `B56Position` und `IstImAktuellenB56SnapshotVorhanden` sind am
-  `Modernisierungsalternative`-Objekt modelliert.
-- Alternativen, die in einem neuen Snapshot fehlen, bleiben im
-  Projektmodell erhalten und werden als nicht mehr vorhanden
-  gekennzeichnet.
-- API-Endpunkt `GET .../vergleich?altSnapshotId&neuSnapshotId`
-  exponiert das Ergebnis.
+  Kennwertname, Bauteilcode und B56-Position (1–9).
+- Hinzugefügte, geänderte und entfernte Kennwerte, Bauteile und
+  Alternativen werden erkannt und im Ergebnis ausgewiesen.
+- Bezeichnungsänderungen bei Alternativen werden als inhaltliche
+  Änderung behandelt.
+- `B56SnapshotVergleichController` stellt den Vergleich als
+  HTTP-Endpunkt bereit.
+- Der HTTP-End-to-End-Test prüft zweiten Import und Vergleich über
+  echte HTTP-Serialisierung.
 
 Nachweise:
 
-- `Kompass.Application/B56Import/B56SnapshotVergleich.cs`
 - `Kompass.Application/B56Import/B56SnapshotVergleichService.cs`
 - `Kompass.Api/B56Import/B56SnapshotVergleichController.cs`
-- `Kompass.Persistence/Migrations/20260725101500_TrackB56AlternativePresence.cs`
-- `Kompass.Tests/B56SnapshotVergleichServiceTests.cs`
-
-### 3.11 Vollständiger HTTP-End-to-End-Test
-
-_Vormals nicht erfüllt (Version 1.0, Abschnitt 5.6)._
-
-Der End-to-End-Test `B56ImportHttpEndToEndTests` deckt über echte
-HTTP-Serialisierung den vollständigen Lebenszyklus ab:
-
-1. Projekt anlegen;
-2. Datei hochladen;
-3. fachlich bestätigen;
-4. in das Projektmodell übernehmen (idempotenter Zweitufruf);
-5. zweiten Snapshot importieren (geänderter U-Wert);
-6. Vergleich mit `Geaendert`-Nachweis für `AW01`.
-
-Nachweise:
-
+- `Kompass.Tests/B56SnapshotVergleichServiceTests.cs` (12 Tests)
 - `Kompass.Tests/B56ImportHttpEndToEndTests.cs`
 
-### 3.12 Verbindliche Terminologie im Desktop
+### 3.11 B56-Position und Präsenzkennzeichnung für Alternativen
 
-_Vormals nicht erfüllt (Version 1.0, Abschnitt 4.3 und R9)._
-
-Alle zuvor abweichenden Beschriftungen in der Desktopansicht wurden
-durch den verbindlichen Begriff `Modernisierungsalternative` ersetzt.
-
-Nachweise:
-
-- `Kompass.Desktop/Views/B56ImportView.xaml`
-
-### 3.13 Wirtschaftlichkeits-Domänenmodell
-
-_Neu seit Version 1.0, Phase 5.1._
-
-Grundlagentypen für die spätere Wirtschaftlichkeitsberechnung sind im
-Domänenmodell verankert:
-
-- `Wirtschaftlichkeitsannahmen` (Aggregat): Betrachtungszeitraum,
-  Diskontsatz, Inflation, CO₂-Pfad, Wartung, Nutzungsdauer,
-  Restwert, Energieträgerannahmen-Sammlung.
-- `EnergietraegerAnnahme` (Entity): Preis pro kWh und jährliche
-  Preissteigerung je Energieträger.
-- `Wirtschaftlichkeitsergebnis` (unveränderlicher Record): Kapitalwert,
-  statische Amortisation, Kosten-Nutzen-Verhältnis, Restwert, Basis
-  (bilanziert oder praktisch).
-- `Energietraeger` (Enum): Erdgas, Heizöl, Fernwärme, Strom,
-  Holzpellets, Holzhackschnitzel, Wärmepumpe, Sonstige.
-
-Die Typen sind validiert und durch Unit-Tests abgesichert. Ein
-Berechnungsservice und Persistenz sind noch nicht vorhanden.
+- `B56Position` wird beim Import aus `SCModernisierungen` extrahiert
+  und als stabiler Schlüssel in `Modernisierungsalternativen` gespeichert.
+- `IstImAktuellenB56SnapshotVorhanden` kennzeichnet Alternativen, die
+  im letzten Snapshot nicht mehr belegt sind.
+- Damit ist der ADR-0008-Grundsatz umgesetzt: Kosten, Kommentare und
+  Historie bleiben erhalten; die Alternative wird nicht gelöscht.
+- Migration `TrackB56AlternativePresence` ergänzt beide Spalten.
 
 Nachweise:
 
-- `Kompass.Domain/Economics/Wirtschaftlichkeitsannahmen.cs`
-- `Kompass.Domain/Economics/EnergietraegerAnnahme.cs`
-- `Kompass.Domain/Economics/Wirtschaftlichkeitsergebnis.cs`
-- `Kompass.Domain/Economics/Energietraeger.cs`
-- `Kompass.Tests/WirtschaftlichkeitsannahmenTests.cs`
+- `Kompass.Persistence/Migrations/20260725101500_TrackB56AlternativePresence.cs`
+- `Kompass.Application/B56Import/B56Modernisierungsalternative.cs`
+- `Kompass.Tests/B56SnapshotVergleichServiceTests.cs`
 
 ## 4. Teilweise erfüllt
 
 ### 4.1 Unveränderlicher Snapshot
 
 `B56ImportEintragEntity`, `FachdatenJson`, Schema-Version und
-Parser-Version bilden einen persistierten, identifizierbaren
-Snapshot. Es existiert kein Updatepfad für den JSON-Inhalt.
+Lebenszyklusstatus bilden zusammen einen nachvollziehbaren,
+versionierten Snapshot.
 
-Weiterhin nicht modelliert:
+Noch nicht vollständig:
 
-- strukturierte Fehler- und Warnungscodes im Snapshot (derzeit nur
-  JSON-Payload);
-- Audit-Trail zur bestätigenden Person oder dem technischen Akteur
-  (Zeitpunkt ist vorhanden, Akteur fehlt);
-- Reconciliation-Prozess nach Prozessabbruch zwischen Archiv und
-  Datenbank;
-- klare Recovery-Verfahren für Backup und Restore.
+- Der explizite Begriff „Snapshot" taucht im Datenmodell und in der
+  API erst als Pfadbestandteil auf; `B56ImportEintrag` verwendet noch
+  „Import"-Terminologie.
+- Eine fachlich explizite, monoton wachsende Snapshot-Nummer pro
+  Projekt (unabhängig vom Zeitstempel) ist nicht implementiert.
+- Die Behandlung eines beschädigten Payloads bei gültiger Schema-Version
+  ist nicht gesondert getestet.
 
 ### 4.2 Warnungen und Validierungsergebnisse
 
-Pipeline-Warnungen sind Bestandteil von `FachdatenJson` und werden
-über die API und den Desktop angezeigt. Technische Ablehnungen
-werden im unmittelbaren `B56ImportErgebnis` zurückgegeben.
+Pipeline-Warnungen sind Bestandteil von `FachdatenJson` und werden im
+Snapshot mit dem Lebenszyklus verbunden. Der Importstatus
+`MitWarnungen` ermöglicht die Bestätigung trotz Warnungen; `Blockiert`
+verhindert sie.
 
-Weiterhin fehlend:
+Noch offen:
 
-- dauerhaft gespeicherte strukturierte Validierungscodes außerhalb
-  des JSON-Payloads;
-- explizite Unterscheidung blockierender und nicht blockierender
-  Befunde in separaten Feldern (der Status `Blockiert` ist modelliert,
-  aber nicht automatisch gesetzt);
-- Auditdaten zur bestätigenden Person.
+- Strukturierte, maschinenlesbare Fehler- und Warnungscodes im
+  Snapshot (derzeit freier Text im JSON);
+- Auditdaten zur bestätigenden Person – bewusst offen bis zur
+  Entscheidung über das Rollenmodell;
+- dauerhaft gespeicherte Liste der einzelnen blockierenden Befunde
+  getrennt vom Pipeline-Ergebnis.
 
 ### 4.3 Modernisierungsalternativen
 
-Bezeichnung, Beschreibung, Kennwerte, Bauteile, B56-Position und
-`IstImAktuellenB56SnapshotVorhanden` sind vorhanden. Die
-Desktopterminologie ist korrigiert.
+Bezeichnung, Beschreibung, Kennwerte, Bauteile und B56-Position werden
+importiert und dargestellt. Die B56-Position dient als stabiler
+Vergleichsschlüssel.
 
-Weiterhin fehlend:
+Noch offen:
 
-- eindeutige Zuordnung zu einer B56-Variante oder einem
-  Berechnungsstand (offener Punkt gemäß Spezifikation);
-- technischer Nachweis der Begrenzung auf neun Alternativen je
-  Variante in der Domain-Schicht;
-- eindeutige Trennung zwischen B56-Bezeichnung und ergänzender
-  interner Bezeichnung im Projektmodell;
-- vollständige energetische Ergebnisse je Energieträger
-  (abhängig von freigegebenen Feldlisten).
+- Zuordnung zu einer B56-Variante oder einem Berechnungsstand (fachlich
+  noch nicht freigegeben);
+- technisch erzwungene Begrenzung auf neun Alternativen je Variante;
+- eindeutige Trennung zwischen B56-Bezeichnung und ergänzender interner
+  Bezeichnung im Projektmodell;
+- vollständige energetische Ergebnisse je Energieträger.
+
+Die Desktopansicht verwendet an einzelnen Stellen noch den Begriff
+„Variante" für importierte Modernisierungsalternativen. Das widerspricht
+der verbindlichen Terminologie.
 
 ### 4.4 Bauteile und Kennwerte
 
-Bauteilcode, Bezeichnung, Fläche und U-Wert sind im Importmodell
-vorhanden. Vergleich nach Bauteilcode zwischen zwei Snapshots ist
-implementiert.
+Bauteilcode, Bezeichnung, Nachbarseite, Fläche und U-Wert sind im
+Importmodell vorhanden. Bestands- und Alternativenkennwerte können als
+Name, Einheit und numerischer Wert gespeichert werden.
 
-Weiterhin fehlend:
+Es fehlen:
 
-- freigegebene vollständige Feldlisten je B56-Exportblatt (offener
-  Punkt in der Fachspezifikation);
+- freigegebene vollständige Feldlisten je B56-Exportblatt;
+- stabile Identitäten für Vergleich und Herkunft;
 - vollständige Gebäudegrunddaten und Bezugsgrößen;
 - freigegebene Nutzungsprofile beziehungsweise Zonenübersicht;
-- fachliche Pflichtfeld- und Plausibilitätsregeln.
+- strukturierte Energieträger;
+- fachliche Pflichtfeld- und Plausibilitätsregeln;
+- Kennzeichnung, welche Werte blockierend fehlen dürfen.
 
 Diese Lücken können wegen der ausdrücklich offenen Feld- und
 Mappingentscheidungen nicht eigenmächtig geschlossen werden.
 
 ### 4.5 Beziehung zwischen Projekt und Import
 
-Projekt und Import teilen eine Projekt-ID. Die Importsuche ist
+Projekt und Import teilen eine Projekt-ID. Die Importsuche ist dadurch
 projektbezogen. Es gibt bewusst keine kaskadierende
-Entity-Framework-Beziehung.
+Entity-Framework-Beziehung, sodass ein Snapshot bei normaler
+Projektlöschung erhalten bleibt.
 
 Offen bleibt:
 
@@ -389,307 +344,271 @@ Offen bleibt:
   verwaltet wird;
 - ob Projektlöschung fachlich als Archivierung statt physischer
   Löschung modelliert werden muss;
+- wie Berichte und spätere Herkunftsverweise erhalten bleiben;
 - welche Datenschutz- und Aufbewahrungsregel physisches Löschen
   autorisiert.
+
+Aktuell verlangt die Historien- und Detail-API ein vorhandenes Projekt.
+Ein erhaltener Snapshot ist nach Projektlöschung daher zwar in der
+Datenbank vorhanden, über den regulären API-Pfad aber nicht mehr
+erreichbar.
 
 ### 4.6 Technische Konsistenz von Archiv und Datenbank
 
 Die Importpipeline kompensiert viele Fehler durch Löschen der neu
 erzeugten Archivdatei. Das reduziert verwaiste Dateien.
 
-Weiterhin fehlend:
+Es fehlen:
 
 - dauerhafter Importzustand für abgebrochene Verarbeitung;
 - Reconciliation-Prozess für Archiv und Datenbank;
+- Wiederanlauf nach Prozessabbruch;
 - definierter Umgang mit Fehlern beim kompensierenden Löschen;
 - Backup-, Restore- und Recovery-Verfahren.
-
-### 4.7 Wirtschaftlichkeit
-
-Das Domänenmodell (`Wirtschaftlichkeitsannahmen`, `EnergietraegerAnnahme`,
-`Wirtschaftlichkeitsergebnis`, `Energietraeger`) ist vorhanden und
-validiert.
-
-Weiterhin fehlend:
-
-- Persistenz für `Wirtschaftlichkeitsannahmen` und
-  `EnergietraegerAnnahme` (keine EF-Core-Konfiguration,
-  keine Migration);
-- Berechnungsservice (bilanziert und praktisch);
-- Zuordnung von `Wirtschaftlichkeitsannahmen` zu einer
-  `Modernisierungsalternative` im Projektmodell;
-- API-Endpunkte für Wirtschaftlichkeitsannahmen und -ergebnisse;
-- Desktop-Ansicht.
 
 ## 5. Nicht erfüllt
 
 ### 5.1 Bearbeitbarer vollständiger Projektstand
 
-Das Projektmodell enthält derzeit Name, `QuellSnapshotId`,
-`ProjektmodellVersion`, Modernisierungsalternativen und
-Kostenpositionen.
+Das Projektmodell enthält derzeit Name, Modernisierungsalternativen,
+alternative Bauteile, Kostenpositionen und Herkunftsreferenz.
 
-Noch nicht modelliert:
+Noch nicht modelliert sind unter anderem:
 
 - Auftraggeber und Ansprechpartner;
 - Standortdaten und Gebäudetyp;
 - Bearbeitungs- und Freigabestatus;
 - Förderparameter;
+- Energiepreise und Preissteigerungen;
+- CO₂-Preisannahmen;
 - reale Verbrauchsdaten;
 - Berichtseinstellungen;
-- nachvollziehbare abweichende Annahmen mit Herkunftsnachweis;
-- Varianten beziehungsweise Berechnungsstände als eigenständige
-  Entitäten.
+- nachvollziehbare abweichende Annahmen.
 
-### 5.2 Feldweise Bestätigung bei Re-Import
+### 5.2 Persistierte Vergleichs- und Konfliktergebnisse
 
-Der Vergleich zweier Snapshots ist implementiert. Was noch fehlt:
+Der Snapshot-Vergleich wird berechnet, aber nicht dauerhaft
+gespeichert. Es fehlen:
 
-- feldweises Konfliktmodell (welches Feld aus Alt- oder Neustand
-  übernehmen);
-- explizite Benutzerentscheidung pro Konfliktfeld;
-- Schutz manueller Ergänzungen gegen automatische Überschreibung;
-- persistierte Konfliktentscheidungen mit Zeitstempel.
+- persistierte Vergleichsergebnisse für spätere Auswertung;
+- Konfliktmodell für feldweise Bestätigung;
+- explizite Synchronisations-Use-Case (nach fachlicher Spezifikation);
+- Schutzregel, die verhindert, dass manuelle Ergänzungen automatisch
+  durch Snapshot-Werte überschrieben werden.
 
-Diese Punkte setzen fachlich freigegebene Feldidentitäten voraus
-(Abschnitt 23.4–5 der Fachspezifikation).
+### 5.3 Vollständiger produktiver End-to-End-Prozess
 
-### 5.3 Wirtschaftlichkeitsberechnungsservice
+HTTP-End-to-End-Tests prüfen Upload, Historie, Details und
+Folgeimport-Vergleich. Noch nicht durch einen vollständigen Test
+abgedeckt ist der Ablauf aus `FUNCTIONAL_SPECIFICATION.md`
+Abschnitt 21:
 
-Das Domänenmodell ist vorhanden (Abschnitt 3.13). Fehlend:
+5. Import bestätigen (HTTP);
+6. Projektmodell erzeugen (HTTP);
+7. Ergänzung speichern;
+8. Projekt schließen und neu öffnen;
+9. zweiten Snapshot importieren (HTTP) ← vorhanden;
+10. Unterschiede anzeigen (HTTP) ← vorhanden;
+11. Ergänzung unverändert nachweisen.
 
-- Berechnungsservice für bilanzierte Wirtschaftlichkeit;
-- Berechnungsservice für praktische Wirtschaftlichkeit;
-- Zuordnungsmodell zwischen Alternative und Annahmen;
-- Persistenz, API und Desktop.
+## 6. Datenbankmigrationen – Überblick
 
-### 5.4 Förderung
+### 6.1 Abgeschlossene Migrationen
 
-Kein Datenmodell, kein Service, keine API.
+| Migration | Inhalt | Status |
+|-----------|--------|--------|
+| `20260725075146_VersionB56Snapshots` | `SnapshotSchemaVersion`, `ParserVersion` | ✅ umgesetzt |
+| `20260725084054_AddB56SnapshotLifecycle` | `SnapshotStatus`, `BestaetigtAm`, `VerworfenAm` | ✅ umgesetzt |
+| `20260725085558_AddB56ProjectModelOrigin` | `QuellSnapshotId`, `ProjektmodellVersion` | ✅ umgesetzt |
+| `20260725101500_TrackB56AlternativePresence` | `B56Position`, `IstImAktuellenB56SnapshotVorhanden` | ✅ umgesetzt |
 
-Vorgesehene Bereiche gemäß Fachspezifikation: BEG EM, KfW, EFRE,
-KNN. Dieses Modul ist ausdrücklich nach der Wirtschaftlichkeit
-priorisiert.
+### 6.2 Ausstehende Migrationen
 
-### 5.5 Berichtswesen
+**Migration: Persistente Vergleichs- und Konfliktergebnisse**
 
-Kein Datenmodell, kein Service, keine API.
+Für spätere feldweise Bestätigung und Konfliktlösung werden voraussichtlich
+benötigt:
 
-Vorgesehene Ausgaben: Energieberatungsbericht,
-Wirtschaftlichkeitsbericht, Förderübersicht, Executive Summary,
-Vergleich, Wärmebrückenübersicht, Prüferunterlagen, Präsentationen.
-
-### 5.6 Wärmebrückenmanagement
-
-Kein Datenmodell, kein Service, keine API.
-
-Gemäß Fachspezifikation Abschnitt 16 sind Fall A (Markierung im
-Plan) und Fall B (vorhandene Architekturdetails) mit dem Fachobjekt
-Wärmebrücke zu implementieren.
-
-### 5.7 Wissensdatenbank
-
-Kein Datenmodell, kein Service, keine API.
-
-Referenzdaten gemäß Fachspezifikation Abschnitt 19: Nutzungsdauern,
-Wartungsansätze, Energiepreise, CO₂-Faktoren, U-Wert-Anforderungen,
-Förderkriterien.
-
-## 6. Notwendige Datenbankmigrationen
-
-Die folgenden Migrationen ergeben sich aus dem noch offenen Ausbau
-gemäß ADR-0008 und der Fachspezifikation. Bereits durchgeführte
-Migrationen sind als erledigt gekennzeichnet.
-
-### 6.1 ✅ Migration 1: Snapshot-Versionierung (erledigt)
-
-`SnapshotSchemaVersion` und `ParserVersion` wurden mit
-`20260725075146_VersionB56Snapshots` ergänzt.
-
-### 6.2 ✅ Migration 2: Snapshot-Lebenszyklus (erledigt)
-
-`SnapshotStatus`, `BestaetigtAm` und `VerworfenAm` wurden mit
-`20260725084054_AddB56SnapshotLifecycle` ergänzt.
-
-### 6.3 ✅ Migration 3: Herkunft im Projektmodell (erledigt)
-
-`QuellSnapshotId` und `ProjektmodellVersion` am Projekt-Aggregat sowie
-`QuellSnapshotId` an der Modernisierungsalternative wurden mit
-`20260725085558_AddB56ProjectModelOrigin` ergänzt.
-
-### 6.4 ✅ Migration 4: B56-Position und Vorhandensein (erledigt)
-
-`B56Position` und `IstImAktuellenB56SnapshotVorhanden` an der
-Modernisierungsalternative wurden mit
-`20260725101500_TrackB56AlternativePresence` ergänzt.
-
-### 6.5 Migration 5: Wirtschaftlichkeitsannahmen-Persistenz
-
-Für das nächste Arbeitspaket werden benötigt:
-
-- Tabelle `Wirtschaftlichkeitsannahmen` mit den Feldern des
-  Aggregats;
-- Tabelle `EnergietraegerAnnahmen` als Detailtabelle;
-- Fremdschlüssel zur `Modernisierungsalternative`.
-
-### 6.6 Migration 6: Audit-Trail für Bestätigung
-
-Sobald Mehrbenutzerbetrieb spezifiziert ist:
-
-- Akteur (Person oder technischer Akteur) für Bestätigung und
-  Verwerfung;
-- optional separate Ereignistabelle für Statushistorie.
-
-Die genaue Modellierung ist fachlich noch offen.
-
-### 6.7 Migration 7: Feldweise Konfliktentscheidungen
-
-Erst nach Klärung stabiler Feldidentitäten und Konfliktregeln:
-
-- alter und neuer Snapshot-Verweis;
-- betroffener stabiler Fachschlüssel;
+- Tabelle oder JSON-Spalte für persistierte Vergleichsergebnisse;
+- betroffener stabiler Fachschlüssel (B56Position, Kennwertname,
+  Bauteilcode);
+- alter Originalwert, neuer Originalwert und aktueller Arbeitswert;
 - Konfliktstatus und Benutzerentscheidung;
-- Zeitstempel.
+- Zeitpunkt und Auditinformation.
 
-### 6.8 Kein Einführen kaskadierender Löschung
+Diese Migration darf erst nach Klärung der offenen Feldidentitäten und
+Konfliktregeln entworfen werden.
 
-Eine neue relationale Verbindung zwischen Projekt und Snapshot darf
-Snapshots nicht automatisch mit dem Projekt löschen. Die
-Aufbewahrungsentscheidung ist offen.
+**Hinweis:** Eine kaskadierende Löschung zwischen Projekt und Snapshot
+darf nicht eingeführt werden. Snapshots müssen nach Projektlöschung
+für die Nachweisbarkeit erhalten bleiben.
 
 ## 7. Notwendige Tests
 
-### 7.1 ✅ Snapshot-Versionierung (erledigt)
+### 7.1 Bereits implementierte Tests (Übersicht)
 
-Abgedeckt durch `EfB56ImportRegisterTests` und
-`B56ImportHttpEndToEndTests`.
+| Testdatei | Inhalt | Anzahl |
+|-----------|--------|--------|
+| `B56DateiPrueferTests.cs` | Dateiprüfung | 7 |
+| `B56ImportControllerTests.cs` | API-Controller | 9 |
+| `B56ImportDependencyInjectionTests.cs` | DI-Komposition | 1 |
+| `B56ImportEndToEndSmokeTests.cs` | Smoke-Test | 1 |
+| `B56ImportHttpEndToEndTests.cs` | HTTP E2E (Import + Vergleich) | 2 |
+| `B56ImportServiceIntegrationTests.cs` | Import-Pipeline | 3 |
+| `B56ProjektmodellControllerTests.cs` | Übernahme-Controller | 2 |
+| `B56ProjektmodellUebernahmeServiceTests.cs` | Übernahme-Service | 2 |
+| `B56SnapshotLebenszyklusControllerTests.cs` | Lebenszyklus-Controller | 1 |
+| `B56SnapshotLebenszyklusServiceTests.cs` | Lebenszyklus-Service | 4 |
+| `B56SnapshotVergleichServiceTests.cs` | Vergleich (alle Fälle) | 12 |
+| `B56TabellenImportServiceTests.cs` | Tabellenimport | 2 |
+| `EfB56ImportRegisterTests.cs` | EF-Register inkl. Versionen | 3 |
+| `KompassDbContextMigrationTests.cs` | Migrationen | 2 |
+| `OpenXmlB56ArbeitsmappenLeserTests.cs` | OpenXML-Leser | 2 |
+| `ProjektB56ImportBeziehungTests.cs` | Projekt-Import-Beziehung | 2 |
+| `ProjektDomainTests.cs` | Domain-Invarianten | 8 |
+| `ProjektServiceTests.cs` | Projektservice | 6 |
+| `ProjekteControllerTests.cs` | Projekte-API | 12 |
+| `Sha256HashServiceTests.cs` | Hash-Service | 2 |
+| `B56ArchivServiceTests.cs` | Archivservice | 2 |
+| **Gesamt** | | **95** |
 
-### 7.2 ✅ Bestätigung und Projektübernahme (erledigt)
+### 7.2 Noch fehlende Tests
 
-Abgedeckt durch `B56SnapshotLebenszyklusServiceTests`,
-`B56SnapshotLebenszyklusControllerTests`,
-`B56ProjektmodellUebernahmeServiceTests` und
-`B56ImportHttpEndToEndTests`.
+- vollständiger HTTP-End-to-End-Test der elf Abnahmeschritte aus
+  `FUNCTIONAL_SPECIFICATION.md` Abschnitt 21 (Schritte 5–8 und 11
+  fehlen noch);
+- beschädigter Payload bei gültiger Schema-Version erzeugt definierten
+  Fehler;
+- Benutzerergänzung bleibt nach Folgeimport unverändert (Schutz
+  manueller Daten);
+- Snapshot nach Projektlöschung erreichbar halten (sobald Use-Case
+  entschieden);
+- Persistiertes Vergleichsergebnis (sobald Datenmodell entschieden).
 
-### 7.3 ✅ Re-Import und Vergleich (erledigt)
+## 8. Risiken (aktualisiert)
 
-Abgedeckt durch `B56SnapshotVergleichServiceTests` und
-`B56ImportHttpEndToEndTests`.
+### R1 – Alte Snapshots werden durch Modelländerungen unlesbar
 
-### 7.4 Für Wirtschaftlichkeit
+**Priorität: erledigt/mitigiert.**
+`B56SnapshotVersionen`, `B56SnapshotFormatException` und die Migration
+`VersionB56Snapshots` setzen eine explizite Versionsgrenze.
 
-- `Wirtschaftlichkeitsannahmen`-Persistenz (Roundtrip mit
-  `EnergietraegerAnnahme`);
-- bilanzierte Berechnung mit Testdaten;
-- praktische Berechnung mit realen Verbrauchswerten;
-- Zuordnung von Annahmen zu einer Modernisierungsalternative;
-- API-Endpunkte für Lesen, Anlegen und Ändern von Annahmen;
-- Änderung von Annahmen erzeugt ein neues Ergebnis, überschreibt
-  das alte nicht.
+**Restrisiko:** Der `FachdatenJson`-Payload selbst besitzt noch keine
+interne Feldversionierung. Neue Felder im `B56ImportPipelineErgebnis`
+müssen abwärtskompatibel hinzugefügt werden.
 
-### 7.5 Für Re-Import-Konfliktlösung
+### R2 – Zwei fachliche Wahrheiten entstehen
 
-- manuell ergänzter Wert bleibt nach erneutem Import erhalten;
-- bestätigte Konfliktentscheidung wird persistiert;
-- abgelehnte Konfliktentscheidung ist nachvollziehbar.
+**Priorität: mitigiert.**
+Der explizite Übernahme-Use-Case (`B56ProjektmodellUebernahmeService`)
+und der Lebenszyklusstatus stellen sicher, dass das Projektmodell nur
+aus fachlich bestätigten Snapshots befüllt wird.
 
-### 7.6 Für Desktop
+**Restrisiko:** Der bearbeitbare Projektstand ist noch nicht vollständig
+modelliert. Bis dahin gibt es keinen Konflikterkennung für manuelle
+Ergänzungen.
 
-- Anzeige von Schema-, Parser- und Snapshot-Version;
-- Anzeige blockierender Fehler getrennt von Warnungen;
-- Anzeige von Wirtschaftlichkeitsergebnissen.
+### R3 – Benutzeränderungen werden bei Re-Import überschrieben
 
-## 8. Risiken
+**Priorität: mitigiert.**
+Re-Import erzeugt nur einen neuen Snapshot. Die Synchronisation in das
+Projektmodell bleibt einem separaten, fachlich noch zu spezifizierenden
+Use-Case vorbehalten. `IstImAktuellenB56SnapshotVorhanden` schützt
+vorhandene Alternativen.
 
-### R1 – Wirtschaftlichkeitsannahmen ohne Persistenz
+**Restrisiko:** Sobald der Synchronisations-Use-Case implementiert wird,
+ist eine feldweise Konfliktlösung erforderlich.
 
-**Priorität: hoch.** Das Domänenmodell ist vorhanden, aber
-Annahmen können noch nicht gespeichert werden. Berechnungen sind
-daher nicht persistierbar.
+### R4 – Erhaltene Snapshots sind nach Projektlöschung unerreichbar
 
-**Maßnahme:** Persistenz als nächsten Schritt im
-Wirtschaftlichkeitspaket umsetzen.
-
-### R2 – Audit-Trail unvollständig
-
-**Priorität: mittel.** Bestätigungs- und Verwerfungszeitpunkte
-werden gespeichert. Die bestätigende Person oder der technische
-Akteur fehlt.
-
-**Maßnahme:** Akteur-Modellierung nach Klärung des
-Mehrbenutzerbetriebskonzepts ergänzen.
-
-### R3 – Erhaltene Snapshots sind nach Projektlöschung unerreichbar
-
-**Priorität: hoch.** Die Daten bleiben erhalten, die reguläre API
-verweigert aber Historie und Details für ein nicht mehr vorhandenes
-Projekt.
+**Priorität: hoch.** Unverändert: Die reguläre API verweigert Zugriff
+auf Snapshots eines nicht mehr vorhandenen Projekts.
 
 **Maßnahme:** Vor Ausbau der Projektlöschung eine Archivierungs-,
-Aufbewahrungs- und Zugriffslösung entscheiden. Bis dahin keine
-kaskadierende Löschung ergänzen.
+Aufbewahrungs- und Zugriffslösung entscheiden. Keine kaskadierende
+Löschung einführen.
 
-### R4 – Feldweise Konfliktlösung ohne Datenmodell
+### R5 – Alternativen können über Versionen nicht stabil verglichen werden
 
-**Priorität: hoch.** Der Vergleich zweier Snapshots ist
-implementiert. Eine feldweise Konfliktentscheidung und ihr
-persistiertes Ergebnis fehlen.
+**Priorität: mitigiert.**
+B56-Position ist als stabiler Schlüssel implementiert und wird im
+Vergleich genutzt.
 
-**Maßnahme:** Erst nach fachlicher Klärung der Konfliktregeln
-(Fachspezifikation Abschnitt 23.4–5) implementieren.
+**Restrisiko:** Die Behandlung bei Variantenwechsel oder
+Positionsneuordnung ist fachlich noch nicht spezifiziert.
 
-### R5 – Archiv und Datenbank können auseinanderdriften
+### R6 – Statusbegriffe vermischen Technik und Fachlichkeit
 
-**Priorität: mittel.** Kompensation ist vorhanden, aber nicht gegen
-Prozessabbruch, Datenträgerfehler oder fehlgeschlagenes Cleanup
-abgesichert.
+**Priorität: erledigt.**
+Technisches Aufruf­ergebnis (`B56ImportErgebnis`) und persistierter
+Snapshot-Lebenszyklus (`B56SnapshotStatus`) sind explizit getrennt.
 
-**Maßnahme:** Reconciliation und Recovery-Verfahren nach dem
-Wirtschaftlichkeitspaket ergänzen.
+### R7 – Archiv und Datenbank driften auseinander
 
-### R6 – Fachlich nicht freigegebene Felder werden voreilig erfunden
+**Priorität: mittel.** Unverändert: Kompensation bei Fehler ist
+vorhanden, aber kein Reconciliation-Prozess für Prozessabbrüche oder
+Datenträgerfehler.
 
-**Priorität: mittel.** Feldlisten, vollständige Gebäudegrunddaten
-und Bauteilcode-Mapping sind ausdrücklich offen.
+**Maßnahme:** Reconciliation- und Recovery-Verfahren nach dem nächsten
+funktionalen Ausbaupunkt ergänzen.
 
-**Maßnahme:** Unbekannte Bereiche weiter als Warnung behandeln und
-keine freie Zuordnung implementieren.
+### R8 – Fachlich nicht freigegebene Felder werden voreilig erfunden
+
+**Priorität: mittel.** Unverändert: Feldlisten, Bauteilcode-Mapping und
+weitere B56-Exportbereiche sind ausdrücklich offen.
+
+**Maßnahme:** Unbekannte Bereiche weiter als Warnung behandeln.
+
+### R9 – Dokumentpfade und Terminologie sind inkonsistent
+
+**Priorität: niedrig.**
+
+- `FUNCTIONAL_SPECIFICATION.md` liegt im Repository-Stamm, nicht unter
+  `docs/`.
+- Die Desktopansicht bezeichnet Modernisierungsalternativen teilweise
+  als „Variante" beziehungsweise „Modernisierungsvariante".
+
+**Maßnahme:** In einem getrennten Terminologiepaket bereinigen.
 
 ## 9. Priorisierte nächste Arbeitspakete
 
-### P1 – Wirtschaftlichkeit (nächstes freigegebenes Paket)
+### P1 – Vollständiger erster Anwenderprozess (Paket 6)
 
-Gemäß Fachspezifikation Abschnitt 24.7:
+Der gesamte fachliche Ablauf gemäß `FUNCTIONAL_SPECIFICATION.md`
+Abschnitt 21 muss in einem einzigen durchgängigen HTTP-End-to-End-Test
+nachgewiesen werden:
 
-1. EF-Core-Konfiguration und Migration für
-   `Wirtschaftlichkeitsannahmen` und `EnergietraegerAnnahme`.
-2. Zuordnung zu einer `Modernisierungsalternative`.
-3. Berechnungsservice für bilanzierte Wirtschaftlichkeit.
-4. Berechnungsservice für praktische Wirtschaftlichkeit.
-5. API-Endpunkte und Unit-Tests.
+1. Projekt anlegen.
+2. Datei importieren.
+3. Snapshot bestätigen.
+4. Projektmodell erzeugen.
+5. Ergänzbare Projektdaten bearbeiten und speichern.
+6. Projekt schließen und wieder öffnen.
+7. Zweiten Snapshot importieren.
+8. Unterschiede anzeigen.
+9. Manuelle Ergänzung unverändert nachweisen.
 
-### P2 – Förderung
+Dazu sind mindestens einfache Felder für ergänzbare Projektdaten
+(z. B. interne Bezeichnung oder Bearbeitungsstatus) zu modellieren,
+damit Schritt 5 prüfbar ist.
 
-Gemäß Fachspezifikation Abschnitt 24.8: BEG EM, KfW, EFRE, KNN.
-Erst nach fachlicher Freigabe des Förderdatenmodells.
+### P2 – Wirtschaftlichkeit
 
-### P3 – Berichtswesen
+Erst nach Abschluss von Paket 6 gemäß `FUNCTIONAL_SPECIFICATION.md`
+Abschnitt 14.
 
-Gemäß Fachspezifikation Abschnitt 24.9.
+### P3 – Förderung
 
-### P4 – Vollständiger Projektstand
+Nach Wirtschaftlichkeit gemäß `FUNCTIONAL_SPECIFICATION.md`
+Abschnitt 15.
 
-Auftraggeber, Standortdaten, Bearbeitungsstatus, reale Verbräuche,
-Berichtseinstellungen und abweichende Annahmen ergänzen.
+### P4 – Berichtswesen
 
-### P5 – Feldweise Konfliktlösung beim Re-Import
+Nach Förderung gemäß `FUNCTIONAL_SPECIFICATION.md` Abschnitt 17.
 
-Erst nach fachlicher Klärung stabiler Feldidentitäten und
-Konfliktregeln (Fachspezifikation Abschnitt 23.4–5).
+### P5 – Wärmebrückenmanagement
 
-### P6 – Wärmebrückenmanagement
-
-Gemäß Fachspezifikation Abschnitt 24.10.
+Gemäß Gesamtprozess und `FUNCTIONAL_SPECIFICATION.md` Abschnitt 16.
 
 ## 10. Abgrenzung
 
@@ -699,7 +618,9 @@ Diese Analyse autorisiert nicht:
 - IFC- oder gbXML-Auswertung;
 - editierbare B56-Originalwerte;
 - automatische Snapshot-Überschreibung;
+- automatische Übernahme in das Projektmodell außerhalb des bestätigten
+  Use-Cases;
 - freie Interpretation unbekannter B56-Felder;
-- neue Förder- oder Berichtsregeln ohne fachliche Freigabe.
+- neue Förder-, Wirtschafts- oder Berichtsregeln.
 
 Die in der Fachspezifikation als offen markierten Punkte bleiben offen.
