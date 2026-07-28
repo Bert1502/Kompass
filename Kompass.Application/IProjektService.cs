@@ -29,4 +29,14 @@ public interface IProjektService
     Task<bool> LoeschenAsync(
         Guid id,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sucht eine Modernisierungsalternative anhand ihrer ID innerhalb eines
+    /// bestimmten Projekts. Gibt <c>null</c> zurück, wenn das Projekt oder
+    /// die Alternative nicht gefunden wurde.
+    /// </summary>
+    Task<AlternativeKurzinfo?> AlternativeNachIdAbrufenAsync(
+        Guid projektId,
+        Guid alternativeId,
+        CancellationToken cancellationToken = default);
 }

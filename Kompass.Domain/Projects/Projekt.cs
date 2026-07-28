@@ -78,7 +78,7 @@ public sealed class Projekt : AggregateRoot
         _alternativen.Add(alternative);
     }
 
-    public void AusSnapshotErzeugen(
+    public IReadOnlyCollection<Modernisierungsalternative> AusSnapshotErzeugen(
         Guid snapshotId,
         IEnumerable<Modernisierungsalternative> alternativen)
     {
@@ -90,26 +90,77 @@ public sealed class Projekt : AggregateRoot
 
         ArgumentNullException.ThrowIfNull(alternativen);
 
-        if (QuellSnapshotId.HasValue)
+        if (QuellSnapshotId == snapshotId)
         {
-            if (QuellSnapshotId == snapshotId)
-            {
-                return;
-            }
-
-            throw new DomainException(
-                "Das Projektmodell wurde bereits aus einem anderen B56-Snapshot erzeugt.");
+            return Array.Empty<Modernisierungsalternative>();
         }
 
-        foreach (var alternative in alternativen)
+        var quellAlternativen =
+            alternativen.ToList();
+
+        if (quellAlternativen.Any(
+                alternative =>
+                    !alternative.B56Position.HasValue))
         {
-            AlternativeHinzufuegen(
-                alternative);
+            throw new DomainException(
+                "B56-Alternativen benötigen für die Übernahme eine Position.");
+        }
+
+        var doppeltePosition =
+            quellAlternativen
+                .GroupBy(
+                    alternative =>
+                        alternative.B56Position)
+                .FirstOrDefault(
+                    gruppe =>
+                        gruppe.Count() > 1);
+
+        if (doppeltePosition is not null)
+        {
+            throw new DomainException(
+                $"Die B56-Position {doppeltePosition.Key} ist mehrfach vorhanden.");
+        }
+
+        var hinzugefuegteAlternativen =
+            new List<Modernisierungsalternative>();
+
+        foreach (var vorhandeneAlternative in
+                 _alternativen.Where(
+                     alternative =>
+                         alternative.B56Position.HasValue))
+        {
+            vorhandeneAlternative
+                .AlsNichtMehrImAktuellenB56SnapshotVorhandenKennzeichnen();
+        }
+
+        foreach (var quellAlternative in quellAlternativen)
+        {
+            var vorhandeneAlternative =
+                _alternativen.SingleOrDefault(
+                    alternative =>
+                        alternative.B56Position ==
+                        quellAlternative.B56Position);
+
+            if (vorhandeneAlternative is null)
+            {
+                AlternativeHinzufuegen(
+                    quellAlternative);
+                hinzugefuegteAlternativen.Add(
+                    quellAlternative);
+                continue;
+            }
+
+            vorhandeneAlternative.AusB56SnapshotAktualisieren(
+                snapshotId,
+                quellAlternative.Bezeichnung,
+                quellAlternative.Kurztext);
         }
 
         QuellSnapshotId =
             snapshotId;
-        ProjektmodellVersion = 1;
+        ProjektmodellVersion++;
+
+        return hinzugefuegteAlternativen.AsReadOnly();
     }
 
     private static string BereinigeName(string name)
