@@ -1,6 +1,7 @@
 ﻿using Kompass.Domain.Economics;
 using Kompass.Domain.Funding;
 using Kompass.Domain.Projects;
+using Kompass.Domain.Waermebruecken;
 using Kompass.Persistence.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -28,6 +29,9 @@ public sealed class KompassDbContext : DbContext
 
     public DbSet<FoerderungZuordnung> FoerderungZuordnungen
         => Set<FoerderungZuordnung>();
+
+    public DbSet<Waermebruecke> Waermebruecken
+        => Set<Waermebruecke>();
 
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
