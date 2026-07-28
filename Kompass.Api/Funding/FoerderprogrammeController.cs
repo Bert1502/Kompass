@@ -59,7 +59,51 @@ public sealed class FoerderprogrammeController : ControllerBase
                 anfrage.Hoechstbetrag,
                 anfrage.Kumulierbarkeit,
                 anfrage.Pflichtnachweise,
-                anfrage.Quellenstand);
+                anfrage.Quellenstand,
+                anfrage.Foerderquoten.Select(
+                    regel => new FoerderquoteRegel(
+                        Guid.NewGuid(),
+                        regel.Bezeichnung,
+                        regel.Quote,
+                        regel.Bezugsbasis,
+                        regel.GueltigAb,
+                        regel.GueltigBis,
+                        regel.Beschreibung)),
+                anfrage.Hoechstbetraege.Select(
+                    regel => new HoechstbetragRegel(
+                        Guid.NewGuid(),
+                        regel.Bezeichnung,
+                        regel.Betrag,
+                        regel.Waehrung,
+                        regel.Bezugsbasis,
+                        regel.GueltigAb,
+                        regel.GueltigBis,
+                        regel.Beschreibung)),
+                anfrage.Kumulierbarkeitsregeln.Select(
+                    regel => new Kumulierbarkeitsregel(
+                        Guid.NewGuid(),
+                        regel.Bezeichnung,
+                        regel.Status,
+                        regel.Beschreibung,
+                        regel.GueltigAb,
+                        regel.GueltigBis)),
+                anfrage.Pflichtnachweisregeln.Select(
+                    regel => new PflichtnachweisRegel(
+                        Guid.NewGuid(),
+                        regel.Bezeichnung,
+                        regel.Beschreibung,
+                        regel.Zeitpunkt,
+                        regel.IstPflicht,
+                        regel.GueltigAb,
+                        regel.GueltigBis)),
+                anfrage.Gueltigkeitsregeln.Select(
+                    regel => new Gueltigkeitsregel(
+                        Guid.NewGuid(),
+                        regel.Bezeichnung,
+                        regel.Bezug,
+                        regel.GueltigAb,
+                        regel.GueltigBis,
+                        regel.Beschreibung)));
 
             var gespeichertes =
                 await _foerderprogrammService.AnlegenAsync(
