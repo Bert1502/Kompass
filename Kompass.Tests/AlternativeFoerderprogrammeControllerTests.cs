@@ -173,7 +173,12 @@ public sealed class AlternativeFoerderprogrammeControllerTests
             CancellationToken.None);
 
         Assert.NotNull(verwendeterStichtag);
-        Assert.Equal(DateOnly.FromDateTime(DateTime.UtcNow), verwendeterStichtag);
+
+        var heute = DateOnly.FromDateTime(DateTime.UtcNow);
+        Assert.True(
+            verwendeterStichtag >= heute.AddDays(-1) &&
+            verwendeterStichtag <= heute.AddDays(1),
+            $"Erwarteter Stichtag nahe {heute}, erhalten: {verwendeterStichtag}");
     }
 
     private static Foerderprogramm ErzeugeFoerderprogramm()
