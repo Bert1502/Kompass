@@ -89,6 +89,25 @@ public sealed class Modernisierungsalternative : Entity
         IstImAktuellenB56SnapshotVorhanden = true;
     }
 
+    public void AusB56SnapshotAktualisieren(
+        Guid snapshotId,
+        string bezeichnung,
+        string kurztext)
+    {
+        if (snapshotId == Guid.Empty)
+        {
+            throw new DomainException(
+                "Für die Aktualisierung ist eine gültige Snapshot-ID erforderlich.");
+        }
+
+        BezeichnungAendern(
+            bezeichnung);
+        KurztextAendern(
+            kurztext);
+        QuellSnapshotId = snapshotId;
+        AlsImAktuellenB56SnapshotVorhandenKennzeichnen();
+    }
+
     public void BauteilHinzufuegen(
         AlternativeBauteil bauteil)
     {

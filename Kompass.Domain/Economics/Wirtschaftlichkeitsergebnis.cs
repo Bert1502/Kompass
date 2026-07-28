@@ -1,6 +1,7 @@
 namespace Kompass.Domain.Economics;
 
 /// <summary>
+<<<<<<< HEAD
 /// Ergebnis einer Wirtschaftlichkeitsberechnung für eine Modernisierungsalternative.
 /// Unveränderlich nach Berechnung – bei geänderten Annahmen wird ein neues
 /// Ergebnis erzeugt.
@@ -39,3 +40,16 @@ public enum WirtschaftlichkeitsBasis
     Bilanziert = 0,
     Praktisch = 1
 }
+=======
+/// Ergebnis der Wirtschaftlichkeitsberechnung für eine Modernisierungsalternative.
+/// Alle Geldbeträge in Euro, alle Zeiträume in Jahren.
+/// </summary>
+public sealed record Wirtschaftlichkeitsergebnis(
+    decimal Eigenanteil,
+    decimal JaehrlicheEnergiekosteneinsparungJahr1,
+    decimal KumulierteEnergiekosteneinsparung,
+    decimal? AmortisationsdauerStatisch,
+    decimal? AmortisationsdauerDynamisch,
+    decimal Kapitalwert,
+    decimal? KostenNutzenVerhaeltnis);
+>>>>>>> origin/main

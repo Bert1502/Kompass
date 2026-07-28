@@ -112,12 +112,13 @@ public sealed class B56ProjektmodellUebernahmeService
 
         try
         {
-            projekt.AusSnapshotErzeugen(
+            var hinzugefuegteAlternativen =
+                projekt.AusSnapshotErzeugen(
                 importId,
                 alternativen);
 
             _dbContext.Set<Modernisierungsalternative>().AddRange(
-                alternativen);
+                hinzugefuegteAlternativen);
         }
         catch (DomainException exception)
         {
