@@ -26,6 +26,9 @@ public sealed class KompassDbContext : DbContext
     public DbSet<Foerderprogramm> Foerderprogramme
         => Set<Foerderprogramm>();
 
+    public DbSet<FoerderungZuordnung> FoerderungZuordnungen
+        => Set<FoerderungZuordnung>();
+
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
     {

@@ -36,6 +36,8 @@ public static class DependencyInjection
 
         services.AddScoped<IFoerderprogrammService, EfFoerderprogrammService>();
 
+        services.AddScoped<IAlternativeFoerderungService, EfAlternativeFoerderungService>();
+
         return services;
     }
 }
