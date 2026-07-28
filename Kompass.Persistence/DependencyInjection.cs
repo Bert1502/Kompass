@@ -1,4 +1,5 @@
 ﻿using Kompass.Application.Economics;
+using Kompass.Application.Funding;
 using Kompass.Application.Projects;
 using Kompass.Persistence.Data;
 using Kompass.Persistence.Services;
@@ -32,6 +33,8 @@ public static class DependencyInjection
         services.AddScoped<IWirtschaftlichkeitsService, EfWirtschaftlichkeitsService>();
 
         services.AddScoped<IKostenpositionService, EfKostenpositionService>();
+
+        services.AddScoped<IFoerderprogrammService, EfFoerderprogrammService>();
 
         return services;
     }
