@@ -635,6 +635,14 @@ public sealed class B56ImportControllerTests
         {
             throw new NotSupportedException();
         }
+
+        public Task<AlternativeKurzinfo?> AlternativeNachIdAbrufenAsync(
+            Guid projektId,
+            Guid alternativeId,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
     }
 
     private sealed class ImportServiceFake
