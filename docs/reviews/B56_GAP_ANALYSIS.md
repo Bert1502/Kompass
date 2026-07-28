@@ -1,6 +1,6 @@
 # B56-Gap-Analyse
 
-**Stand:** 27. Juli 2026 (aktualisiert nach Paket-3- bis Paket-5-Implementierung)
+**Stand:** 28. Juli 2026 (aktualisiert nach Paket-6- bis Paket-8-Implementierung)
 
 ## 1. Auftrag und Bewertungsgrundlage
 
@@ -26,27 +26,39 @@ Bewertungsstufen:
 
 ## 2. Zusammenfassung
 
-Seit der ersten Gap-Analyse wurden die Pakete 3 bis 5 erfolgreich
+Seit der letzten Gap-Analyse wurden die Pakete 6 bis 8 erfolgreich
 implementiert:
 
-- Snapshot-Schema- und Parser-Versionierung mit Legacy-Migration;
-- fachlicher Snapshotlebenszyklus mit allen sieben Zuständen;
-- Bestätigung, Verwerfung und Übernahme in das Projektmodell;
-- Re-Import und Versionsvergleich anhand stabiler B56-Positionen;
-- B56-Position und Präsenzkennzeichnung für Alternativen.
+- vollständiger erster Anwenderprozess: ergänzbare Projektdaten
+  (`InterneBezeichnung`, `Bearbeitungsstatus`), PATCH-Endpunkt
+  `api/projekte/{id}/projektdaten`, Migration
+  `AddErgaenzbareProjektdaten`;
+- durchgängiger HTTP-End-to-End-Test, der alle 18 Abnahmekriterien
+  aus `FUNCTIONAL_SPECIFICATION.md` Abschnitt 21 prüft;
+- Wirtschaftlichkeit (bilanziert und praktisch): Domain-Aggregat
+  `Wirtschaftlichkeitsannahmen` mit `Berechnen`-Methode,
+  `Kostenposition`-Domain, `IWirtschaftlichkeitsService`,
+  `IKostenpositionService`, `EfWirtschaftlichkeitsService`,
+  `EfKostenpositionService`, API-Endpunkte für Annahmen und
+  Kostenpositionen, Migration `AddWirtschaftlichkeitsannahmen`;
+- Förderprogramm-Katalog (erste Stufe): `Foerderprogramm`-Aggregat
+  mit zeitabhängigen Regeltypen (`FoerderquoteRegel`,
+  `HoechstbetragRegel`, `Kumulierbarkeitsregel`,
+  `PflichtnachweisRegel`, `Gueltigkeitsregel`),
+  `IFoerderprogrammService`, `EfFoerderprogrammService`, API-Endpunkte
+  GET/POST/Regelergänzung, Migrationen `AddFoerderprogramme` und
+  `RefineFoerderprogrammRegeln`.
 
-Der aktuelle Implementierungsstand deckt damit den durchgängigen
-fachlichen B56-Importpfad vom Hochladen bis zur Projektmodellübernahme
-einschließlich Folgeimport-Vergleich vollständig ab. `dotnet test`
-bestätigt 95/95 Tests bestanden.
+`dotnet test` bestätigt 152/152 Tests bestanden.
 
 Offene Schwerpunkte für die nächste Ausbaustufe:
 
-- bearbeitbarer vollständiger Projektstand (Kontakte, Standort,
-  Kosten, Förderung, Wirtschaftlichkeit);
+- vollständiger bearbeitbarer Projektstand (Kontakte, Standort,
+  Förderparameter, reale Verbrauchsdaten, Berichtseinstellungen);
 - persistierte Vergleichs- und Konfliktergebnisse;
-- vollständiger End-to-End-Prozesstest über alle elf Abnahmeschritte;
-- Wirtschaftlichkeit, Förderung und Berichtswesen.
+- Förderprogramm-Verknüpfung mit Alternativenberechnung;
+- Berichtswesen;
+- Wärmebrückenmanagement.
 
 ## 3. Bereits erfüllt
 
@@ -259,6 +271,103 @@ Nachweise:
 - `Kompass.Application/B56Import/B56Modernisierungsalternative.cs`
 - `Kompass.Tests/B56SnapshotVergleichServiceTests.cs`
 
+### 3.12 Ergänzbare Projektdaten und vollständiger erster Anwenderprozess
+
+- `InterneBezeichnung` (nullable, max. 200 Zeichen) und
+  `Bearbeitungsstatus` (Enum) wurden in `Projekte` ergänzt.
+- Migration `AddErgaenzbareProjektdaten` fügt beide Felder
+  rückwärtskompatibel mit Standardwert hinzu.
+- PATCH-Endpunkt `api/projekte/{id}/projektdaten` speichert
+  Änderungen und gibt die aktualisierte `ProjektUebersicht` zurück.
+- `VollstaendigerAnwenderprozessHttpEndToEndTests` prüft alle 18
+  Abnahmekriterien aus `FUNCTIONAL_SPECIFICATION.md` Abschnitt 21 in
+  einem einzigen durchgängigen HTTP-Test, inklusive:
+  - ergänzbare Projektdaten ändern und speichern (Kriterium 11),
+  - Projekt schließen und wieder öffnen mit persistierter
+    Ergänzung (Kriterium 12),
+  - manuelle Ergänzung nach zweitem Import unverändert (Kriterium 15).
+
+Nachweise:
+
+- `Kompass.Persistence/Migrations/20260727160844_AddErgaenzbareProjektdaten.cs`
+- `Kompass.Api/Projects/ProjektdatenAktualisierenRequest.cs`
+- `Kompass.Api/Projects/ProjekteController.cs`
+- `Kompass.Tests/VollstaendigerAnwenderprozessHttpEndToEndTests.cs`
+
+### 3.13 Wirtschaftlichkeitsannahmen und Kostenpositionen
+
+- `Wirtschaftlichkeitsannahmen`-Aggregat enthält
+  Betrachtungszeitraum, Diskontsatz, Inflationsrate,
+  Wartungsmehrkosten, Nutzungsdauer und Förderbetrag.
+- Energieträgerspezifische Annahmen (`EnergietraegerAnnahme`) sind
+  dem Aggregat untergeordnet: Preis, Preissteigerungsrate, Einsparung,
+  CO₂-Faktor und CO₂-Preispfad.
+- `WirtschaftlichkeitsBasis`-Enum unterscheidet bilanzierte und
+  praktische Wirtschaftlichkeit.
+- `Berechnen`-Methode berechnet Amortisationsdauer (statisch und
+  dynamisch), kumulierte Energiekosteneinsparung, Kapitalwert und
+  Kosten-Nutzen-Verhältnis.
+- `Kostenposition`-Domain modelliert Einzelkosten mit Kostenart,
+  Bauteilbezug, Menge, Einheitspreis und förderfähigem Anteil.
+- `IWirtschaftlichkeitsService` und `EfWirtschaftlichkeitsService`
+  persistieren Annahmen und liefern berechnete Ergebnisse.
+- `IKostenpositionService` und `EfKostenpositionService` verwalten
+  Listen von Kostenpositionen je Alternative.
+- API-Endpunkte: `api/projekte/{id}/alternativen/{id}/wirtschaftlichkeit/annahmen/{basis}`
+  (GET, PUT) und `.../berechnen/{basis}` (GET) sowie
+  `api/projekte/{id}/alternativen/{id}/kostenpositionen` (GET, POST,
+  DELETE).
+- Migration `AddWirtschaftlichkeitsannahmen` ergänzt die Tabellen.
+- Domain, Service und Controller sind durch je eigene Tests abgesichert.
+
+Nachweise:
+
+- `Kompass.Domain/Economics/Wirtschaftlichkeitsannahmen.cs`
+- `Kompass.Domain/Economics/Kostenposition.cs`
+- `Kompass.Application/Economics/IWirtschaftlichkeitsService.cs`
+- `Kompass.Application/Economics/IKostenpositionService.cs`
+- `Kompass.Persistence/Services/EfWirtschaftlichkeitsService.cs`
+- `Kompass.Persistence/Services/EfKostenpositionService.cs`
+- `Kompass.Api/Economics/WirtschaftlichkeitsannahmenController.cs`
+- `Kompass.Api/Economics/KostenpositionenController.cs`
+- `Kompass.Persistence/Migrations/20260728033325_AddWirtschaftlichkeitsannahmen.cs`
+- `Kompass.Tests/WirtschaftlichkeitsannahmenDomainTests.cs` (12 Tests)
+- `Kompass.Tests/WirtschaftlichkeitsannahmenControllerTests.cs` (6 Tests)
+- `Kompass.Tests/EfWirtschaftlichkeitsServiceTests.cs` (9 Tests)
+
+### 3.14 Förderprogramm-Katalog (erste Stufe)
+
+- `Foerderprogramm`-Aggregat verwaltet Programmkennung, Version,
+  Gültigkeitszeitraum, Zielgruppe, Fördergegenstand, technische
+  Mindestanforderungen, Fördersatz, Höchstbetrag, Kumulierbarkeit,
+  Pflichtnachweise und Quellenstand.
+- Zeitabhängige Detailregeln sind als separate Werteobjekte modelliert:
+  `FoerderquoteRegel`, `HoechstbetragRegel`, `Kumulierbarkeitsregel`,
+  `PflichtnachweisRegel`, `Gueltigkeitsregel`.
+- Pauschalwerte werden automatisch als Standardregel angelegt, wenn
+  keine Detailregeln übergeben werden.
+- Domain-Invarianten werden vollständig durch den Konstruktor erzwungen
+  (Pflichtfelder, Zeitraum, Fördersatz ≥ 0).
+- `IFoerderprogrammService` und `EfFoerderprogrammService` erlauben
+  Anlegen und Auflisten von Förderprogrammen.
+- API-Endpunkte: `api/foerderprogramme` (GET, POST) sowie
+  regelspezifische POST-Endpunkte.
+- Migrationen `AddFoerderprogramme` und `RefineFoerderprogrammRegeln`
+  schaffen das relationale Datenmodell.
+- Domain, Service und Controller sind durch je eigene Tests abgesichert.
+
+Nachweise:
+
+- `Kompass.Domain/Funding/Foerderprogramm.cs`
+- `Kompass.Application/Funding/IFoerderprogrammService.cs`
+- `Kompass.Persistence/Services/EfFoerderprogrammService.cs`
+- `Kompass.Api/Funding/FoerderprogrammeController.cs`
+- `Kompass.Persistence/Migrations/20260728064802_AddFoerderprogramme.cs`
+- `Kompass.Persistence/Migrations/20260728070720_RefineFoerderprogrammRegeln.cs`
+- `Kompass.Tests/FoerderprogrammDomainTests.cs` (8 Tests)
+- `Kompass.Tests/FoerderprogrammeControllerTests.cs` (6 Tests)
+- `Kompass.Tests/EfFoerderprogrammServiceTests.cs` (4 Tests)
+
 ## 4. Teilweise erfüllt
 
 ### 4.1 Unveränderlicher Snapshot
@@ -370,20 +479,22 @@ Es fehlen:
 
 ### 5.1 Bearbeitbarer vollständiger Projektstand
 
-Das Projektmodell enthält derzeit Name, Modernisierungsalternativen,
-alternative Bauteile, Kostenpositionen und Herkunftsreferenz.
+Das Projektmodell enthält derzeit Name, interne Bezeichnung,
+Bearbeitungsstatus, Modernisierungsalternativen, alternative Bauteile,
+Kostenpositionen, Wirtschaftlichkeitsannahmen und Herkunftsreferenz.
 
 Noch nicht modelliert sind unter anderem:
 
 - Auftraggeber und Ansprechpartner;
 - Standortdaten und Gebäudetyp;
-- Bearbeitungs- und Freigabestatus;
-- Förderparameter;
-- Energiepreise und Preissteigerungen;
-- CO₂-Preisannahmen;
+- Freigabestatus;
+- projektbezogene Förderparameter (Verknüpfung mit
+  Förderprogramm-Katalog);
+- Energiepreise und Preissteigerungen auf Projektebene;
+- CO₂-Preisannahmen auf Projektebene;
 - reale Verbrauchsdaten;
 - Berichtseinstellungen;
-- nachvollziehbare abweichende Annahmen.
+- nachvollziehbare abweichende Annahmen gegenüber Normwerten.
 
 ### 5.2 Persistierte Vergleichs- und Konfliktergebnisse
 
@@ -392,24 +503,31 @@ gespeichert. Es fehlen:
 
 - persistierte Vergleichsergebnisse für spätere Auswertung;
 - Konfliktmodell für feldweise Bestätigung;
-- explizite Synchronisations-Use-Case (nach fachlicher Spezifikation);
+- expliziter Synchronisations-Use-Case (nach fachlicher Spezifikation);
 - Schutzregel, die verhindert, dass manuelle Ergänzungen automatisch
   durch Snapshot-Werte überschrieben werden.
 
-### 5.3 Vollständiger produktiver End-to-End-Prozess
+### 5.3 Förderprogramm-Verknüpfung mit Alternativenberechnung
 
-HTTP-End-to-End-Tests prüfen Upload, Historie, Details und
-Folgeimport-Vergleich. Noch nicht durch einen vollständigen Test
-abgedeckt ist der Ablauf aus `FUNCTIONAL_SPECIFICATION.md`
-Abschnitt 21:
+Der Förderprogramm-Katalog ist implementiert. Noch nicht umgesetzt ist:
 
-5. Import bestätigen (HTTP);
-6. Projektmodell erzeugen (HTTP);
-7. Ergänzung speichern;
-8. Projekt schließen und neu öffnen;
-9. zweiten Snapshot importieren (HTTP) ← vorhanden;
-10. Unterschiede anzeigen (HTTP) ← vorhanden;
-11. Ergänzung unverändert nachweisen.
+- projektbezogene Auswahl anwendbarer Programme je Alternative;
+- Berechnung förderfähiger Kosten und Förderhöhe;
+- Kumulierbarkeit über mehrere Programme;
+- Prüfung technischer Mindestanforderungen.
+
+### 5.4 Berichtswesen
+
+Berichte sind noch nicht implementiert. Gemäß
+`FUNCTIONAL_SPECIFICATION.md` Abschnitt 17 sind mindestens
+Energieberatungsbericht, Wirtschaftlichkeitsbericht, Förderübersicht
+und Vergleich von Modernisierungsalternativen vorgesehen.
+
+### 5.5 Wärmebrückenmanagement
+
+Wärmebrücken sind noch nicht implementiert. Gemäß
+`FUNCTIONAL_SPECIFICATION.md` Abschnitt 16 sind zwei Anwendungsfälle
+(Markierung im Plan und vorhandene Architekturdetails) vorgesehen.
 
 ## 6. Datenbankmigrationen – Überblick
 
@@ -421,6 +539,10 @@ Abschnitt 21:
 | `20260725084054_AddB56SnapshotLifecycle` | `SnapshotStatus`, `BestaetigtAm`, `VerworfenAm` | ✅ umgesetzt |
 | `20260725085558_AddB56ProjectModelOrigin` | `QuellSnapshotId`, `ProjektmodellVersion` | ✅ umgesetzt |
 | `20260725101500_TrackB56AlternativePresence` | `B56Position`, `IstImAktuellenB56SnapshotVorhanden` | ✅ umgesetzt |
+| `20260727160844_AddErgaenzbareProjektdaten` | `InterneBezeichnung`, `Bearbeitungsstatus` | ✅ umgesetzt |
+| `20260728033325_AddWirtschaftlichkeitsannahmen` | `Wirtschaftlichkeitsannahmen`, `EnergietraegerAnnahmen`, `Kostenpositionen` | ✅ umgesetzt |
+| `20260728064802_AddFoerderprogramme` | `Foerderprogramme` und Regeltypen initial | ✅ umgesetzt |
+| `20260728070720_RefineFoerderprogrammRegeln` | Spaltenverfeinerungen Förderregeln | ✅ umgesetzt |
 
 ### 6.2 Ausstehende Migrationen
 
@@ -439,6 +561,13 @@ benötigt:
 Diese Migration darf erst nach Klärung der offenen Feldidentitäten und
 Konfliktregeln entworfen werden.
 
+**Migration: Vollständiger Projektstand**
+
+Für Auftraggeber, Ansprechpartner, Standortdaten, Freigabestatus,
+reale Verbrauchsdaten und Berichtseinstellungen werden weitere
+Tabellen oder JSON-Spalten benötigt. Umfang und Struktur sind nach
+fachlicher Freigabe zu definieren.
+
 **Hinweis:** Eine kaskadierende Löschung zwischen Projekt und Snapshot
 darf nicht eingeführt werden. Snapshots müssen nach Projektlöschung
 für die Nachweisbarkeit erhalten bleiben.
@@ -449,41 +578,45 @@ für die Nachweisbarkeit erhalten bleiben.
 
 | Testdatei | Inhalt | Anzahl |
 |-----------|--------|--------|
-| `B56DateiPrueferTests.cs` | Dateiprüfung | 7 |
-| `B56ImportControllerTests.cs` | API-Controller | 9 |
+| `B56ArchivServiceTests.cs` | Archivservice | 2 |
+| `B56DateiPrueferTests.cs` | Dateiprüfung | 6 |
+| `B56ImportControllerTests.cs` | API-Controller | 8 |
 | `B56ImportDependencyInjectionTests.cs` | DI-Komposition | 1 |
 | `B56ImportEndToEndSmokeTests.cs` | Smoke-Test | 1 |
-| `B56ImportHttpEndToEndTests.cs` | HTTP E2E (Import + Vergleich) | 2 |
+| `B56ImportHttpEndToEndTests.cs` | HTTP E2E (Import + Vergleich) | 3 |
 | `B56ImportServiceIntegrationTests.cs` | Import-Pipeline | 3 |
-| `B56ProjektmodellControllerTests.cs` | Übernahme-Controller | 2 |
-| `B56ProjektmodellUebernahmeServiceTests.cs` | Übernahme-Service | 2 |
-| `B56SnapshotLebenszyklusControllerTests.cs` | Lebenszyklus-Controller | 1 |
-| `B56SnapshotLebenszyklusServiceTests.cs` | Lebenszyklus-Service | 4 |
+| `B56ProjektmodellControllerTests.cs` | Übernahme-Controller | 1 |
+| `B56ProjektmodellUebernahmeServiceTests.cs` | Übernahme-Service | 3 |
+| `B56SnapshotLebenszyklusControllerTests.cs` | Lebenszyklus-Controller | 3 (Theory) |
+| `B56SnapshotLebenszyklusServiceTests.cs` | Lebenszyklus-Service | 3 |
 | `B56SnapshotVergleichServiceTests.cs` | Vergleich (alle Fälle) | 12 |
 | `B56TabellenImportServiceTests.cs` | Tabellenimport | 2 |
 | `EfB56ImportRegisterTests.cs` | EF-Register inkl. Versionen | 3 |
+| `EfFoerderprogrammServiceTests.cs` | Förderprogramm-Persistence | 4 |
+| `EfWirtschaftlichkeitsServiceTests.cs` | Wirtschaftlichkeit-Persistence | 9 |
+| `FoerderprogrammDomainTests.cs` | Förderprogramm-Domain | 8 |
+| `FoerderprogrammeControllerTests.cs` | Förderprogramme-API | 6 |
 | `KompassDbContextMigrationTests.cs` | Migrationen | 2 |
 | `OpenXmlB56ArbeitsmappenLeserTests.cs` | OpenXML-Leser | 2 |
 | `ProjektB56ImportBeziehungTests.cs` | Projekt-Import-Beziehung | 2 |
-| `ProjektDomainTests.cs` | Domain-Invarianten | 8 |
+| `ProjektDomainTests.cs` | Domain-Invarianten | 7 |
 | `ProjektServiceTests.cs` | Projektservice | 6 |
 | `ProjekteControllerTests.cs` | Projekte-API | 12 |
 | `Sha256HashServiceTests.cs` | Hash-Service | 2 |
-| `B56ArchivServiceTests.cs` | Archivservice | 2 |
-| **Gesamt** | | **95** |
+| `VollstaendigerAnwenderprozessHttpEndToEndTests.cs` | Alle 18 Abnahmekriterien E2E | 1 |
+| `WirtschaftlichkeitsannahmenControllerTests.cs` | Wirtschaftlichkeit-API | 6 |
+| `WirtschaftlichkeitsannahmenDomainTests.cs` | Wirtschaftlichkeit-Domain | 12 |
+| **Gesamt** | | **152** |
 
 ### 7.2 Noch fehlende Tests
 
-- vollständiger HTTP-End-to-End-Test der elf Abnahmeschritte aus
-  `FUNCTIONAL_SPECIFICATION.md` Abschnitt 21 (Schritte 5–8 und 11
-  fehlen noch);
 - beschädigter Payload bei gültiger Schema-Version erzeugt definierten
   Fehler;
-- Benutzerergänzung bleibt nach Folgeimport unverändert (Schutz
-  manueller Daten);
 - Snapshot nach Projektlöschung erreichbar halten (sobald Use-Case
   entschieden);
-- Persistiertes Vergleichsergebnis (sobald Datenmodell entschieden).
+- persistiertes Vergleichsergebnis (sobald Datenmodell entschieden);
+- Förderprogramm-Verknüpfung mit Alternativenberechnung;
+- Kumulierbarkeit mehrerer Förderprogramme.
 
 ## 8. Risiken (aktualisiert)
 
@@ -504,9 +637,9 @@ Der explizite Übernahme-Use-Case (`B56ProjektmodellUebernahmeService`)
 und der Lebenszyklusstatus stellen sicher, dass das Projektmodell nur
 aus fachlich bestätigten Snapshots befüllt wird.
 
-**Restrisiko:** Der bearbeitbare Projektstand ist noch nicht vollständig
-modelliert. Bis dahin gibt es keinen Konflikterkennung für manuelle
-Ergänzungen.
+**Restrisiko:** Auftraggeber, Standort, reale Verbrauchsdaten und
+Berichtseinstellungen sind noch nicht im Projektmodell modelliert. Die
+Konflikterkennung für diese Felder bei Re-Import ist noch offen.
 
 ### R3 – Benutzeränderungen werden bei Re-Import überschrieben
 
@@ -514,7 +647,8 @@ Ergänzungen.
 Re-Import erzeugt nur einen neuen Snapshot. Die Synchronisation in das
 Projektmodell bleibt einem separaten, fachlich noch zu spezifizierenden
 Use-Case vorbehalten. `IstImAktuellenB56SnapshotVorhanden` schützt
-vorhandene Alternativen.
+vorhandene Alternativen. Der vollständige E2E-Test belegt, dass manuelle
+Ergänzungen nach dem zweiten Import erhalten bleiben.
 
 **Restrisiko:** Sobald der Synchronisations-Use-Case implementiert wird,
 ist eine feldweise Konfliktlösung erforderlich.
@@ -540,7 +674,7 @@ Positionsneuordnung ist fachlich noch nicht spezifiziert.
 ### R6 – Statusbegriffe vermischen Technik und Fachlichkeit
 
 **Priorität: erledigt.**
-Technisches Aufruf­ergebnis (`B56ImportErgebnis`) und persistierter
+Technisches Aufrufergebnis (`B56ImportErgebnis`) und persistierter
 Snapshot-Lebenszyklus (`B56SnapshotStatus`) sind explizit getrennt.
 
 ### R7 – Archiv und Datenbank driften auseinander
@@ -570,45 +704,62 @@ weitere B56-Exportbereiche sind ausdrücklich offen.
 
 **Maßnahme:** In einem getrennten Terminologiepaket bereinigen.
 
+### R10 – Wirtschaftlichkeit noch nicht mit realen Kostendaten verknüpft
+
+**Priorität: mittel.**
+`Wirtschaftlichkeitsannahmen` und `Kostenpositionen` sind getrennt
+modelliert. Die Berechnung erwartet `investitionskosten` als Parameter,
+der aktuell nicht automatisch aus den Kostenpositionen aggregiert wird.
+
+**Maßnahme:** Nach Abschluss des bearbeitbaren Projektstands einen
+Aggregations-Use-Case definieren, der Kostenpositionen zu Investitions-
+kosten verdichtet und als Eingabe für `Berechnen` bereitstellt.
+
+### R11 – Förderprogramm-Katalog noch nicht mit Alternativen verknüpft
+
+**Priorität: mittel.**
+Förderprogramme werden zentral verwaltet, sind aber noch nicht mit
+Projekten oder Modernisierungsalternativen verknüpft.
+
+**Maßnahme:** Verknüpfungsmodell und Use-Case nach fachlicher Freigabe
+des vollständigen Förderprozesses entwerfen.
+
 ## 9. Priorisierte nächste Arbeitspakete
 
-### P1 – Vollständiger erster Anwenderprozess (Paket 6)
+### P1 – Vollständiger erster Anwenderprozess (Paket 6) ✅ abgeschlossen
 
-Der gesamte fachliche Ablauf gemäß `FUNCTIONAL_SPECIFICATION.md`
-Abschnitt 21 muss in einem einzigen durchgängigen HTTP-End-to-End-Test
-nachgewiesen werden:
+Alle 18 Abnahmekriterien aus `FUNCTIONAL_SPECIFICATION.md` Abschnitt
+21 sind durch `VollstaendigerAnwenderprozessHttpEndToEndTests` abgedeckt.
 
-1. Projekt anlegen.
-2. Datei importieren.
-3. Snapshot bestätigen.
-4. Projektmodell erzeugen.
-5. Ergänzbare Projektdaten bearbeiten und speichern.
-6. Projekt schließen und wieder öffnen.
-7. Zweiten Snapshot importieren.
-8. Unterschiede anzeigen.
-9. Manuelle Ergänzung unverändert nachweisen.
+### P2 – Wirtschaftlichkeit (Paket 7) ✅ erste Stufe abgeschlossen
 
-Dazu sind mindestens einfache Felder für ergänzbare Projektdaten
-(z. B. interne Bezeichnung oder Bearbeitungsstatus) zu modellieren,
-damit Schritt 5 prüfbar ist.
+Domain, Persistence und API für `Wirtschaftlichkeitsannahmen` und
+`Kostenpositionen` sind implementiert. Offene Anschlussaufgaben:
 
-### P2 – Wirtschaftlichkeit
+- Aggregation der Kostenpositionen als Investitionskosteneingabe;
+- Verknüpfung mit Förderprogramm-Katalog für Förderbetragsübergabe.
 
-Erst nach Abschluss von Paket 6 gemäß `FUNCTIONAL_SPECIFICATION.md`
-Abschnitt 14.
+### P3 – Förderung (Paket 8) ✅ erste Stufe abgeschlossen
 
-### P3 – Förderung
+Förderprogramm-Katalog mit zeitabhängigen Regeltypen ist implementiert.
+Offene Anschlussaufgaben:
 
-Nach Wirtschaftlichkeit gemäß `FUNCTIONAL_SPECIFICATION.md`
-Abschnitt 15.
+- projektbezogene Programmauswahl je Alternative;
+- Berechnung förderfähiger Kosten und Kumulierbarkeit;
+- Prüfung technischer Mindestanforderungen.
 
 ### P4 – Berichtswesen
 
-Nach Förderung gemäß `FUNCTIONAL_SPECIFICATION.md` Abschnitt 17.
+Nach Abschluss der Wirtschaftlichkeits- und Förderverknüpfung gemäß
+`FUNCTIONAL_SPECIFICATION.md` Abschnitt 17.
 
 ### P5 – Wärmebrückenmanagement
 
 Gemäß Gesamtprozess und `FUNCTIONAL_SPECIFICATION.md` Abschnitt 16.
+
+### P6 – Persistierte Vergleichs- und Konfliktergebnisse
+
+Nach fachlicher Klärung der Feldidentitäten und Konfliktregeln.
 
 ## 10. Abgrenzung
 
