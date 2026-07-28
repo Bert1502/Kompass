@@ -59,6 +59,10 @@ services.AddScoped<
             IB56ProjektmodellUebernahmeService,
             B56ProjektmodellUebernahmeService>();
 
+        services.AddScoped<
+            IB56SnapshotVergleichService,
+            B56SnapshotVergleichService>();
+
         services.AddSingleton(
             TimeProvider.System);
 

@@ -1,4 +1,5 @@
 ﻿using Kompass.Application.Projects;
+using Kompass.Domain.Economics;
 using Kompass.Domain.Projects;
 using Kompass.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
@@ -153,6 +154,33 @@ public sealed class ProjektService : IProjektService
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return true;
+    }
+
+    public async Task<AlternativeKurzinfo?> AlternativeNachIdAbrufenAsync(
+        Guid projektId,
+        Guid alternativeId,
+        CancellationToken cancellationToken = default)
+    {
+        if (projektId == Guid.Empty ||
+            alternativeId == Guid.Empty)
+        {
+            return null;
+        }
+
+        return await _dbContext
+            .Set<Modernisierungsalternative>()
+            .Where(
+                a =>
+                    a.Id == alternativeId &&
+                    EF.Property<Guid?>(a, "ProjektId") == projektId)
+            .Select(
+                a =>
+                    new AlternativeKurzinfo(
+                        a.Id,
+                        a.Bezeichnung,
+                        projektId,
+                        a.Kostenpositionen.Sum(k => k.Betrag)))
+            .SingleOrDefaultAsync(cancellationToken);
     }
 
     private static ProjektUebersicht ErzeugeUebersicht(

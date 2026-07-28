@@ -2,6 +2,12 @@ using Kompass.Domain.Common;
 
 namespace Kompass.Domain.Economics;
 
+<<<<<<< HEAD
+/// <summary>
+/// Annahmen für einen Energieträger innerhalb einer Wirtschaftlichkeitsberechnung.
+/// </summary>
+=======
+>>>>>>> origin/main
 public sealed class EnergietraegerAnnahme : Entity
 {
     private EnergietraegerAnnahme()
@@ -11,6 +17,13 @@ public sealed class EnergietraegerAnnahme : Entity
     public EnergietraegerAnnahme(
         Guid id,
         Energietraeger energietraeger,
+<<<<<<< HEAD
+        decimal preisProKwh,
+        decimal jaehrlicherPreisanstiegProzent)
+        : base(id)
+    {
+        if (preisProKwh < 0)
+=======
         decimal preis,
         decimal preissteigerungsrate,
         decimal co2Faktor,
@@ -21,11 +34,23 @@ public sealed class EnergietraegerAnnahme : Entity
         : base(id)
     {
         if (preis < 0)
+>>>>>>> origin/main
         {
             throw new DomainException(
                 "Der Energiepreis darf nicht negativ sein.");
         }
 
+<<<<<<< HEAD
+        if (jaehrlicherPreisanstiegProzent < -100)
+        {
+            throw new DomainException(
+                "Der jährliche Preisanstieg darf nicht unter -100 % liegen.");
+        }
+
+        Energietraeger = energietraeger;
+        PreisProKwh = preisProKwh;
+        JaehrlicherPreisanstiegProzent = jaehrlicherPreisanstiegProzent;
+=======
         if (preissteigerungsrate < 0 || preissteigerungsrate > 1)
         {
             throw new DomainException(
@@ -70,10 +95,24 @@ public sealed class EnergietraegerAnnahme : Entity
         Co2Preissteigerungsrate = co2Preissteigerungsrate;
         EndenergieIstZustand = endenergieIstZustand;
         EndenergieAlternative = endenergieAlternative;
+>>>>>>> origin/main
     }
 
     public Energietraeger Energietraeger { get; private set; }
 
+<<<<<<< HEAD
+    /// <summary>Energiepreis in EUR/kWh.</summary>
+    public decimal PreisProKwh { get; private set; }
+
+    /// <summary>Jährliche Preissteigerung in Prozent.</summary>
+    public decimal JaehrlicherPreisanstiegProzent { get; private set; }
+
+    public void PreisAendern(
+        decimal preisProKwh,
+        decimal jaehrlicherPreisanstiegProzent)
+    {
+        if (preisProKwh < 0)
+=======
     /// <summary>Energiepreis in €/kWh.</summary>
     public decimal Preis { get; private set; }
 
@@ -108,11 +147,22 @@ public sealed class EnergietraegerAnnahme : Entity
         decimal endenergieAlternative)
     {
         if (preis < 0)
+>>>>>>> origin/main
         {
             throw new DomainException(
                 "Der Energiepreis darf nicht negativ sein.");
         }
 
+<<<<<<< HEAD
+        if (jaehrlicherPreisanstiegProzent < -100)
+        {
+            throw new DomainException(
+                "Der jährliche Preisanstieg darf nicht unter -100 % liegen.");
+        }
+
+        PreisProKwh = preisProKwh;
+        JaehrlicherPreisanstiegProzent = jaehrlicherPreisanstiegProzent;
+=======
         if (preissteigerungsrate < 0 || preissteigerungsrate > 1)
         {
             throw new DomainException(
@@ -156,5 +206,6 @@ public sealed class EnergietraegerAnnahme : Entity
         Co2Preissteigerungsrate = co2Preissteigerungsrate;
         EndenergieIstZustand = endenergieIstZustand;
         EndenergieAlternative = endenergieAlternative;
+>>>>>>> origin/main
     }
 }
