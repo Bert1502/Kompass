@@ -99,16 +99,20 @@ public sealed class EfKostenpositionService : IKostenpositionService
         Guid alternativeId,
         CancellationToken cancellationToken)
     {
+        var gehoertZuProjekt = await _dbContext.Projekte
+            .Where(p => p.Id == projektId)
+            .SelectMany(p => p.Alternativen)
+            .AnyAsync(a => a.Id == alternativeId, cancellationToken);
+
+        if (!gehoertZuProjekt)
+        {
+            return null;
+        }
+
         return await _dbContext.Set<Modernisierungsalternative>()
             .Include(a => a.Kostenpositionen)
-            .Where(
-                a =>
-                    _dbContext.Projekte
-                        .Where(p => p.Id == projektId)
-                        .SelectMany(p => p.Alternativen)
-                        .Select(pa => pa.Id)
-                        .Contains(a.Id) &&
-                    a.Id == alternativeId)
-            .SingleOrDefaultAsync(cancellationToken);
+            .SingleOrDefaultAsync(
+                a => a.Id == alternativeId,
+                cancellationToken);
     }
 }
