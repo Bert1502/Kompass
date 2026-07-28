@@ -391,6 +391,14 @@ public sealed class ProjekteControllerTests
             throw new NotSupportedException();
         }
 
+        public Task<AlternativeKurzinfo?> AlternativeNachIdAbrufenAsync(
+            Guid projektId,
+            Guid alternativeId,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<AlternativeKurzinfo?>(null);
+        }
+
         public Task<bool> LoeschenAsync(
             Guid id,
             CancellationToken cancellationToken = default)

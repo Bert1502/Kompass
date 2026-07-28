@@ -29,17 +29,7 @@ public static class DependencyInjection
 
         services.AddScoped<IProjektService, ProjektService>();
 
-<<<<<<< HEAD
-        services.AddScoped<
-            IWirtschaftlichkeitsannahmenRepository,
-            EfWirtschaftlichkeitsannahmenRepository>();
-
-        services.AddSingleton<WirtschaftlichkeitsberechnungsService>(sp =>
-            new WirtschaftlichkeitsberechnungsService(
-                sp.GetRequiredService<TimeProvider>()));
-=======
         services.AddScoped<IWirtschaftlichkeitsService, EfWirtschaftlichkeitsService>();
->>>>>>> origin/main
 
         return services;
     }
