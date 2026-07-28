@@ -69,7 +69,7 @@ implementiert:
   im Domain; `IBerichtsService` in Application; `BerichtsService`
   in Persistence; API-Endpunkte GET `alternativenvergleich` und
   GET `waermebrueckenuebersicht` unter
-  `api/projekte/{id}/berichte/...`; keine eigene Datenbankmigraton
+  `api/projekte/{id}/berichte/...`; keine eigene Datenbankmigration
   erforderlich (ausschließlich Aggregation vorhandener Domänendaten
   gemäß ADR-0007).
 
@@ -818,7 +818,7 @@ sind in Paket 9 umgesetzt. Offene Anschlussaufgaben:
 `Berichtstyp`, `Berichtskopf`, `AlternativenvergleichBericht`,
 `WaermebrueckenuebersichtBericht`, `IBerichtsService`, `BerichtsService`
 und die API-Endpunkte `alternativenvergleich` und
-`waermebrueckenuebersicht` sind implementiert. Keine Datenbankmigraton
+`waermebrueckenuebersicht` sind implementiert. Keine Datenbankmigration
 erforderlich (ADR-0007). Offene Anschlussaufgaben:
 
 - Wirtschaftlichkeitsbericht (verknüpft Annahmen und Förderergebnis);

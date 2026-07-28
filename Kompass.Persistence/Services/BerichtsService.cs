@@ -65,17 +65,6 @@ public sealed class BerichtsService : IBerichtsService
         Guid projektId,
         CancellationToken cancellationToken = default)
     {
-        var projektVorhanden = await _dbContext.Projekte
-            .AsNoTracking()
-            .AnyAsync(
-                p => p.Id == projektId,
-                cancellationToken);
-
-        if (!projektVorhanden)
-        {
-            return null;
-        }
-
         var projekt = await _dbContext.Projekte
             .AsNoTracking()
             .Where(p => p.Id == projektId)
@@ -87,7 +76,12 @@ public sealed class BerichtsService : IBerichtsService
                 p.Bearbeitungsstatus,
                 p.QuellSnapshotId,
             })
-            .FirstAsync(cancellationToken);
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (projekt is null)
+        {
+            return null;
+        }
 
         var waermebruecken = await _dbContext.Waermebruecken
             .AsNoTracking()
