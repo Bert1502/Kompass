@@ -1,6 +1,6 @@
 # B56-Gap-Analyse
 
-**Stand:** 28. Juli 2026 (aktualisiert nach Paket-6- bis Paket-8-Implementierung)
+**Stand:** 28. Juli 2026 (aktualisiert nach Paket-6- bis Paket-9-Implementierung)
 
 ## 1. Auftrag und Bewertungsgrundlage
 
@@ -26,7 +26,7 @@ Bewertungsstufen:
 
 ## 2. Zusammenfassung
 
-Seit der letzten Gap-Analyse wurden die Pakete 6 bis 8 erfolgreich
+Seit der letzten Gap-Analyse wurden die Pakete 6 bis 9 erfolgreich
 implementiert:
 
 - vollständiger erster Anwenderprozess: ergänzbare Projektdaten
@@ -47,9 +47,15 @@ implementiert:
   `PflichtnachweisRegel`, `Gueltigkeitsregel`),
   `IFoerderprogrammService`, `EfFoerderprogrammService`, API-Endpunkte
   GET/POST/Regelergänzung, Migrationen `AddFoerderprogramme` und
-  `RefineFoerderprogrammRegeln`.
+  `RefineFoerderprogrammRegeln`;
+- Förderprogramm-Zuordnung zu Alternativen (Paket 9):
+  `FoerderungZuordnung`-Entity, `Foerderberechnungsergebnis`-Ergebnis,
+  `IAlternativeFoerderungService`, `EfAlternativeFoerderungService`,
+  API-Endpunkte GET (Liste), PUT (Zuordnen), DELETE (Entfernen) und
+  POST/berechnen (fachliche Vorprüfung mit Stichtag),
+  Migration `AddAlternativeFoerderungZuordnung`.
 
-`dotnet test` bestätigt 152/152 Tests bestanden.
+`dotnet test` bestätigt 171/171 Tests bestanden.
 
 Offene Schwerpunkte für die nächste Ausbaustufe:
 
@@ -509,12 +515,14 @@ gespeichert. Es fehlen:
 
 ### 5.3 Förderprogramm-Verknüpfung mit Alternativenberechnung
 
-Der Förderprogramm-Katalog ist implementiert. Noch nicht umgesetzt ist:
+Der Förderprogramm-Katalog ist implementiert. Die projektbezogene
+Programmzuordnung je Alternative sowie die fachliche Förder-Vorprüfung
+(`FoerderungBerechnen`) sind in Paket 9 umgesetzt. Noch nicht umgesetzt ist:
 
-- projektbezogene Auswahl anwendbarer Programme je Alternative;
-- Berechnung förderfähiger Kosten und Förderhöhe;
-- Kumulierbarkeit über mehrere Programme;
-- Prüfung technischer Mindestanforderungen.
+- Kumulierbarkeitsregel zwischen mehreren zugeordneten Programmen wird
+  als Metadaten-Status ausgewiesen, aber rechnerisch nicht erzwungen
+  (fachlich noch nicht freigegeben);
+- Prüfung technischer Mindestanforderungen je Programm.
 
 ### 5.4 Berichtswesen
 
@@ -605,8 +613,9 @@ für die Nachweisbarkeit erhalten bleiben.
 | `Sha256HashServiceTests.cs` | Hash-Service | 2 |
 | `VollstaendigerAnwenderprozessHttpEndToEndTests.cs` | Alle 18 Abnahmekriterien E2E | 1 |
 | `WirtschaftlichkeitsannahmenControllerTests.cs` | Wirtschaftlichkeit-API | 6 |
-| `WirtschaftlichkeitsannahmenDomainTests.cs` | Wirtschaftlichkeit-Domain | 12 |
-| **Gesamt** | | **152** |
+| `AlternativeFoerderprogrammeControllerTests.cs` | Förderprogramm-Zuordnung API | 7 |
+| `EfAlternativeFoerderungServiceTests.cs` | Förderprogramm-Zuordnung Persistence | 9 |
+| **Gesamt** | | **171** |
 
 ### 7.2 Noch fehlende Tests
 
@@ -717,12 +726,14 @@ kosten verdichtet und als Eingabe für `Berechnen` bereitstellt.
 
 ### R11 – Förderprogramm-Katalog noch nicht mit Alternativen verknüpft
 
-**Priorität: mittel.**
-Förderprogramme werden zentral verwaltet, sind aber noch nicht mit
-Projekten oder Modernisierungsalternativen verknüpft.
+**Priorität: mitigiert.**
+`FoerderungZuordnung` verbindet Förderprogramme mit Alternativen.
+`EfAlternativeFoerderungService.FoerderungBerechnenAsync` berechnet die
+Förderhöhe je Programm als fachliche Vorprüfung.
 
-**Maßnahme:** Verknüpfungsmodell und Use-Case nach fachlicher Freigabe
-des vollständigen Förderprozesses entwerfen.
+**Restrisiko:** Die Kumulierbarkeit mehrerer Programme wird als Statusinformation
+ausgewiesen, aber rechnerisch nicht durchgesetzt (fachliche Entscheidung ausstehend).
+Technische Mindestanforderungen je Programm sind noch nicht prüfbar.
 
 ## 9. Priorisierte nächste Arbeitspakete
 
@@ -739,14 +750,15 @@ Domain, Persistence und API für `Wirtschaftlichkeitsannahmen` und
 - Aggregation der Kostenpositionen als Investitionskosteneingabe;
 - Verknüpfung mit Förderprogramm-Katalog für Förderbetragsübergabe.
 
-### P3 – Förderung (Paket 8) ✅ erste Stufe abgeschlossen
+### P3 – Förderung (Paket 8 + 9) ✅ erste und zweite Stufe abgeschlossen
 
 Förderprogramm-Katalog mit zeitabhängigen Regeltypen ist implementiert.
-Offene Anschlussaufgaben:
+Förderprogramm-Zuordnung zu Alternativen und fachliche Förder-Vorprüfung
+sind in Paket 9 umgesetzt. Offene Anschlussaufgaben:
 
-- projektbezogene Programmauswahl je Alternative;
-- Berechnung förderfähiger Kosten und Kumulierbarkeit;
-- Prüfung technischer Mindestanforderungen.
+- rechnerische Kumulierbarkeitsregel zwischen mehreren Programmen
+  (nach fachlicher Freigabe);
+- Prüfung technischer Mindestanforderungen je Programm.
 
 ### P4 – Berichtswesen
 
