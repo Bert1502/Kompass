@@ -31,6 +31,8 @@ public static class DependencyInjection
 
         services.AddScoped<IWirtschaftlichkeitsService, EfWirtschaftlichkeitsService>();
 
+        services.AddScoped<IKostenpositionService, EfKostenpositionService>();
+
         return services;
     }
 }
