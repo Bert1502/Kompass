@@ -1,6 +1,6 @@
 # B56-Gap-Analyse
 
-**Stand:** 28. Juli 2026 (aktualisiert nach Paket-6- bis Paket-10-Implementierung)
+**Stand:** 28. Juli 2026 (aktualisiert nach Paket-6- bis Paket-11-Implementierung)
 
 ## 1. Auftrag und Bewertungsgrundlage
 
@@ -62,9 +62,18 @@ implementiert:
   `PsiWert`, `FRsi`, `Pruefanmerkung`, `Berichtsdarstellung`),
   `IWaermebrueckeService`, `EfWaermebrueckeService`, API-Endpunkte
   GET (Liste), GET (Einzelabruf), POST (Anlegen), PATCH (Aktualisieren),
-  DELETE (Löschen), Migration `AddWaermebruecken`.
+  DELETE (Löschen), Migration `AddWaermebruecken`;
+- Berichtswesen (erste Stufe, Paket 11):
+  `Berichtstyp`-Enum, `Berichtskopf`-Record,
+  `AlternativenvergleichBericht`, `WaermebrueckenuebersichtBericht`
+  im Domain; `IBerichtsService` in Application; `BerichtsService`
+  in Persistence; API-Endpunkte GET `alternativenvergleich` und
+  GET `waermebrueckenuebersicht` unter
+  `api/projekte/{id}/berichte/...`; keine eigene Datenbankmigraton
+  erforderlich (ausschließlich Aggregation vorhandener Domänendaten
+  gemäß ADR-0007).
 
-`dotnet test` bestätigt 202/202 Tests bestanden.
+`dotnet test` bestätigt 221/221 Tests bestanden.
 
 Offene Schwerpunkte für die nächste Ausbaustufe:
 
@@ -72,7 +81,8 @@ Offene Schwerpunkte für die nächste Ausbaustufe:
   Förderparameter, reale Verbrauchsdaten, Berichtseinstellungen);
 - persistierte Vergleichs- und Konfliktergebnisse;
 - Förderprogramm-Verknüpfung mit Alternativenberechnung;
-- Berichtswesen.
+- weitere Berichtstypen (Wirtschaftlichkeitsbericht, Förderübersicht,
+  Energieberatungsbericht, Executive Summary, Prüferunterlagen).
 
 ## 3. Bereits erfüllt
 
@@ -534,10 +544,29 @@ Programmzuordnung je Alternative sowie die fachliche Förder-Vorprüfung
 
 ### 5.4 Berichtswesen
 
-Berichte sind noch nicht implementiert. Gemäß
-`FUNCTIONAL_SPECIFICATION.md` Abschnitt 17 sind mindestens
-Energieberatungsbericht, Wirtschaftlichkeitsbericht, Förderübersicht
-und Vergleich von Modernisierungsalternativen vorgesehen.
+In Paket 11 (erste Stufe) implementiert:
+
+- `Berichtstyp`-Enum mit allen Typen aus Abschnitt 17 der Fachspezifikation;
+- `Berichtskopf`-Record (Projektstand, Datenquelle, Berichtstyp,
+  Erstellungszeitpunkt);
+- `AlternativenvergleichBericht`: fasst alle Modernisierungsalternativen
+  mit Gesamtkosten, B56-Position und Snapshot-Präsenzstatus zusammen;
+- `WaermebrueckenuebersichtBericht`: listet alle Wärmebrücken eines
+  Projekts;
+- `IBerichtsService` und `BerichtsService` ohne eigene Datenbanktabelle
+  (Aggregation vorhandener Domänendaten, ADR-0007);
+- API-Endpunkte GET `api/projekte/{id}/berichte/alternativenvergleich`
+  und GET `api/projekte/{id}/berichte/waermebrueckenuebersicht`.
+
+Noch nicht umgesetzt:
+
+- Wirtschaftlichkeitsbericht (verknüpft `Wirtschaftlichkeitsannahmen`
+  und `Foerderberechnungsergebnis`);
+- Förderübersicht (konsolidierte Darstellung aller
+  Förderprogramm-Zuordnungen);
+- Energieberatungsbericht, Executive Summary, Prüferunterlagen,
+  Präsentationen, Kommunikationsunterlagen;
+- persistiertes Berichtsarchiv (nach fachlicher Klärung ob notwendig).
 
 ### 5.5 Wärmebrückenmanagement
 
@@ -636,7 +665,10 @@ für die Nachweisbarkeit erhalten bleiben.
 | `WaermebrueckeDomainTests.cs` | Wärmebrücke-Domain-Invarianten | 7 |
 | `EfWaermebrueckeServiceTests.cs` | Wärmebrücke-Persistence | 10 |
 | `WaermebrueckenControllerTests.cs` | Wärmebrücken-API | 9 |
-| **Gesamt** | | **202** |
+| `BerichtsDomainTests.cs` | Berichte-Domain-Modelle | 7 |
+| `BerichteControllerTests.cs` | Berichte-API | 4 |
+| `BerichtsServiceTests.cs` | Berichte-Persistence | 8 |
+| **Gesamt** | | **221** |
 
 ### 7.2 Noch fehlende Tests
 
@@ -781,10 +813,17 @@ sind in Paket 9 umgesetzt. Offene Anschlussaufgaben:
   (nach fachlicher Freigabe);
 - Prüfung technischer Mindestanforderungen je Programm.
 
-### P4 – Berichtswesen
+### P4 – Berichtswesen (Paket 11) ✅ erste Stufe abgeschlossen
 
-Nach Abschluss der Wirtschaftlichkeits- und Förderverknüpfung gemäß
-`FUNCTIONAL_SPECIFICATION.md` Abschnitt 17.
+`Berichtstyp`, `Berichtskopf`, `AlternativenvergleichBericht`,
+`WaermebrueckenuebersichtBericht`, `IBerichtsService`, `BerichtsService`
+und die API-Endpunkte `alternativenvergleich` und
+`waermebrueckenuebersicht` sind implementiert. Keine Datenbankmigraton
+erforderlich (ADR-0007). Offene Anschlussaufgaben:
+
+- Wirtschaftlichkeitsbericht (verknüpft Annahmen und Förderergebnis);
+- Förderübersicht (konsolidierte Förderprogramm-Zuordnung);
+- Energieberatungsbericht, Executive Summary, Prüferunterlagen.
 
 ### P5 – Wärmebrückenmanagement (Paket 10) ✅ erste Stufe abgeschlossen
 
