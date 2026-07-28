@@ -60,6 +60,7 @@ public sealed class FoerderprogrammConfiguration
         builder.HasMany(f => f.Foerderquoten)
             .WithOne()
             .HasForeignKey("FoerderprogrammId")
+            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Navigation(f => f.Foerderquoten)
@@ -68,6 +69,7 @@ public sealed class FoerderprogrammConfiguration
         builder.HasMany(f => f.Hoechstbetraege)
             .WithOne()
             .HasForeignKey("FoerderprogrammId")
+            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Navigation(f => f.Hoechstbetraege)
@@ -76,6 +78,7 @@ public sealed class FoerderprogrammConfiguration
         builder.HasMany(f => f.Kumulierbarkeitsregeln)
             .WithOne()
             .HasForeignKey("FoerderprogrammId")
+            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Navigation(f => f.Kumulierbarkeitsregeln)
@@ -84,6 +87,7 @@ public sealed class FoerderprogrammConfiguration
         builder.HasMany(f => f.Pflichtnachweisregeln)
             .WithOne()
             .HasForeignKey("FoerderprogrammId")
+            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Navigation(f => f.Pflichtnachweisregeln)
@@ -92,6 +96,7 @@ public sealed class FoerderprogrammConfiguration
         builder.HasMany(f => f.Gueltigkeitsregeln)
             .WithOne()
             .HasForeignKey("FoerderprogrammId")
+            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Navigation(f => f.Gueltigkeitsregeln)

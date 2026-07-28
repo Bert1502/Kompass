@@ -46,7 +46,8 @@ public sealed class KompassDbContextMigrationTests
                     "20260725101500_TrackB56AlternativePresence",
                     "20260727160844_AddErgaenzbareProjektdaten",
                     "20260728033325_AddWirtschaftlichkeitsannahmen",
-                    "20260728064802_AddFoerderprogramme"
+                    "20260728064802_AddFoerderprogramme",
+                    "20260728070720_RefineFoerderprogrammRegeln"
                 ],
                 angewendeteMigrationen);
         }
