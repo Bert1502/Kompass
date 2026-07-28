@@ -1,4 +1,5 @@
-﻿using Kompass.Domain.Projects;
+﻿using Kompass.Domain.Economics;
+using Kompass.Domain.Projects;
 using Kompass.Persistence.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +18,9 @@ public sealed class KompassDbContext : DbContext
 
     public DbSet<B56ImportEintragEntity> B56ImportEintraege
         => Set<B56ImportEintragEntity>();
+
+    public DbSet<Wirtschaftlichkeitsannahmen> Wirtschaftlichkeitsannahmen
+        => Set<Wirtschaftlichkeitsannahmen>();
 
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
