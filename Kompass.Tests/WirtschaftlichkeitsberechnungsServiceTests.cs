@@ -5,7 +5,8 @@ namespace Kompass.Tests.Application;
 
 public sealed class WirtschaftlichkeitsberechnungsServiceTests
 {
-    private readonly WirtschaftlichkeitsberechnungsService _service = new();
+    private readonly WirtschaftlichkeitsberechnungsService _service =
+        new(TimeProvider.System);
 
     // ─── Hilfsmethoden ──────────────────────────────────────────────────────
 

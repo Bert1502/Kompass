@@ -33,7 +33,9 @@ public static class DependencyInjection
             IWirtschaftlichkeitsannahmenRepository,
             EfWirtschaftlichkeitsannahmenRepository>();
 
-        services.AddSingleton<WirtschaftlichkeitsberechnungsService>();
+        services.AddSingleton<WirtschaftlichkeitsberechnungsService>(sp =>
+            new WirtschaftlichkeitsberechnungsService(
+                sp.GetRequiredService<TimeProvider>()));
 
         return services;
     }

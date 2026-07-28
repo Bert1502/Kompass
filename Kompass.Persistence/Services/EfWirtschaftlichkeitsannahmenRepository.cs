@@ -53,7 +53,6 @@ public sealed class EfWirtschaftlichkeitsannahmenRepository
         if (vorhandene is not null)
         {
             _dbContext.Set<Wirtschaftlichkeitsannahmen>().Remove(vorhandene);
-            await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
         _dbContext.Set<Wirtschaftlichkeitsannahmen>().Add(annahmen);

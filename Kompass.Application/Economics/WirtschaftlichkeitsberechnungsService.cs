@@ -11,6 +11,12 @@ namespace Kompass.Application.Economics;
 /// </summary>
 public sealed class WirtschaftlichkeitsberechnungsService
 {
+    private readonly TimeProvider _timeProvider;
+
+    public WirtschaftlichkeitsberechnungsService(TimeProvider timeProvider)
+    {
+        _timeProvider = timeProvider;
+    }
     /// <summary>
     /// Berechnet ein <see cref="Wirtschaftlichkeitsergebnis"/> auf Basis der
     /// übergebenen Annahmen und Eingabewerte.
@@ -81,7 +87,7 @@ public sealed class WirtschaftlichkeitsberechnungsService
             KostenNutzenVerhaeltnis = kostenNutzenVerhaeltnis,
             Restwert = restwertNominal,
             Basis = eingabe.Basis,
-            BerechnungszeitpunktUtc = DateTimeOffset.UtcNow
+            BerechnungszeitpunktUtc = _timeProvider.GetUtcNow()
         };
     }
 
