@@ -1,4 +1,5 @@
-﻿using Kompass.Application.Projects;
+﻿using Kompass.Application.Economics;
+using Kompass.Application.Projects;
 using Kompass.Persistence.Data;
 using Kompass.Persistence.Services;
 using Microsoft.EntityFrameworkCore;
@@ -27,6 +28,8 @@ public static class DependencyInjection
             });
 
         services.AddScoped<IProjektService, ProjektService>();
+
+        services.AddScoped<IWirtschaftlichkeitsService, EfWirtschaftlichkeitsService>();
 
         return services;
     }
