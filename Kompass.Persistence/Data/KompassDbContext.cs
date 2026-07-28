@@ -1,4 +1,5 @@
 ﻿using Kompass.Domain.Economics;
+using Kompass.Domain.Funding;
 using Kompass.Domain.Projects;
 using Kompass.Persistence.Data.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,9 @@ public sealed class KompassDbContext : DbContext
 
     public DbSet<Wirtschaftlichkeitsannahmen> Wirtschaftlichkeitsannahmen
         => Set<Wirtschaftlichkeitsannahmen>();
+
+    public DbSet<Foerderprogramm> Foerderprogramme
+        => Set<Foerderprogramm>();
 
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
