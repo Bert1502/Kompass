@@ -25,4 +25,14 @@ public sealed class FoerderprogrammAnlegenRequest
     public string Pflichtnachweise { get; set; } = string.Empty;
 
     public string Quellenstand { get; set; } = string.Empty;
+
+    public List<FoerderquoteRegelRequest> Foerderquoten { get; set; } = [];
+
+    public List<HoechstbetragRegelRequest> Hoechstbetraege { get; set; } = [];
+
+    public List<KumulierbarkeitsregelRequest> Kumulierbarkeitsregeln { get; set; } = [];
+
+    public List<PflichtnachweisRegelRequest> Pflichtnachweisregeln { get; set; } = [];
+
+    public List<GueltigkeitsregelRequest> Gueltigkeitsregeln { get; set; } = [];
 }

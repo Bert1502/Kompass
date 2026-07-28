@@ -20,6 +20,11 @@ public sealed class EfFoerderprogrammService : IFoerderprogrammService
         CancellationToken cancellationToken = default)
     {
         return await _dbContext.Foerderprogramme
+            .Include(f => f.Foerderquoten)
+            .Include(f => f.Hoechstbetraege)
+            .Include(f => f.Kumulierbarkeitsregeln)
+            .Include(f => f.Pflichtnachweisregeln)
+            .Include(f => f.Gueltigkeitsregeln)
             .OrderBy(f => f.Programmkennung)
             .ThenBy(f => f.Version)
             .ToListAsync(cancellationToken);

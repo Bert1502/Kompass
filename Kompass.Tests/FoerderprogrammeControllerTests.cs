@@ -54,7 +54,121 @@ public sealed class FoerderprogrammeControllerTests
         Assert.Equal(
             StatusCodes.Status201Created,
             created.StatusCode);
-        Assert.IsType<Foerderprogramm>(created.Value);
+        var foerderprogramm = Assert.IsType<Foerderprogramm>(created.Value);
+
+        Assert.Single(foerderprogramm.Foerderquoten);
+        Assert.Single(foerderprogramm.Kumulierbarkeitsregeln);
+    }
+
+    [Fact]
+    public async Task Anlegen_uebernimmt_feine_Foerderregeln_aus_der_Anfrage()
+    {
+        var controller = new FoerderprogrammeController(
+            new FoerderprogrammServiceFake([]),
+            NullLogger<FoerderprogrammeController>.Instance);
+
+        var anfrage = ErzeugeAnfrage();
+        anfrage.Foerderquoten =
+        [
+            new FoerderquoteRegelRequest
+            {
+                Bezeichnung = "Bonusquote",
+                Quote = 0.2m,
+                Bezugsbasis = "förderfähige Kosten",
+                GueltigAb = new DateOnly(2026, 2, 1),
+                Beschreibung = "Mit iSFP-Bonus"
+            }
+        ];
+        anfrage.Hoechstbetraege =
+        [
+            new HoechstbetragRegelRequest
+            {
+                Bezeichnung = "Deckel",
+                Betrag = 60_000m,
+                Waehrung = "EUR",
+                Bezugsbasis = "je Wohneinheit",
+                GueltigAb = new DateOnly(2026, 2, 1),
+                Beschreibung = "Nur bei Komplettsanierung"
+            }
+        ];
+        anfrage.Kumulierbarkeitsregeln =
+        [
+            new KumulierbarkeitsregelRequest
+            {
+                Bezeichnung = "Landesprogramm",
+                Status = KumulierbarkeitStatus.BedingtKumulierbar,
+                Beschreibung = "Nur mit Landesmitteln kombinierbar.",
+                GueltigAb = new DateOnly(2026, 2, 1)
+            }
+        ];
+        anfrage.Pflichtnachweisregeln =
+        [
+            new PflichtnachweisRegelRequest
+            {
+                Bezeichnung = "iSFP",
+                Beschreibung = "Vorlage des Sanierungsfahrplans",
+                Zeitpunkt = Nachweiszeitpunkt.BeiAntrag,
+                IstPflicht = true,
+                GueltigAb = new DateOnly(2026, 2, 1)
+            }
+        ];
+        anfrage.Gueltigkeitsregeln =
+        [
+            new GueltigkeitsregelRequest
+            {
+                Bezeichnung = "Antragsfenster 2026",
+                Bezug = Gueltigkeitsbezug.Antragsdatum,
+                GueltigAb = new DateOnly(2026, 2, 1),
+                GueltigBis = new DateOnly(2026, 11, 30),
+                Beschreibung = "Nur für 2026."
+            }
+        ];
+
+        var antwort =
+            await controller.AnlegenAsync(
+                anfrage,
+                CancellationToken.None);
+
+        var created =
+            Assert.IsType<CreatedAtActionResult>(antwort.Result);
+        var foerderprogramm =
+            Assert.IsType<Foerderprogramm>(created.Value);
+
+        Assert.Equal("Bonusquote", Assert.Single(foerderprogramm.Foerderquoten).Bezeichnung);
+        Assert.Equal("Deckel", Assert.Single(foerderprogramm.Hoechstbetraege).Bezeichnung);
+        Assert.Equal(KumulierbarkeitStatus.BedingtKumulierbar, Assert.Single(foerderprogramm.Kumulierbarkeitsregeln).Status);
+        Assert.Equal(Nachweiszeitpunkt.BeiAntrag, Assert.Single(foerderprogramm.Pflichtnachweisregeln).Zeitpunkt);
+        Assert.Equal(Gueltigkeitsbezug.Antragsdatum, Assert.Single(foerderprogramm.Gueltigkeitsregeln).Bezug);
+    }
+
+    [Fact]
+    public async Task Anlegen_behandelt_null_Collections_wie_leere_Regellisten()
+    {
+        var controller = new FoerderprogrammeController(
+            new FoerderprogrammServiceFake([]),
+            NullLogger<FoerderprogrammeController>.Instance);
+
+        var anfrage = ErzeugeAnfrage();
+        anfrage.Foerderquoten = null!;
+        anfrage.Hoechstbetraege = null!;
+        anfrage.Kumulierbarkeitsregeln = null!;
+        anfrage.Pflichtnachweisregeln = null!;
+        anfrage.Gueltigkeitsregeln = null!;
+
+        var antwort =
+            await controller.AnlegenAsync(
+                anfrage,
+                CancellationToken.None);
+
+        var created =
+            Assert.IsType<CreatedAtActionResult>(antwort.Result);
+        var foerderprogramm =
+            Assert.IsType<Foerderprogramm>(created.Value);
+
+        Assert.Single(foerderprogramm.Foerderquoten);
+        Assert.Single(foerderprogramm.Kumulierbarkeitsregeln);
+        Assert.Single(foerderprogramm.Pflichtnachweisregeln);
+        Assert.Single(foerderprogramm.Gueltigkeitsregeln);
     }
 
     [Fact]

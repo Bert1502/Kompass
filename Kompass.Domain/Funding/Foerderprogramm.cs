@@ -4,6 +4,12 @@ namespace Kompass.Domain.Funding;
 
 public sealed class Foerderprogramm : AggregateRoot
 {
+    private readonly List<FoerderquoteRegel> _foerderquoten = new();
+    private readonly List<HoechstbetragRegel> _hoechstbetraege = new();
+    private readonly List<Kumulierbarkeitsregel> _kumulierbarkeitsregeln = new();
+    private readonly List<PflichtnachweisRegel> _pflichtnachweisregeln = new();
+    private readonly List<Gueltigkeitsregel> _gueltigkeitsregeln = new();
+
     private Foerderprogramm()
     {
         Programmkennung = string.Empty;
@@ -28,7 +34,12 @@ public sealed class Foerderprogramm : AggregateRoot
         decimal? hoechstbetrag,
         string kumulierbarkeit,
         string pflichtnachweise,
-        string quellenstand)
+        string quellenstand,
+        IEnumerable<FoerderquoteRegel>? foerderquoten = null,
+        IEnumerable<HoechstbetragRegel>? hoechstbetraege = null,
+        IEnumerable<Kumulierbarkeitsregel>? kumulierbarkeitsregeln = null,
+        IEnumerable<PflichtnachweisRegel>? pflichtnachweisregeln = null,
+        IEnumerable<Gueltigkeitsregel>? gueltigkeitsregeln = null)
         : base(id)
     {
         Programmkennung = BereinigePflichttext(
@@ -59,6 +70,27 @@ public sealed class Foerderprogramm : AggregateRoot
         Quellenstand = BereinigePflichttext(
             quellenstand,
             "Der Quellenstand darf nicht leer sein.");
+
+        InitialisiereFoerderquoten(
+            foerderquoten,
+            gueltigAb,
+            GueltigBis);
+        InitialisiereHoechstbetraege(
+            hoechstbetraege,
+            gueltigAb,
+            GueltigBis);
+        InitialisiereKumulierbarkeitsregeln(
+            kumulierbarkeitsregeln,
+            gueltigAb,
+            GueltigBis);
+        InitialisierePflichtnachweisregeln(
+            pflichtnachweisregeln,
+            gueltigAb,
+            GueltigBis);
+        InitialisiereGueltigkeitsregeln(
+            gueltigkeitsregeln,
+            gueltigAb,
+            GueltigBis);
     }
 
     public string Programmkennung { get; private set; }
@@ -84,6 +116,21 @@ public sealed class Foerderprogramm : AggregateRoot
     public string Pflichtnachweise { get; private set; }
 
     public string Quellenstand { get; private set; }
+
+    public IReadOnlyCollection<FoerderquoteRegel> Foerderquoten =>
+        _foerderquoten.AsReadOnly();
+
+    public IReadOnlyCollection<HoechstbetragRegel> Hoechstbetraege =>
+        _hoechstbetraege.AsReadOnly();
+
+    public IReadOnlyCollection<Kumulierbarkeitsregel> Kumulierbarkeitsregeln =>
+        _kumulierbarkeitsregeln.AsReadOnly();
+
+    public IReadOnlyCollection<PflichtnachweisRegel> Pflichtnachweisregeln =>
+        _pflichtnachweisregeln.AsReadOnly();
+
+    public IReadOnlyCollection<Gueltigkeitsregel> Gueltigkeitsregeln =>
+        _gueltigkeitsregeln.AsReadOnly();
 
     private static string BereinigePflichttext(
         string wert,
@@ -146,5 +193,137 @@ public sealed class Foerderprogramm : AggregateRoot
         }
 
         return hoechstbetrag;
+    }
+
+    private void InitialisiereFoerderquoten(
+        IEnumerable<FoerderquoteRegel>? foerderquoten,
+        DateOnly gueltigAb,
+        DateOnly? gueltigBis)
+    {
+        _foerderquoten.Clear();
+
+        var detailregeln = MaterialisiereRegeln(foerderquoten);
+
+        if (detailregeln.Count == 0)
+        {
+            _foerderquoten.Add(
+                FoerderquoteRegel.AusPauschalerQuote(
+                    Foerdersatz,
+                    gueltigAb,
+                    gueltigBis));
+            return;
+        }
+
+        _foerderquoten.AddRange(detailregeln);
+    }
+
+    private void InitialisiereHoechstbetraege(
+        IEnumerable<HoechstbetragRegel>? hoechstbetraege,
+        DateOnly gueltigAb,
+        DateOnly? gueltigBis)
+    {
+        _hoechstbetraege.Clear();
+
+        var detailregeln = MaterialisiereRegeln(hoechstbetraege);
+
+        if (detailregeln.Count > 0)
+        {
+            _hoechstbetraege.AddRange(detailregeln);
+            return;
+        }
+
+        if (Hoechstbetrag.HasValue)
+        {
+            _hoechstbetraege.Add(
+                HoechstbetragRegel.AusPauschalemBetrag(
+                    Hoechstbetrag.Value,
+                    gueltigAb,
+                    gueltigBis));
+        }
+    }
+
+    private void InitialisiereKumulierbarkeitsregeln(
+        IEnumerable<Kumulierbarkeitsregel>? kumulierbarkeitsregeln,
+        DateOnly gueltigAb,
+        DateOnly? gueltigBis)
+    {
+        _kumulierbarkeitsregeln.Clear();
+
+        var detailregeln = MaterialisiereRegeln(kumulierbarkeitsregeln);
+
+        if (detailregeln.Count == 0)
+        {
+            _kumulierbarkeitsregeln.Add(
+                Kumulierbarkeitsregel.AusPauschalerBeschreibung(
+                    Kumulierbarkeit,
+                    gueltigAb,
+                    gueltigBis));
+            return;
+        }
+
+        _kumulierbarkeitsregeln.AddRange(detailregeln);
+    }
+
+    private void InitialisierePflichtnachweisregeln(
+        IEnumerable<PflichtnachweisRegel>? pflichtnachweisregeln,
+        DateOnly gueltigAb,
+        DateOnly? gueltigBis)
+    {
+        _pflichtnachweisregeln.Clear();
+
+        var detailregeln = MaterialisiereRegeln(pflichtnachweisregeln);
+
+        if (detailregeln.Count == 0)
+        {
+            _pflichtnachweisregeln.Add(
+                PflichtnachweisRegel.AusPauschalemNachweis(
+                    Pflichtnachweise,
+                    gueltigAb,
+                    gueltigBis));
+            return;
+        }
+
+        _pflichtnachweisregeln.AddRange(detailregeln);
+    }
+
+    private void InitialisiereGueltigkeitsregeln(
+        IEnumerable<Gueltigkeitsregel>? gueltigkeitsregeln,
+        DateOnly gueltigAb,
+        DateOnly? gueltigBis)
+    {
+        _gueltigkeitsregeln.Clear();
+
+        var detailregeln = MaterialisiereRegeln(gueltigkeitsregeln);
+
+        if (detailregeln.Count == 0)
+        {
+            _gueltigkeitsregeln.Add(
+                Gueltigkeitsregel.AusProgrammzeitraum(
+                    gueltigAb,
+                    gueltigBis));
+            return;
+        }
+
+        _gueltigkeitsregeln.AddRange(detailregeln);
+    }
+
+    private static List<TRegel> MaterialisiereRegeln<TRegel>(
+        IEnumerable<TRegel>? regeln)
+        where TRegel : Entity
+    {
+        if (regeln is null)
+        {
+            return [];
+        }
+
+        var materialisiert = new List<TRegel>();
+
+        foreach (var regel in regeln)
+        {
+            ArgumentNullException.ThrowIfNull(regel);
+            materialisiert.Add(regel);
+        }
+
+        return materialisiert;
     }
 }

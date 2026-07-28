@@ -57,6 +57,51 @@ public sealed class FoerderprogrammConfiguration
             .IsRequired()
             .HasMaxLength(500);
 
+        builder.HasMany(f => f.Foerderquoten)
+            .WithOne()
+            .HasForeignKey("FoerderprogrammId")
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(f => f.Foerderquoten)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(f => f.Hoechstbetraege)
+            .WithOne()
+            .HasForeignKey("FoerderprogrammId")
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(f => f.Hoechstbetraege)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(f => f.Kumulierbarkeitsregeln)
+            .WithOne()
+            .HasForeignKey("FoerderprogrammId")
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(f => f.Kumulierbarkeitsregeln)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(f => f.Pflichtnachweisregeln)
+            .WithOne()
+            .HasForeignKey("FoerderprogrammId")
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(f => f.Pflichtnachweisregeln)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(f => f.Gueltigkeitsregeln)
+            .WithOne()
+            .HasForeignKey("FoerderprogrammId")
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(f => f.Gueltigkeitsregeln)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
         builder.HasIndex(
                 f => new
                 {
