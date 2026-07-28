@@ -173,8 +173,8 @@ public sealed class B56ImportHttpEndToEndTests
 
             Assert.Single(bauteile);
             Assert.Equal(
-                (int)B56VergleichsArt.Geaendert,
-                bauteile[0].GetProperty("art").GetInt32());
+                (int)B56VergleichsAenderung.Geaendert,
+                bauteile[0].GetProperty("aenderung").GetInt32());
             Assert.Equal(
                 0.24,
                 bauteile[0].GetProperty("alterUWert").GetDouble(),
