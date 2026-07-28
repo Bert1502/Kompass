@@ -142,6 +142,36 @@ public sealed class FoerderprogrammeControllerTests
     }
 
     [Fact]
+    public async Task Anlegen_behandelt_null_Collections_wie_leere_Regellisten()
+    {
+        var controller = new FoerderprogrammeController(
+            new FoerderprogrammServiceFake([]),
+            NullLogger<FoerderprogrammeController>.Instance);
+
+        var anfrage = ErzeugeAnfrage();
+        anfrage.Foerderquoten = null!;
+        anfrage.Hoechstbetraege = null!;
+        anfrage.Kumulierbarkeitsregeln = null!;
+        anfrage.Pflichtnachweisregeln = null!;
+        anfrage.Gueltigkeitsregeln = null!;
+
+        var antwort =
+            await controller.AnlegenAsync(
+                anfrage,
+                CancellationToken.None);
+
+        var created =
+            Assert.IsType<CreatedAtActionResult>(antwort.Result);
+        var foerderprogramm =
+            Assert.IsType<Foerderprogramm>(created.Value);
+
+        Assert.Single(foerderprogramm.Foerderquoten);
+        Assert.Single(foerderprogramm.Kumulierbarkeitsregeln);
+        Assert.Single(foerderprogramm.Pflichtnachweisregeln);
+        Assert.Single(foerderprogramm.Gueltigkeitsregeln);
+    }
+
+    [Fact]
     public async Task Anlegen_liefert_400_bei_ungueltigem_Zeitraum()
     {
         var controller = new FoerderprogrammeController(

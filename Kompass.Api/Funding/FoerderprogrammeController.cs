@@ -60,7 +60,7 @@ public sealed class FoerderprogrammeController : ControllerBase
                 anfrage.Kumulierbarkeit,
                 anfrage.Pflichtnachweise,
                 anfrage.Quellenstand,
-                anfrage.Foerderquoten.Select(
+                (anfrage.Foerderquoten ?? []).Select(
                     regel => new FoerderquoteRegel(
                         Guid.NewGuid(),
                         regel.Bezeichnung,
@@ -69,7 +69,7 @@ public sealed class FoerderprogrammeController : ControllerBase
                         regel.GueltigAb,
                         regel.GueltigBis,
                         regel.Beschreibung)),
-                anfrage.Hoechstbetraege.Select(
+                (anfrage.Hoechstbetraege ?? []).Select(
                     regel => new HoechstbetragRegel(
                         Guid.NewGuid(),
                         regel.Bezeichnung,
@@ -79,7 +79,7 @@ public sealed class FoerderprogrammeController : ControllerBase
                         regel.GueltigAb,
                         regel.GueltigBis,
                         regel.Beschreibung)),
-                anfrage.Kumulierbarkeitsregeln.Select(
+                (anfrage.Kumulierbarkeitsregeln ?? []).Select(
                     regel => new Kumulierbarkeitsregel(
                         Guid.NewGuid(),
                         regel.Bezeichnung,
@@ -87,7 +87,7 @@ public sealed class FoerderprogrammeController : ControllerBase
                         regel.Beschreibung,
                         regel.GueltigAb,
                         regel.GueltigBis)),
-                anfrage.Pflichtnachweisregeln.Select(
+                (anfrage.Pflichtnachweisregeln ?? []).Select(
                     regel => new PflichtnachweisRegel(
                         Guid.NewGuid(),
                         regel.Bezeichnung,
@@ -96,7 +96,7 @@ public sealed class FoerderprogrammeController : ControllerBase
                         regel.IstPflicht,
                         regel.GueltigAb,
                         regel.GueltigBis)),
-                anfrage.Gueltigkeitsregeln.Select(
+                (anfrage.Gueltigkeitsregeln ?? []).Select(
                     regel => new Gueltigkeitsregel(
                         Guid.NewGuid(),
                         regel.Bezeichnung,
