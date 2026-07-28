@@ -153,9 +153,8 @@ public sealed class B56ImportHttpEndToEndTests
             // 9. Unterschiede anzeigen
             var vergleichAntwort =
                 await client.GetAsync(
-                    $"/api/projekte/{projektId}/b56-importe/vergleich" +
-                    $"?altSnapshotId={ersterImportId}" +
-                    $"&neuSnapshotId={zweiterImportId}");
+                    $"/api/projekte/{projektId}/b56-importe/{zweiterImportId}/vergleich" +
+                    $"?vorgaenger={ersterImportId}");
 
             Assert.Equal(
                 HttpStatusCode.OK,
@@ -167,14 +166,14 @@ public sealed class B56ImportHttpEndToEndTests
 
             var bauteile =
                 vergleichJson.RootElement
-                    .GetProperty("bauteile")
+                    .GetProperty("gesamtbauteilVergleiche")
                     .EnumerateArray()
                     .ToList();
 
             Assert.Single(bauteile);
             Assert.Equal(
-                (int)B56VergleichsArt.Geaendert,
-                bauteile[0].GetProperty("art").GetInt32());
+                (int)B56VergleichsAenderung.Geaendert,
+                bauteile[0].GetProperty("aenderung").GetInt32());
             Assert.Equal(
                 0.24,
                 bauteile[0].GetProperty("alterUWert").GetDouble(),

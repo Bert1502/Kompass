@@ -194,12 +194,13 @@ public sealed class B56ProjektmodellUebernahmeServiceTests
                 alternative =>
                     alternative.B56Position == 2);
 
-        dach.KostenpositionHinzufuegen(
-            new Kostenposition(
-                Guid.NewGuid(),
-                "Planung",
-                500m,
-                Kostenart.Fachplanung));
+        var planung = new Kostenposition(
+            Guid.NewGuid(),
+            "Planung",
+            500m,
+            Kostenart.Fachplanung);
+        dach.KostenpositionHinzufuegen(planung);
+        testdatenbank.Context.Add(planung);
         await testdatenbank.Context.SaveChangesAsync();
 
         var zweiterSnapshot =
