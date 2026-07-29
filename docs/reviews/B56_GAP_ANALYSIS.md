@@ -1,6 +1,6 @@
 # B56-Gap-Analyse
 
-**Stand:** 29. Juli 2026 (aktualisiert nach Paket-14-Implementierung: Projektstammdaten – Auftraggeber, Ansprechpartner, Standortdaten, Gebäudeart)
+**Stand:** 29. Juli 2026 (aktualisiert nach Paket-15-Implementierung: Reale Verbrauchsdaten – Abrechnungsperioden, Mengen, Kosten, Witterungsbereinigung, Flächenbezug, B56-Vergleich, Anpassungsfaktoren, Abweichungsursachen)
 
 ## 1. Auftrag und Bewertungsgrundlage
 
@@ -26,7 +26,7 @@ Bewertungsstufen:
 
 ## 2. Zusammenfassung
 
-Seit der letzten Gap-Analyse wurden die Pakete 6 bis 12 erfolgreich
+Seit der letzten Gap-Analyse wurden die Pakete 6 bis 15 erfolgreich
 implementiert:
 
 - vollständiger erster Anwenderprozess: ergänzbare Projektdaten
@@ -95,17 +95,30 @@ implementiert:
   (ADR-0007); API-Endpunkte GET
   `api/projekte/{id}/berichte/wirtschaftlichkeit/{basis}` und GET
   `api/projekte/{id}/berichte/foerderuebersicht` hinzugefügt.
+- Projektstammdaten (Paket 14):
+  Projekt-Aggregat um Auftraggeber, Ansprechpartner, Strasse, Ort, Postleitzahl,
+  Gebäudeart erweitert; `StammdatenAktualisieren`-Methode mit Validierung;
+  Migration `AddProjektStammdaten`; API-Endpunkt
+  `PATCH api/projekte/{id}/stammdaten` implementiert.
+- Reale Verbrauchsdaten (Paket 15):
+  `VerbrauchsDaten`-Aggregat mit Abrechnungsperiode, Energieträger, Menge (kWh),
+  Kosten (EUR), optionalem Witterungsbereinigungsfaktor, Flächenbezug,
+  B56-Vergleichswert, Anpassungsfaktor, Anpassungsbegründung und
+  Abweichungsursache; berechnete Eigenschaften `WitterungsbereinigteMenge`
+  und `MengeJeFlaeche`; `IVerbrauchsDatenService` in Application;
+  `EfVerbrauchsDatenService` in Persistence; API-Endpunkte GET (Liste),
+  GET (Einzelabruf), POST, PATCH, DELETE unter
+  `api/projekte/{id}/verbrauchsdaten`; Migration `AddVerbrauchsDaten`;
+  Domain, Service und Controller durch je eigene Tests abgesichert.
 
-`dotnet test` bestätigt 249/249 Tests bestanden.
+`dotnet test` bestätigt 275/275 Tests bestanden.
 
 Offene Schwerpunkte für die nächste Ausbaustufe:
 
-- vollständiger bearbeitbarer Projektstand (Kontakte, Standort,
-  Förderparameter, reale Verbrauchsdaten, Berichtseinstellungen);
+- Freigabestatus und Änderungshistorie für das Projektmodell;
 - feldweise Konfliktlösung bei Re-Import (Synchronisations-Use-Case);
 - Förderprogramm-Verknüpfung mit Alternativenberechnung;
-- weitere Berichtstypen (Wirtschaftlichkeitsbericht, Förderübersicht,
-  Energieberatungsbericht, Executive Summary, Prüferunterlagen).
+- weitere Berichtstypen (Energieberatungsbericht, Executive Summary, Prüferunterlagen).
 
 ## 3. Bereits erfüllt
 
@@ -449,6 +462,34 @@ Nachweise:
 - `Kompass.Tests/BerichteControllerTests.cs` (8 Tests)
 - `Kompass.Tests/BerichtsServiceTests.cs` (16 Tests)
 
+### 3.16 Reale Verbrauchsdaten (Paket 15)
+
+- `VerbrauchsDaten`-Aggregat modelliert eine Abrechnungsperiode je Energieträger
+  mit Pflichtfeldern `ProjektId`, `PeriodeVon`, `PeriodeBis`, `Energietraeger`,
+  `Menge` (kWh) und `Kosten` (EUR) sowie optionalen Feldern
+  `WitterungsbereinigungsFaktor`, `Flaeche`, `B56VergleichsWert`,
+  `AnpassungsFaktor`, `AnpassungsBegruendung` und `Abweichungsursache`.
+- Berechnete Eigenschaften `WitterungsbereinigteMenge` (Menge × Faktor, falls
+  gesetzt) und `MengeJeFlaeche` (kWh/m², falls Fläche > 0 gesetzt).
+- `Aktualisieren`-Methode setzt alle Felder inkl. Validierung.
+- `IVerbrauchsDatenService` und `EfVerbrauchsDatenService` implementieren
+  vollständiges CRUD (Listen, Abrufen, Anlegen, Aktualisieren, Löschen).
+- API-Endpunkte: GET, GET/{id}, POST, PATCH/{id}, DELETE/{id} unter
+  `api/projekte/{id}/verbrauchsdaten`.
+- Migration `AddVerbrauchsDaten` erzeugt Tabelle `VerbrauchsDaten`.
+- Domain, Service und Controller sind durch je eigene Tests abgesichert.
+
+Nachweise:
+
+- `Kompass.Domain/Verbrauch/VerbrauchsDaten.cs`
+- `Kompass.Application/Verbrauch/IVerbrauchsDatenService.cs`
+- `Kompass.Persistence/Services/EfVerbrauchsDatenService.cs`
+- `Kompass.Api/Verbrauch/VerbrauchsDatenController.cs`
+- `Kompass.Persistence/Migrations/20260729152143_AddVerbrauchsDaten.cs`
+- `Kompass.Tests/VerbrauchsDatenDomainTests.cs` (9 Tests)
+- `Kompass.Tests/EfVerbrauchsDatenServiceTests.cs` (7 Tests)
+- `Kompass.Tests/VerbrauchsDatenControllerTests.cs` (8 Tests)
+
 ## 4. Teilweise erfüllt
 
 ### 4.1 Unveränderlicher Snapshot
@@ -587,9 +628,10 @@ Noch offen:
 
 Das Projektmodell enthält derzeit Name, interne Bezeichnung,
 Bearbeitungsstatus, Modernisierungsalternativen, alternative Bauteile,
-Kostenpositionen, Wirtschaftlichkeitsannahmen, Herkunftsreferenz sowie
-seit Paket 14 Auftraggeber, Ansprechpartner, Strasse, Ort, Postleitzahl
-und Gebäudeart.
+Kostenpositionen, Wirtschaftlichkeitsannahmen, Herkunftsreferenz, seit
+Paket 14 Auftraggeber, Ansprechpartner, Strasse, Ort, Postleitzahl und
+Gebäudeart sowie seit Paket 15 reale Verbrauchsdaten je Abrechnungsperiode
+und Energieträger.
 
 Noch nicht modelliert sind unter anderem:
 
@@ -598,7 +640,6 @@ Noch nicht modelliert sind unter anderem:
   Förderprogramm-Katalog);
 - Energiepreise und Preissteigerungen auf Projektebene;
 - CO₂-Preisannahmen auf Projektebene;
-- reale Verbrauchsdaten;
 - Berichtseinstellungen;
 - nachvollziehbare abweichende Annahmen gegenüber Normwerten.
 
@@ -675,6 +716,7 @@ Noch nicht umgesetzt:
 | `20260728103810_AddWaermebruecken` | `Waermebruecken` mit allen Fachfeldern | ✅ umgesetzt |
 | `20260729043015_AddPersistedB56SnapshotVergleiche` | `B56SnapshotVergleiche` mit eindeutigem Index | ✅ umgesetzt |
 | `20260729140029_AddProjektStammdaten` | `Auftraggeber`, `Ansprechpartner`, `Strasse`, `Ort`, `Postleitzahl`, `Gebaeudeart` in `Projekte` | ✅ umgesetzt |
+| `20260729152143_AddVerbrauchsDaten` | `VerbrauchsDaten` mit allen Fachfeldern und Indizes | ✅ umgesetzt |
 
 ### 6.2 Ausstehende Migrationen
 
@@ -695,7 +737,7 @@ entworfen werden.
 
 **Migration: Vollständiger Projektstand**
 
-Für Freigabestatus, reale Verbrauchsdaten und Berichtseinstellungen werden weitere
+Für Freigabestatus und Berichtseinstellungen werden weitere
 Tabellen oder JSON-Spalten benötigt. Umfang und Struktur sind nach
 fachlicher Freigabe zu definieren.
 
@@ -744,7 +786,10 @@ für die Nachweisbarkeit erhalten bleiben.
 | `BerichtsDomainTests.cs` | Berichte-Domain-Modelle | 11 |
 | `BerichteControllerTests.cs` | Berichte-API | 8 |
 | `BerichtsServiceTests.cs` | Berichte-Persistence | 16 |
-| **Gesamt** | | **249** |
+| `VerbrauchsDatenDomainTests.cs` | Verbrauchsdaten-Domain-Invarianten | 9 |
+| `EfVerbrauchsDatenServiceTests.cs` | Verbrauchsdaten-Persistence | 7 |
+| `VerbrauchsDatenControllerTests.cs` | Verbrauchsdaten-API | 8 |
+| **Gesamt** | | **275** |
 
 ### 7.2 Noch fehlende Tests
 
@@ -933,8 +978,23 @@ Ort, Postleitzahl und Gebäudeart erweitert. Die Felder werden durch
 sind implementiert. Offene Anschlussaufgaben:
 
 - Freigabestatus und Änderungshistorie;
-- reale Verbrauchsdaten (Abschnitt 18);
 - Berichtseinstellungen.
+
+### P8 – Reale Verbrauchsdaten (Paket 15) ✅ abgeschlossen
+
+`VerbrauchsDaten`-Aggregat mit vollständigem CRUD (Anlegen, Abrufen,
+Auflisten, Aktualisieren, Löschen), allen Fachfeldern aus Abschnitt 18
+(Abrechnungsperiode, Energieträger, Menge, Kosten, Witterungsbereinigung,
+Flächenbezug, B56-Vergleich, Anpassungsfaktor, Abweichungsursache),
+`IVerbrauchsDatenService`, `EfVerbrauchsDatenService`, Migration
+`AddVerbrauchsDaten` und API-Endpunkte
+`api/projekte/{id}/verbrauchsdaten` sind implementiert. Offene
+Anschlussaufgaben:
+
+- Verknüpfung realer Verbrauchsdaten mit Wirtschaftlichkeitsberechnung
+  (praktische Basis);
+- aggregierter Vergleich realer Verbrauchsdaten gegenüber B56-Bilanz
+  im Berichtswesen.
 
 ## 10. Abgrenzung
 
