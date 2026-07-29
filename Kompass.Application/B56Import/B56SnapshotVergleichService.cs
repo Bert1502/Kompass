@@ -19,6 +19,23 @@ public sealed class B56SnapshotVergleichService
         Guid nachfolgerSnapshotId,
         CancellationToken cancellationToken = default)
     {
+        var persistierterVergleich =
+            await _importRegister.VergleichAbrufenAsync(
+                projektId,
+                vorgaengerSnapshotId,
+                nachfolgerSnapshotId,
+                cancellationToken);
+
+        if (persistierterVergleich is not null)
+        {
+            return new B56SnapshotVergleichErgebnis(
+                B56SnapshotVergleichStatus.Erfolgreich,
+                persistierterVergleich,
+                persistierterVergleich.HatAenderungen
+                    ? "Der persistierte Vergleich enthält Aenderungen."
+                    : "Der persistierte Vergleich enthält keine Aenderungen.");
+        }
+
         var vorgaengerFachdaten =
             await _importRegister.FachdatenAbrufenAsync(
                 projektId,
@@ -63,8 +80,15 @@ public sealed class B56SnapshotVergleichService
             GesamtbauteilVergleiche =
                 VergleicheBauteile(
                     vorgaengerFachdaten.Bauteile,
-                    nachfolgerFachdaten.Bauteile)
+                    nachfolgerFachdaten.Bauteile),
+            Konflikte = ErzeugeKonflikte(
+                vorgaengerFachdaten,
+                nachfolgerFachdaten)
         };
+
+        await _importRegister.VergleichSpeichernAsync(
+            vergleich,
+            cancellationToken);
 
         return new B56SnapshotVergleichErgebnis(
             B56SnapshotVergleichStatus.Erfolgreich,
@@ -72,6 +96,70 @@ public sealed class B56SnapshotVergleichService
             vergleich.HatAenderungen
                 ? "Der Vergleich enthält Änderungen."
                 : "Zwischen den beiden Snapshots wurden keine Änderungen festgestellt.");
+    }
+
+    private static IReadOnlyList<B56Vergleichskonflikt> ErzeugeKonflikte(
+        B56ImportPipelineErgebnis alt,
+        B56ImportPipelineErgebnis neu)
+    {
+        var konflikte =
+            new List<B56Vergleichskonflikt>();
+
+        foreach (var kennwert in VergleicheKennwerte(
+                     alt.Bestandskennwerte,
+                     neu.Bestandskennwerte))
+        {
+            if (kennwert.Aenderung ==
+                B56VergleichsAenderung.Unveraendert)
+            {
+                continue;
+            }
+
+            konflikte.Add(
+                new B56Vergleichskonflikt(
+                    "Bestandskennwert",
+                    kennwert.Name,
+                    nameof(B56Kennwert.Wert),
+                    kennwert.Aenderung));
+        }
+
+        foreach (var bauteil in VergleicheBauteile(
+                     alt.Bauteile,
+                     neu.Bauteile))
+        {
+            if (bauteil.Aenderung ==
+                B56VergleichsAenderung.Unveraendert)
+            {
+                continue;
+            }
+
+            konflikte.Add(
+                new B56Vergleichskonflikt(
+                    "Bauteil",
+                    bauteil.Bauteilcode,
+                    $"{nameof(B56Bauteil.UWert)}/{nameof(B56Bauteil.Flaeche)}",
+                    bauteil.Aenderung));
+        }
+
+        foreach (var alternative in VergleicheAlternativen(
+                     alt.Modernisierungsalternativen,
+                     neu.Modernisierungsalternativen))
+        {
+            if (alternative.Aenderung ==
+                B56VergleichsAenderung.Unveraendert)
+            {
+                continue;
+            }
+
+            konflikte.Add(
+                new B56Vergleichskonflikt(
+                    "Modernisierungsalternative",
+                    alternative.B56Position.ToString(),
+                    nameof(B56Modernisierungsalternative.Bezeichnung),
+                    alternative.Aenderung));
+        }
+
+        return konflikte;
     }
 
     private static IReadOnlyList<B56KennwertVergleich> VergleicheKennwerte(

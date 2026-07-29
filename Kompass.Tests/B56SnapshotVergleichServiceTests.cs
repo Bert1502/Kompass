@@ -735,6 +735,71 @@ public sealed class B56SnapshotVergleichServiceTests
         Assert.Equal(12000, kennwert.NeuerWert);
     }
 
+    [Fact]
+    public async Task Vergleich_wird_persistiert_und_enthaelt_Konflikte()
+    {
+        await using var testdatenbank =
+            await ProjektTestdatenbank.ErstellenAsync();
+
+        var service = ErzeugeService(testdatenbank.Context);
+
+        var projektId = Guid.NewGuid();
+        var vorgaengerId = Guid.NewGuid();
+        var nachfolgerId = Guid.NewGuid();
+
+        await SpeichereSnapshot(
+            testdatenbank.Context,
+            projektId,
+            vorgaengerId,
+            new B56ImportPipelineErgebnis
+            {
+                Bestandskennwerte =
+                [
+                    new B56Kennwert
+                    {
+                        Name = "Primärenergie",
+                        Wert = 200
+                    }
+                ]
+            });
+
+        await SpeichereSnapshot(
+            testdatenbank.Context,
+            projektId,
+            nachfolgerId,
+            new B56ImportPipelineErgebnis
+            {
+                Bestandskennwerte =
+                [
+                    new B56Kennwert
+                    {
+                        Name = "Primärenergie",
+                        Wert = 180
+                    }
+                ]
+            });
+
+        var ergebnis =
+            await service.VergleichenAsync(
+                projektId,
+                vorgaengerId,
+                nachfolgerId);
+
+        Assert.Equal(
+            B56SnapshotVergleichStatus.Erfolgreich,
+            ergebnis.Status);
+        Assert.NotEmpty(
+            ergebnis.Vergleich!.Konflikte);
+
+        Assert.Single(
+            await testdatenbank.Context.B56SnapshotVergleiche
+                .Where(v =>
+                    v.ProjektId == projektId &&
+                    v.VorgaengerSnapshotId == vorgaengerId &&
+                    v.NachfolgerSnapshotId == nachfolgerId)
+                .ToListAsync());
+    }
+
     // ─── Hilfsmethoden ────────────────────────────────────────────────────────
 
     private static B56SnapshotVergleichService ErzeugeService(

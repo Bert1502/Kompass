@@ -750,6 +750,22 @@ public sealed class B56ImportControllerTests
                 _fachdaten);
         }
 
+        public Task<B56SnapshotVergleich?> VergleichAbrufenAsync(
+            Guid projektId,
+            Guid vorgaengerSnapshotId,
+            Guid nachfolgerSnapshotId,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task VergleichSpeichernAsync(
+            B56SnapshotVergleich vergleich,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
         public Task LebenszyklusSpeichernAsync(
             B56ImportEintrag eintrag,
             CancellationToken cancellationToken = default)

@@ -222,6 +222,22 @@ public sealed class B56SnapshotLebenszyklusServiceTests
             throw new NotSupportedException();
         }
 
+        public Task<B56SnapshotVergleich?> VergleichAbrufenAsync(
+            Guid projektId,
+            Guid vorgaengerSnapshotId,
+            Guid nachfolgerSnapshotId,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task VergleichSpeichernAsync(
+            B56SnapshotVergleich vergleich,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
         public Task<IReadOnlyList<B56ImportEintrag>>
             AlleFuerProjektAbrufenAsync(
                 Guid projektId,

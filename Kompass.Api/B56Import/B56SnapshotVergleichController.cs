@@ -66,7 +66,8 @@ public sealed record B56SnapshotVergleichAntwort(
     bool HatAenderungen,
     IReadOnlyList<B56KennwertVergleichAntwort> BestandskennwertVergleiche,
     IReadOnlyList<B56AlternativeVergleichAntwort> AlternativVergleiche,
-    IReadOnlyList<B56BauteilVergleichAntwort> GesamtbauteilVergleiche)
+    IReadOnlyList<B56BauteilVergleichAntwort> GesamtbauteilVergleiche,
+    IReadOnlyList<B56VergleichskonfliktAntwort> Konflikte)
 {
     public static B56SnapshotVergleichAntwort Aus(
         B56SnapshotVergleich vergleich)
@@ -84,6 +85,9 @@ public sealed record B56SnapshotVergleichAntwort(
                 .ToList(),
             vergleich.GesamtbauteilVergleiche
                 .Select(B56BauteilVergleichAntwort.Aus)
+                .ToList(),
+            vergleich.Konflikte
+                .Select(B56VergleichskonfliktAntwort.Aus)
                 .ToList());
     }
 }
@@ -152,5 +156,22 @@ public sealed record B56AlternativeVergleichAntwort(
             alternative.BauteilVergleiche
                 .Select(B56BauteilVergleichAntwort.Aus)
                 .ToList());
+    }
+}
+
+public sealed record B56VergleichskonfliktAntwort(
+    string Bereich,
+    string Schluessel,
+    string Feld,
+    B56VergleichsAenderung Aenderung)
+{
+    public static B56VergleichskonfliktAntwort Aus(
+        B56Vergleichskonflikt konflikt)
+    {
+        return new B56VergleichskonfliktAntwort(
+            konflikt.Bereich,
+            konflikt.Schluessel,
+            konflikt.Feld,
+            konflikt.Aenderung);
     }
 }

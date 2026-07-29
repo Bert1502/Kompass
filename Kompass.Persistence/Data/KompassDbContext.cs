@@ -21,6 +21,9 @@ public sealed class KompassDbContext : DbContext
     public DbSet<B56ImportEintragEntity> B56ImportEintraege
         => Set<B56ImportEintragEntity>();
 
+    public DbSet<B56SnapshotVergleichEntity> B56SnapshotVergleiche
+        => Set<B56SnapshotVergleichEntity>();
+
     public DbSet<Wirtschaftlichkeitsannahmen> Wirtschaftlichkeitsannahmen
         => Set<Wirtschaftlichkeitsannahmen>();
 

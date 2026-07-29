@@ -26,6 +26,16 @@ public interface IB56ImportRegister
         Guid importId,
         CancellationToken cancellationToken = default);
 
+    Task<B56SnapshotVergleich?> VergleichAbrufenAsync(
+        Guid projektId,
+        Guid vorgaengerSnapshotId,
+        Guid nachfolgerSnapshotId,
+        CancellationToken cancellationToken = default);
+
+    Task VergleichSpeichernAsync(
+        B56SnapshotVergleich vergleich,
+        CancellationToken cancellationToken = default);
+
     Task LebenszyklusSpeichernAsync(
         B56ImportEintrag eintrag,
         CancellationToken cancellationToken = default);

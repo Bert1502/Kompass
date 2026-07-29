@@ -182,6 +182,11 @@ public sealed class B56ImportHttpEndToEndTests
                 0.18,
                 bauteile[0].GetProperty("neuerUWert").GetDouble(),
                 precision: 9);
+
+            Assert.NotEmpty(
+                vergleichJson.RootElement
+                    .GetProperty("konflikte")
+                    .EnumerateArray());
         }
         finally
         {

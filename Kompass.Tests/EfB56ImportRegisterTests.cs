@@ -214,6 +214,57 @@ public sealed class EfB56ImportRegisterTests
             exception.InnerException);
     }
 
+    [Fact]
+    public async Task Vergleichsergebnis_kann_persistiert_und_gelesen_werden()
+    {
+        await using var testdatenbank =
+            await ProjektTestdatenbank.ErstellenAsync();
+
+        var register =
+            new EfB56ImportRegister(
+                testdatenbank.Context);
+
+        var vergleich =
+            new B56SnapshotVergleich
+            {
+                ProjektId = Guid.NewGuid(),
+                VorgaengerSnapshotId = Guid.NewGuid(),
+                NachfolgerSnapshotId = Guid.NewGuid(),
+                BestandskennwertVergleiche =
+                [
+                    new B56KennwertVergleich(
+                        "Primärenergiebedarf",
+                        "kWh/(m²a)",
+                        200,
+                        180,
+                        B56VergleichsAenderung.Geaendert)
+                ],
+                Konflikte =
+                [
+                    new B56Vergleichskonflikt(
+                        "Bestandskennwert",
+                        "Primärenergiebedarf",
+                        "Wert",
+                        B56VergleichsAenderung.Geaendert)
+                ]
+            };
+
+        await register.VergleichSpeichernAsync(
+            vergleich);
+
+        var gespeichert =
+            await register.VergleichAbrufenAsync(
+                vergleich.ProjektId,
+                vergleich.VorgaengerSnapshotId,
+                vergleich.NachfolgerSnapshotId);
+
+        Assert.NotNull(gespeichert);
+        Assert.True(
+            gespeichert!.HatAenderungen);
+        Assert.Single(
+            gespeichert.Konflikte);
+    }
+
     private static B56ImportPipelineErgebnis ErzeugeFachdaten()
     {
         var alternative =
