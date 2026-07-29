@@ -17,6 +17,9 @@ public sealed class B56SnapshotVergleich
     public IReadOnlyList<B56BauteilVergleich> GesamtbauteilVergleiche
         { get; init; } = Array.Empty<B56BauteilVergleich>();
 
+    public IReadOnlyList<B56Vergleichskonflikt> Konflikte
+        { get; init; } = Array.Empty<B56Vergleichskonflikt>();
+
     public bool HatAenderungen =>
         BestandskennwertVergleiche.Any(
             k => k.Aenderung != B56VergleichsAenderung.Unveraendert) ||

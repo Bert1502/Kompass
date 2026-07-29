@@ -166,6 +166,97 @@ public sealed class EfB56ImportRegister : IB56ImportRegister
         }
     }
 
+    public async Task<B56SnapshotVergleich?> VergleichAbrufenAsync(
+        Guid projektId,
+        Guid vorgaengerSnapshotId,
+        Guid nachfolgerSnapshotId,
+        CancellationToken cancellationToken = default)
+    {
+        var entity =
+            await _dbContext.B56SnapshotVergleiche
+                .AsNoTracking()
+                .SingleOrDefaultAsync(
+                    vergleich =>
+                        vergleich.ProjektId == projektId &&
+                        vergleich.VorgaengerSnapshotId ==
+                            vorgaengerSnapshotId &&
+                        vergleich.NachfolgerSnapshotId ==
+                            nachfolgerSnapshotId,
+                    cancellationToken);
+
+        if (entity is null ||
+            string.IsNullOrWhiteSpace(entity.VergleichJson))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<
+                       B56SnapshotVergleich>(
+                       entity.VergleichJson,
+                       JsonOptionen);
+        }
+        catch (JsonException exception)
+        {
+            throw new InvalidOperationException(
+                "Das persistierte Vergleichsergebnis ist beschädigt.",
+                exception);
+        }
+    }
+
+    public async Task VergleichSpeichernAsync(
+        B56SnapshotVergleich vergleich,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(vergleich);
+
+        var entity =
+            await _dbContext.B56SnapshotVergleiche
+                .SingleOrDefaultAsync(
+                    vorhandenerVergleich =>
+                        vorhandenerVergleich.ProjektId ==
+                            vergleich.ProjektId &&
+                        vorhandenerVergleich.VorgaengerSnapshotId ==
+                            vergleich.VorgaengerSnapshotId &&
+                        vorhandenerVergleich.NachfolgerSnapshotId ==
+                            vergleich.NachfolgerSnapshotId,
+                    cancellationToken);
+
+        if (entity is null)
+        {
+            _dbContext.B56SnapshotVergleiche.Add(
+                new B56SnapshotVergleichEntity
+                {
+                    VergleichId = Guid.NewGuid(),
+                    ProjektId = vergleich.ProjektId,
+                    VorgaengerSnapshotId =
+                        vergleich.VorgaengerSnapshotId,
+                    NachfolgerSnapshotId =
+                        vergleich.NachfolgerSnapshotId,
+                    HatAenderungen =
+                        vergleich.HatAenderungen,
+                    VergleichJson =
+                        JsonSerializer.Serialize(
+                            vergleich,
+                            JsonOptionen),
+                    ErstelltAm = DateTimeOffset.UtcNow
+                });
+        }
+        else
+        {
+            entity.HatAenderungen =
+                vergleich.HatAenderungen;
+            entity.VergleichJson =
+                JsonSerializer.Serialize(
+                    vergleich,
+                    JsonOptionen);
+        }
+
+        await _dbContext.SaveChangesAsync(
+            cancellationToken);
+    }
+
     public async Task LebenszyklusSpeichernAsync(
         B56ImportEintrag eintrag,
         CancellationToken cancellationToken = default)
