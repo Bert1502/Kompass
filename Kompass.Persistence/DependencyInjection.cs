@@ -1,6 +1,8 @@
 ﻿using Kompass.Application.Economics;
 using Kompass.Application.Funding;
 using Kompass.Application.Projects;
+using Kompass.Application.Reports;
+using Kompass.Application.Waermebruecken;
 using Kompass.Persistence.Data;
 using Kompass.Persistence.Services;
 using Microsoft.EntityFrameworkCore;
@@ -37,6 +39,10 @@ public static class DependencyInjection
         services.AddScoped<IFoerderprogrammService, EfFoerderprogrammService>();
 
         services.AddScoped<IAlternativeFoerderungService, EfAlternativeFoerderungService>();
+
+        services.AddScoped<IWaermebrueckeService, EfWaermebrueckeService>();
+
+        services.AddScoped<IBerichtsService, BerichtsService>();
 
         return services;
     }

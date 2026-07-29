@@ -1,6 +1,6 @@
 # B56-Gap-Analyse
 
-**Stand:** 28. Juli 2026 (aktualisiert nach Paket-6- bis Paket-9-Implementierung)
+**Stand:** 28. Juli 2026 (aktualisiert nach Paket-6- bis Paket-11-Implementierung)
 
 ## 1. Auftrag und Bewertungsgrundlage
 
@@ -53,9 +53,27 @@ implementiert:
   `IAlternativeFoerderungService`, `EfAlternativeFoerderungService`,
   API-Endpunkte GET (Liste), PUT (Zuordnen), DELETE (Entfernen) und
   POST/berechnen (fachliche Vorprüfung mit Stichtag),
-  Migration `AddAlternativeFoerderungZuordnung`.
+  Migration `AddAlternativeFoerderungZuordnung`;
+- Wärmebrückenmanagement (erste Stufe, Paket 10):
+  `Waermebruecke`-Aggregat mit allen Pflichtfeldern aus Abschnitt 16
+  (`InterneNummer`, `Bezeichnung`, `Lage`, `Planreferenz`,
+  `Detailreferenz`, `Fremdnummer`, `Laenge`, `Typ`, `Status`,
+  `GleichwertigkeitStatus`, `Beiblatt2Referenz`, `ThermCadReferenz`,
+  `PsiWert`, `FRsi`, `Pruefanmerkung`, `Berichtsdarstellung`),
+  `IWaermebrueckeService`, `EfWaermebrueckeService`, API-Endpunkte
+  GET (Liste), GET (Einzelabruf), POST (Anlegen), PATCH (Aktualisieren),
+  DELETE (Löschen), Migration `AddWaermebruecken`;
+- Berichtswesen (erste Stufe, Paket 11):
+  `Berichtstyp`-Enum, `Berichtskopf`-Record,
+  `AlternativenvergleichBericht`, `WaermebrueckenuebersichtBericht`
+  im Domain; `IBerichtsService` in Application; `BerichtsService`
+  in Persistence; API-Endpunkte GET `alternativenvergleich` und
+  GET `waermebrueckenuebersicht` unter
+  `api/projekte/{id}/berichte/...`; keine eigene Datenbankmigration
+  erforderlich (ausschließlich Aggregation vorhandener Domänendaten
+  gemäß ADR-0007).
 
-`dotnet test` bestätigt 171/171 Tests bestanden.
+`dotnet test` bestätigt 221/221 Tests bestanden.
 
 Offene Schwerpunkte für die nächste Ausbaustufe:
 
@@ -63,8 +81,8 @@ Offene Schwerpunkte für die nächste Ausbaustufe:
   Förderparameter, reale Verbrauchsdaten, Berichtseinstellungen);
 - persistierte Vergleichs- und Konfliktergebnisse;
 - Förderprogramm-Verknüpfung mit Alternativenberechnung;
-- Berichtswesen;
-- Wärmebrückenmanagement.
+- weitere Berichtstypen (Wirtschaftlichkeitsbericht, Förderübersicht,
+  Energieberatungsbericht, Executive Summary, Prüferunterlagen).
 
 ## 3. Bereits erfüllt
 
@@ -526,16 +544,43 @@ Programmzuordnung je Alternative sowie die fachliche Förder-Vorprüfung
 
 ### 5.4 Berichtswesen
 
-Berichte sind noch nicht implementiert. Gemäß
-`FUNCTIONAL_SPECIFICATION.md` Abschnitt 17 sind mindestens
-Energieberatungsbericht, Wirtschaftlichkeitsbericht, Förderübersicht
-und Vergleich von Modernisierungsalternativen vorgesehen.
+In Paket 11 (erste Stufe) implementiert:
+
+- `Berichtstyp`-Enum mit allen Typen aus Abschnitt 17 der Fachspezifikation;
+- `Berichtskopf`-Record (Projektstand, Datenquelle, Berichtstyp,
+  Erstellungszeitpunkt);
+- `AlternativenvergleichBericht`: fasst alle Modernisierungsalternativen
+  mit Gesamtkosten, B56-Position und Snapshot-Präsenzstatus zusammen;
+- `WaermebrueckenuebersichtBericht`: listet alle Wärmebrücken eines
+  Projekts;
+- `IBerichtsService` und `BerichtsService` ohne eigene Datenbanktabelle
+  (Aggregation vorhandener Domänendaten, ADR-0007);
+- API-Endpunkte GET `api/projekte/{id}/berichte/alternativenvergleich`
+  und GET `api/projekte/{id}/berichte/waermebrueckenuebersicht`.
+
+Noch nicht umgesetzt:
+
+- Wirtschaftlichkeitsbericht (verknüpft `Wirtschaftlichkeitsannahmen`
+  und `Foerderberechnungsergebnis`);
+- Förderübersicht (konsolidierte Darstellung aller
+  Förderprogramm-Zuordnungen);
+- Energieberatungsbericht, Executive Summary, Prüferunterlagen,
+  Präsentationen, Kommunikationsunterlagen;
+- persistiertes Berichtsarchiv (nach fachlicher Klärung ob notwendig).
 
 ### 5.5 Wärmebrückenmanagement
 
-Wärmebrücken sind noch nicht implementiert. Gemäß
-`FUNCTIONAL_SPECIFICATION.md` Abschnitt 16 sind zwei Anwendungsfälle
-(Markierung im Plan und vorhandene Architekturdetails) vorgesehen.
+Das Fachobjekt `Waermebruecke` mit allen Pflichtfeldern aus
+`FUNCTIONAL_SPECIFICATION.md` Abschnitt 16 ist in Paket 10
+implementiert. API-Endpunkte für Anlegen, Abrufen, Aktualisieren und
+Löschen sind vorhanden; Migration `AddWaermebruecken` ist abgeschlossen.
+
+Noch nicht umgesetzt:
+- Verknüpfung mit ThermCAD-Datenobjekten (externes System, fachliche
+  Spezifikation offen);
+- Prüferübersicht als aggregierte Ausgabe;
+- Architekturdetail-Anfrageworkflow (Fall A);
+- Gleichwertigkeitsnachweis-Workflow mit DIN 4108 Beiblatt 2 (Fall B).
 
 ## 6. Datenbankmigrationen – Überblick
 
@@ -551,6 +596,8 @@ Wärmebrücken sind noch nicht implementiert. Gemäß
 | `20260728033325_AddWirtschaftlichkeitsannahmen` | `Wirtschaftlichkeitsannahmen`, `EnergietraegerAnnahmen`, `Kostenpositionen` | ✅ umgesetzt |
 | `20260728064802_AddFoerderprogramme` | `Foerderprogramme` und Regeltypen initial | ✅ umgesetzt |
 | `20260728070720_RefineFoerderprogrammRegeln` | Spaltenverfeinerungen Förderregeln | ✅ umgesetzt |
+| `20260728075125_AddAlternativeFoerderungZuordnung` | `FoerderungZuordnungen` | ✅ umgesetzt |
+| `20260728103810_AddWaermebruecken` | `Waermebruecken` mit allen Fachfeldern | ✅ umgesetzt |
 
 ### 6.2 Ausstehende Migrationen
 
@@ -615,7 +662,13 @@ für die Nachweisbarkeit erhalten bleiben.
 | `WirtschaftlichkeitsannahmenControllerTests.cs` | Wirtschaftlichkeit-API | 6 |
 | `AlternativeFoerderprogrammeControllerTests.cs` | Förderprogramm-Zuordnung API | 7 |
 | `EfAlternativeFoerderungServiceTests.cs` | Förderprogramm-Zuordnung Persistence | 9 |
-| **Gesamt** | | **171** |
+| `WaermebrueckeDomainTests.cs` | Wärmebrücke-Domain-Invarianten | 7 |
+| `EfWaermebrueckeServiceTests.cs` | Wärmebrücke-Persistence | 10 |
+| `WaermebrueckenControllerTests.cs` | Wärmebrücken-API | 9 |
+| `BerichtsDomainTests.cs` | Berichte-Domain-Modelle | 7 |
+| `BerichteControllerTests.cs` | Berichte-API | 4 |
+| `BerichtsServiceTests.cs` | Berichte-Persistence | 8 |
+| **Gesamt** | | **221** |
 
 ### 7.2 Noch fehlende Tests
 
@@ -760,14 +813,28 @@ sind in Paket 9 umgesetzt. Offene Anschlussaufgaben:
   (nach fachlicher Freigabe);
 - Prüfung technischer Mindestanforderungen je Programm.
 
-### P4 – Berichtswesen
+### P4 – Berichtswesen (Paket 11) ✅ erste Stufe abgeschlossen
 
-Nach Abschluss der Wirtschaftlichkeits- und Förderverknüpfung gemäß
-`FUNCTIONAL_SPECIFICATION.md` Abschnitt 17.
+`Berichtstyp`, `Berichtskopf`, `AlternativenvergleichBericht`,
+`WaermebrueckenuebersichtBericht`, `IBerichtsService`, `BerichtsService`
+und die API-Endpunkte `alternativenvergleich` und
+`waermebrueckenuebersicht` sind implementiert. Keine Datenbankmigration
+erforderlich (ADR-0007). Offene Anschlussaufgaben:
 
-### P5 – Wärmebrückenmanagement
+- Wirtschaftlichkeitsbericht (verknüpft Annahmen und Förderergebnis);
+- Förderübersicht (konsolidierte Förderprogramm-Zuordnung);
+- Energieberatungsbericht, Executive Summary, Prüferunterlagen.
 
-Gemäß Gesamtprozess und `FUNCTIONAL_SPECIFICATION.md` Abschnitt 16.
+### P5 – Wärmebrückenmanagement (Paket 10) ✅ erste Stufe abgeschlossen
+
+Das `Waermebruecke`-Aggregat mit allen Fachfeldern aus Abschnitt 16,
+`IWaermebrueckeService`, `EfWaermebrueckeService`, vollständige CRUD-API
+und Migration `AddWaermebruecken` sind implementiert. Offene Anschlussaufgaben:
+
+- ThermCAD-Objektverknüpfung (externes System, fachliche Spezifikation offen);
+- Prüferübersicht als aggregierte Ausgabe;
+- Architekturdetail-Anfrageworkflow (Fall A);
+- Gleichwertigkeitsnachweis-Workflow mit DIN 4108 Beiblatt 2 (Fall B).
 
 ### P6 – Persistierte Vergleichs- und Konfliktergebnisse
 
