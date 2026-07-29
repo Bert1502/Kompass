@@ -89,6 +89,20 @@ public sealed class EfWaermebrueckeService : IWaermebrueckeService
             return false;
         }
 
+        var nummerVergeben = await _dbContext.Waermebruecken
+            .AnyAsync(
+                w =>
+                    w.ProjektId == waermebruecke.ProjektId &&
+                    w.InterneNummer == waermebruecke.InterneNummer &&
+                    w.Id != waermebruecke.Id,
+                cancellationToken);
+
+        if (nummerVergeben)
+        {
+            throw new DomainException(
+                $"Die interne Nummer '{waermebruecke.InterneNummer}' ist in diesem Projekt bereits vergeben.");
+        }
+
         _dbContext.Waermebruecken.Update(waermebruecke);
 
         await _dbContext.SaveChangesAsync(cancellationToken);
