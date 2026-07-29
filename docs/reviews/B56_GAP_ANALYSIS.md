@@ -1,6 +1,6 @@
 # B56-Gap-Analyse
 
-**Stand:** 28. Juli 2026 (aktualisiert nach Paket-6- bis Paket-11-Implementierung)
+**Stand:** 29. Juli 2026 (aktualisiert nach Paket-12-Implementierung: persistierte Snapshot-Vergleiche)
 
 ## 1. Auftrag und Bewertungsgrundlage
 
@@ -26,7 +26,7 @@ Bewertungsstufen:
 
 ## 2. Zusammenfassung
 
-Seit der letzten Gap-Analyse wurden die Pakete 6 bis 9 erfolgreich
+Seit der letzten Gap-Analyse wurden die Pakete 6 bis 12 erfolgreich
 implementiert:
 
 - vollständiger erster Anwenderprozess: ergänzbare Projektdaten
@@ -71,15 +71,26 @@ implementiert:
   GET `waermebrueckenuebersicht` unter
   `api/projekte/{id}/berichte/...`; keine eigene Datenbankmigration
   erforderlich (ausschließlich Aggregation vorhandener Domänendaten
-  gemäß ADR-0007).
+  gemäß ADR-0007);
+- Persistierte Snapshot-Vergleiche (Paket 12):
+  `B56SnapshotVergleichEntity` mit `VergleichId`, `ProjektId`,
+  `VorgaengerSnapshotId`, `NachfolgerSnapshotId`, `HatAenderungen`,
+  `VergleichJson` und `ErstelltAm`; eindeutiger Index über Projekt +
+  Vorgänger + Nachfolger; `IB56ImportRegister` um
+  `VergleichAbrufenAsync` und `VergleichSpeichernAsync` erweitert;
+  `EfB56ImportRegister` implementiert beide Methoden; der
+  `B56SnapshotVergleichService` liest beim zweiten Aufruf den
+  gespeicherten Vergleich aus der Datenbank; Migration
+  `AddPersistedB56SnapshotVergleiche` abgeschlossen; abgeleitete
+  Konflikte werden zusammen mit dem Vergleich persistiert.
 
-`dotnet test` bestätigt 221/221 Tests bestanden.
+`dotnet test` bestätigt 223/223 Tests bestanden.
 
 Offene Schwerpunkte für die nächste Ausbaustufe:
 
 - vollständiger bearbeitbarer Projektstand (Kontakte, Standort,
   Förderparameter, reale Verbrauchsdaten, Berichtseinstellungen);
-- persistierte Vergleichs- und Konfliktergebnisse;
+- feldweise Konfliktlösung bei Re-Import (Synchronisations-Use-Case);
 - Förderprogramm-Verknüpfung mit Alternativenberechnung;
 - weitere Berichtstypen (Wirtschaftlichkeitsbericht, Förderübersicht,
   Energieberatungsbericht, Executive Summary, Prüferunterlagen).
@@ -499,6 +510,31 @@ Es fehlen:
 - definierter Umgang mit Fehlern beim kompensierenden Löschen;
 - Backup-, Restore- und Recovery-Verfahren.
 
+### 4.7 Persistierte Snapshot-Vergleichsergebnisse
+
+Snapshot-Vergleiche werden seit Paket 12 dauerhaft in der Tabelle
+`B56SnapshotVergleiche` gespeichert. Ein eindeutiger Index über
+`ProjektId + VorgaengerSnapshotId + NachfolgerSnapshotId` verhindert
+Duplikate. Beim zweiten Aufruf desselben Vergleichs gibt der Service
+das persistierte Ergebnis zurück, ohne neu zu berechnen. Abgeleitete
+Konflikte sind im JSON-Payload enthalten.
+
+Nachweise:
+
+- `Kompass.Persistence/Data/Entities/B56SnapshotVergleichEntity.cs`
+- `Kompass.Application/B56Import/IB56ImportRegister.cs` (`VergleichAbrufenAsync`, `VergleichSpeichernAsync`)
+- `Kompass.Persistence/Services/EfB56ImportRegister.cs`
+- `Kompass.Application/B56Import/B56SnapshotVergleichService.cs`
+- `Kompass.Persistence/Migrations/20260729043015_AddPersistedB56SnapshotVergleiche.cs`
+- `Kompass.Tests/B56SnapshotVergleichServiceTests.cs` – Test `Vergleich_wird_persistiert_und_enthaelt_Konflikte`
+
+Noch offen:
+
+- Konfliktmodell für feldweise Bestätigung durch den Benutzer;
+- expliziter Synchronisations-Use-Case (nach fachlicher Spezifikation);
+- Schutzregel, die verhindert, dass manuelle Ergänzungen automatisch
+  durch Snapshot-Werte überschrieben werden, auch nach Synchronisation.
+
 ## 5. Nicht erfüllt
 
 ### 5.1 Bearbeitbarer vollständiger Projektstand
@@ -520,18 +556,7 @@ Noch nicht modelliert sind unter anderem:
 - Berichtseinstellungen;
 - nachvollziehbare abweichende Annahmen gegenüber Normwerten.
 
-### 5.2 Persistierte Vergleichs- und Konfliktergebnisse
-
-Der Snapshot-Vergleich wird berechnet, aber nicht dauerhaft
-gespeichert. Es fehlen:
-
-- persistierte Vergleichsergebnisse für spätere Auswertung;
-- Konfliktmodell für feldweise Bestätigung;
-- expliziter Synchronisations-Use-Case (nach fachlicher Spezifikation);
-- Schutzregel, die verhindert, dass manuelle Ergänzungen automatisch
-  durch Snapshot-Werte überschrieben werden.
-
-### 5.3 Förderprogramm-Verknüpfung mit Alternativenberechnung
+### 5.2 Förderprogramm-Verknüpfung mit Alternativenberechnung
 
 Der Förderprogramm-Katalog ist implementiert. Die projektbezogene
 Programmzuordnung je Alternative sowie die fachliche Förder-Vorprüfung
@@ -542,7 +567,7 @@ Programmzuordnung je Alternative sowie die fachliche Förder-Vorprüfung
   (fachlich noch nicht freigegeben);
 - Prüfung technischer Mindestanforderungen je Programm.
 
-### 5.4 Berichtswesen
+### 5.3 Berichtswesen
 
 In Paket 11 (erste Stufe) implementiert:
 
@@ -568,7 +593,7 @@ Noch nicht umgesetzt:
   Präsentationen, Kommunikationsunterlagen;
 - persistiertes Berichtsarchiv (nach fachlicher Klärung ob notwendig).
 
-### 5.5 Wärmebrückenmanagement
+### 5.4 Wärmebrückenmanagement
 
 Das Fachobjekt `Waermebruecke` mit allen Pflichtfeldern aus
 `FUNCTIONAL_SPECIFICATION.md` Abschnitt 16 ist in Paket 10
@@ -598,23 +623,24 @@ Noch nicht umgesetzt:
 | `20260728070720_RefineFoerderprogrammRegeln` | Spaltenverfeinerungen Förderregeln | ✅ umgesetzt |
 | `20260728075125_AddAlternativeFoerderungZuordnung` | `FoerderungZuordnungen` | ✅ umgesetzt |
 | `20260728103810_AddWaermebruecken` | `Waermebruecken` mit allen Fachfeldern | ✅ umgesetzt |
+| `20260729043015_AddPersistedB56SnapshotVergleiche` | `B56SnapshotVergleiche` mit eindeutigem Index | ✅ umgesetzt |
 
 ### 6.2 Ausstehende Migrationen
 
-**Migration: Persistente Vergleichs- und Konfliktergebnisse**
+**Migration: Feldweise Konfliktlösung**
 
-Für spätere feldweise Bestätigung und Konfliktlösung werden voraussichtlich
-benötigt:
+Die Tabelle `B56SnapshotVergleiche` persistiert bereits den
+vollständigen Vergleich als JSON. Für den späteren feldweisen
+Bestätigungs-Use-Case werden zusätzlich voraussichtlich benötigt:
 
-- Tabelle oder JSON-Spalte für persistierte Vergleichsergebnisse;
 - betroffener stabiler Fachschlüssel (B56Position, Kennwertname,
   Bauteilcode);
 - alter Originalwert, neuer Originalwert und aktueller Arbeitswert;
 - Konfliktstatus und Benutzerentscheidung;
 - Zeitpunkt und Auditinformation.
 
-Diese Migration darf erst nach Klärung der offenen Feldidentitäten und
-Konfliktregeln entworfen werden.
+Diese Migration darf erst nach Klärung der fachlichen Konfliktregeln
+entworfen werden.
 
 **Migration: Vollständiger Projektstand**
 
@@ -644,7 +670,7 @@ für die Nachweisbarkeit erhalten bleiben.
 | `B56ProjektmodellUebernahmeServiceTests.cs` | Übernahme-Service | 3 |
 | `B56SnapshotLebenszyklusControllerTests.cs` | Lebenszyklus-Controller | 3 (Theory) |
 | `B56SnapshotLebenszyklusServiceTests.cs` | Lebenszyklus-Service | 3 |
-| `B56SnapshotVergleichServiceTests.cs` | Vergleich (alle Fälle) | 12 |
+| `B56SnapshotVergleichServiceTests.cs` | Vergleich (alle Fälle + Persistierung) | 13 |
 | `B56TabellenImportServiceTests.cs` | Tabellenimport | 2 |
 | `EfB56ImportRegisterTests.cs` | EF-Register inkl. Versionen | 3 |
 | `EfFoerderprogrammServiceTests.cs` | Förderprogramm-Persistence | 4 |
@@ -668,7 +694,7 @@ für die Nachweisbarkeit erhalten bleiben.
 | `BerichtsDomainTests.cs` | Berichte-Domain-Modelle | 7 |
 | `BerichteControllerTests.cs` | Berichte-API | 4 |
 | `BerichtsServiceTests.cs` | Berichte-Persistence | 8 |
-| **Gesamt** | | **221** |
+| **Gesamt** | | **223** |
 
 ### 7.2 Noch fehlende Tests
 
@@ -676,7 +702,8 @@ für die Nachweisbarkeit erhalten bleiben.
   Fehler;
 - Snapshot nach Projektlöschung erreichbar halten (sobald Use-Case
   entschieden);
-- persistiertes Vergleichsergebnis (sobald Datenmodell entschieden);
+- feldweise Konfliktlösung beim Synchronisations-Use-Case (sobald
+  fachlich spezifiziert);
 - Förderprogramm-Verknüpfung mit Alternativenberechnung;
 - Kumulierbarkeit mehrerer Förderprogramme.
 
@@ -836,9 +863,16 @@ und Migration `AddWaermebruecken` sind implementiert. Offene Anschlussaufgaben:
 - Architekturdetail-Anfrageworkflow (Fall A);
 - Gleichwertigkeitsnachweis-Workflow mit DIN 4108 Beiblatt 2 (Fall B).
 
-### P6 – Persistierte Vergleichs- und Konfliktergebnisse
+### P6 – Persistierte Vergleichs- und Konfliktergebnisse (Paket 12) ✅ Persistierung abgeschlossen
 
-Nach fachlicher Klärung der Feldidentitäten und Konfliktregeln.
+Die Tabelle `B56SnapshotVergleiche` speichert berechnete Vergleiche
+dauerhaft. Der Service reusiert persistierte Ergebnisse beim zweiten
+Aufruf. Abgeleitete Konflikte sind im JSON-Payload enthalten.
+
+Offene Anschlussaufgaben:
+
+- feldweise Benutzerbestätigung von Konflikten;
+- expliziter Synchronisations-Use-Case (nach fachlicher Spezifikation).
 
 ## 10. Abgrenzung
 
