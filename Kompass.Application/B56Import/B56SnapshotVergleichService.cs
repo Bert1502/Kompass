@@ -32,8 +32,8 @@ public sealed class B56SnapshotVergleichService
                 B56SnapshotVergleichStatus.Erfolgreich,
                 persistierterVergleich,
                 persistierterVergleich.HatAenderungen
-                    ? "Der persistierte Vergleich enthält Änderungen."
-                    : "Der persistierte Vergleich enthält keine Änderungen.");
+                    ? "Der persistierte Vergleich enthält Aenderungen."
+                    : "Der persistierte Vergleich enthält keine Aenderungen.");
         }
 
         var vorgaengerFachdaten =
