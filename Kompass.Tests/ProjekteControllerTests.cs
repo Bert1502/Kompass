@@ -310,6 +310,77 @@ public sealed class ProjekteControllerTests
             ergebnis);
     }
 
+    [Fact]
+    public async Task StammdatenAktualisieren_liefert_Ok_bei_bekannter_Id()
+    {
+        var erwartet =
+            new ProjektUebersicht(
+                Guid.NewGuid(),
+                "Rathaus",
+                0,
+                Auftraggeber: "Stadt",
+                Ort: "München");
+
+        var controller =
+            new ProjekteController(
+                new ProjektServiceFake(
+                    stammdaten: erwartet),
+                NullLogger<ProjekteController>.Instance);
+
+        var ergebnis =
+            await controller.StammdatenAktualisierenAsync(
+                erwartet.Id,
+                new ProjektStammdatenAktualisierenRequest
+                {
+                    Auftraggeber = "Stadt",
+                    Ort = "München"
+                },
+                CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(ergebnis.Result);
+        Assert.Equal(erwartet, ok.Value);
+    }
+
+    [Fact]
+    public async Task StammdatenAktualisieren_liefert_NotFound_bei_unbekannter_Id()
+    {
+        var controller =
+            new ProjekteController(
+                new ProjektServiceFake(
+                    stammdaten: null),
+                NullLogger<ProjekteController>.Instance);
+
+        var ergebnis =
+            await controller.StammdatenAktualisierenAsync(
+                Guid.NewGuid(),
+                new ProjektStammdatenAktualisierenRequest(),
+                CancellationToken.None);
+
+        Assert.IsType<NotFoundObjectResult>(ergebnis.Result);
+    }
+
+    [Fact]
+    public async Task StammdatenAktualisieren_liefert_BadRequest_bei_DomainException()
+    {
+        var controller =
+            new ProjekteController(
+                new ProjektServiceFake(
+                    stammdatenWirft:
+                        new Kompass.Domain.Common.DomainException("Zu lang.")),
+                NullLogger<ProjekteController>.Instance);
+
+        var ergebnis =
+            await controller.StammdatenAktualisierenAsync(
+                Guid.NewGuid(),
+                new ProjektStammdatenAktualisierenRequest
+                {
+                    Postleitzahl = new string('0', 100)
+                },
+                CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(ergebnis.Result);
+    }
+
     private sealed class ProjektServiceFake : IProjektService
     {
         private readonly IReadOnlyList<ProjektUebersicht>? _alleAbrufen;
@@ -319,6 +390,8 @@ public sealed class ProjekteControllerTests
         private readonly ProjektUebersicht? _aktualisieren;
         private readonly Exception? _aktualisierenWirft;
         private readonly bool _loeschen;
+        private readonly ProjektUebersicht? _stammdaten;
+        private readonly Exception? _stammdatenWirft;
 
         public ProjektServiceFake(
             IReadOnlyList<ProjektUebersicht>? alleAbrufen = null,
@@ -327,7 +400,9 @@ public sealed class ProjekteControllerTests
             Exception? erstellenWirft = null,
             ProjektUebersicht? aktualisieren = null,
             Exception? aktualisierenWirft = null,
-            bool loeschen = false)
+            bool loeschen = false,
+            ProjektUebersicht? stammdaten = null,
+            Exception? stammdatenWirft = null)
         {
             _alleAbrufen = alleAbrufen;
             _nachIdAbrufen = nachIdAbrufen;
@@ -336,6 +411,8 @@ public sealed class ProjekteControllerTests
             _aktualisieren = aktualisieren;
             _aktualisierenWirft = aktualisierenWirft;
             _loeschen = loeschen;
+            _stammdaten = stammdaten;
+            _stammdatenWirft = stammdatenWirft;
         }
 
         public Task<IReadOnlyList<ProjektUebersicht>> AlleAbrufenAsync(
@@ -389,6 +466,24 @@ public sealed class ProjekteControllerTests
             CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
+        }
+
+        public Task<ProjektUebersicht?> StammdatenAktualisierenAsync(
+            Guid id,
+            string? auftraggeber,
+            string? ansprechpartner,
+            string? strasse,
+            string? ort,
+            string? postleitzahl,
+            string? gebaeudeart,
+            CancellationToken cancellationToken = default)
+        {
+            if (_stammdatenWirft is not null)
+            {
+                throw _stammdatenWirft;
+            }
+
+            return Task.FromResult(_stammdaten);
         }
 
         public Task<AlternativeKurzinfo?> AlternativeNachIdAbrufenAsync(

@@ -196,6 +196,57 @@ public sealed class ProjekteController : ControllerBase
         return NoContent();
     }
 
+    [HttpPatch("{id:guid}/stammdaten")]
+    [ProducesResponseType(
+        typeof(ProjektUebersicht),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(
+        StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProjektUebersicht>>
+        StammdatenAktualisierenAsync(
+            Guid id,
+            [FromBody] ProjektStammdatenAktualisierenRequest request,
+            CancellationToken cancellationToken)
+    {
+        try
+        {
+            var projekt =
+                await _projektService.StammdatenAktualisierenAsync(
+                    id,
+                    request.Auftraggeber,
+                    request.Ansprechpartner,
+                    request.Strasse,
+                    request.Ort,
+                    request.Postleitzahl,
+                    request.Gebaeudeart,
+                    cancellationToken);
+
+            if (projekt is null)
+            {
+                return NotFound(new
+                {
+                    Nachricht =
+                        $"Das Projekt mit der ID '{id}' wurde nicht gefunden."
+                });
+            }
+
+            return Ok(projekt);
+        }
+        catch (DomainException exception)
+        {
+            _logger.LogWarning(
+                exception,
+                "Projektstammdaten konnten wegen ungültiger Daten nicht aktualisiert werden.");
+
+            return BadRequest(new
+            {
+                Nachricht = exception.Message
+            });
+        }
+    }
+
     [HttpPatch("{id:guid}/projektdaten")]
     [ProducesResponseType(
         typeof(ProjektUebersicht),

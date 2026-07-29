@@ -50,7 +50,8 @@ public sealed class KompassDbContextMigrationTests
                     "20260728070720_RefineFoerderprogrammRegeln",
                     "20260728075125_AddAlternativeFoerderungZuordnung",
                     "20260728103810_AddWaermebruecken",
-                    "20260729043015_AddPersistedB56SnapshotVergleiche"
+                    "20260729043015_AddPersistedB56SnapshotVergleiche",
+                    "20260729140029_AddProjektStammdaten"
                 ],
                 angewendeteMigrationen);
         }

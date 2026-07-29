@@ -9,4 +9,10 @@ public sealed record ProjektUebersicht(
     Guid? QuellSnapshotId = null,
     int ProjektmodellVersion = 0,
     string? InterneBezeichnung = null,
-    Bearbeitungsstatus Bearbeitungsstatus = Bearbeitungsstatus.InBearbeitung);
+    Bearbeitungsstatus Bearbeitungsstatus = Bearbeitungsstatus.InBearbeitung,
+    string? Auftraggeber = null,
+    string? Ansprechpartner = null,
+    string? Strasse = null,
+    string? Ort = null,
+    string? Postleitzahl = null,
+    string? Gebaeudeart = null);

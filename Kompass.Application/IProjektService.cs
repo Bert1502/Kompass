@@ -26,6 +26,16 @@ public interface IProjektService
         Bearbeitungsstatus bearbeitungsstatus,
         CancellationToken cancellationToken = default);
 
+    Task<ProjektUebersicht?> StammdatenAktualisierenAsync(
+        Guid id,
+        string? auftraggeber,
+        string? ansprechpartner,
+        string? strasse,
+        string? ort,
+        string? postleitzahl,
+        string? gebaeudeart,
+        CancellationToken cancellationToken = default);
+
     Task<bool> LoeschenAsync(
         Guid id,
         CancellationToken cancellationToken = default);

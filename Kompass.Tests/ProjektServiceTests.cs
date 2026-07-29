@@ -190,6 +190,60 @@ public sealed class ProjektServiceTests
     }
 
     [Fact]
+    public async Task StammdatenAktualisieren_speichert_und_liest_alle_Felder_zurueck()
+    {
+        await using var testdatenbank =
+            await ProjektTestdatenbank.ErstellenAsync();
+
+        var service =
+            new ProjektService(
+                testdatenbank.Context);
+
+        var erstellt =
+            await service.ErstellenAsync("Rathaus");
+
+        var aktualisiert =
+            await service.StammdatenAktualisierenAsync(
+                erstellt.Id,
+                auftraggeber: "Stadt München",
+                ansprechpartner: "Max Mustermann",
+                strasse: "Marienplatz 1",
+                ort: "München",
+                postleitzahl: "80331",
+                gebaeudeart: "Nichtwohngebäude");
+
+        var gelesen =
+            await service.NachIdAbrufenAsync(
+                erstellt.Id);
+
+        Assert.Equal("Stadt München", aktualisiert?.Auftraggeber);
+        Assert.Equal("Max Mustermann", aktualisiert?.Ansprechpartner);
+        Assert.Equal("Marienplatz 1", aktualisiert?.Strasse);
+        Assert.Equal("München", aktualisiert?.Ort);
+        Assert.Equal("80331", aktualisiert?.Postleitzahl);
+        Assert.Equal("Nichtwohngebäude", aktualisiert?.Gebaeudeart);
+        Assert.Equal(aktualisiert, gelesen);
+    }
+
+    [Fact]
+    public async Task StammdatenAktualisieren_liefert_null_bei_unbekannter_Id()
+    {
+        await using var testdatenbank =
+            await ProjektTestdatenbank.ErstellenAsync();
+
+        var service =
+            new ProjektService(
+                testdatenbank.Context);
+
+        var ergebnis =
+            await service.StammdatenAktualisierenAsync(
+                Guid.NewGuid(),
+                null, null, null, null, null, null);
+
+        Assert.Null(ergebnis);
+    }
+
+    [Fact]
     public async Task Unbekannte_oder_leere_Id_liefert_keinen_Treffer()
     {
         await using var testdatenbank =

@@ -228,4 +228,114 @@ public sealed class ProjektDomainTests
             zweiterSnapshotId,
             projekt.QuellSnapshotId);
     }
+
+    [Fact]
+    public void StammdatenAktualisieren_speichert_alle_Felder()
+    {
+        var projekt =
+            new Projekt(
+                Guid.NewGuid(),
+                "Rathaus");
+
+        projekt.StammdatenAktualisieren(
+            auftraggeber: "  Stadt München  ",
+            ansprechpartner: "  Max Mustermann  ",
+            strasse: "  Marienplatz 1  ",
+            ort: "  München  ",
+            postleitzahl: "  80331  ",
+            gebaeudeart: "  Nichtwohngebäude  ");
+
+        Assert.Equal("Stadt München", projekt.Auftraggeber);
+        Assert.Equal("Max Mustermann", projekt.Ansprechpartner);
+        Assert.Equal("Marienplatz 1", projekt.Strasse);
+        Assert.Equal("München", projekt.Ort);
+        Assert.Equal("80331", projekt.Postleitzahl);
+        Assert.Equal("Nichtwohngebäude", projekt.Gebaeudeart);
+    }
+
+    [Fact]
+    public void StammdatenAktualisieren_setzt_null_Felder_auf_null()
+    {
+        var projekt =
+            new Projekt(
+                Guid.NewGuid(),
+                "Rathaus");
+
+        projekt.StammdatenAktualisieren(
+            auftraggeber: "Stadt",
+            ansprechpartner: null,
+            strasse: null,
+            ort: null,
+            postleitzahl: null,
+            gebaeudeart: null);
+
+        Assert.Equal("Stadt", projekt.Auftraggeber);
+        Assert.Null(projekt.Ansprechpartner);
+        Assert.Null(projekt.Strasse);
+        Assert.Null(projekt.Ort);
+        Assert.Null(projekt.Postleitzahl);
+        Assert.Null(projekt.Gebaeudeart);
+    }
+
+    [Fact]
+    public void StammdatenAktualisieren_setzt_leere_Felder_auf_null()
+    {
+        var projekt =
+            new Projekt(
+                Guid.NewGuid(),
+                "Rathaus");
+
+        projekt.StammdatenAktualisieren(
+            auftraggeber: "   ",
+            ansprechpartner: "   ",
+            strasse: "   ",
+            ort: "   ",
+            postleitzahl: "   ",
+            gebaeudeart: "   ");
+
+        Assert.Null(projekt.Auftraggeber);
+        Assert.Null(projekt.Ansprechpartner);
+        Assert.Null(projekt.Strasse);
+        Assert.Null(projekt.Ort);
+        Assert.Null(projekt.Postleitzahl);
+        Assert.Null(projekt.Gebaeudeart);
+    }
+
+    [Theory]
+    [InlineData(201)]
+    public void StammdatenAktualisieren_lehnt_zu_langen_Auftraggeber_ab(
+        int laenge)
+    {
+        var projekt =
+            new Projekt(
+                Guid.NewGuid(),
+                "Rathaus");
+
+        Assert.Throws<DomainException>(
+            () => projekt.StammdatenAktualisieren(
+                auftraggeber: new string('X', laenge),
+                ansprechpartner: null,
+                strasse: null,
+                ort: null,
+                postleitzahl: null,
+                gebaeudeart: null));
+    }
+
+    [Fact]
+    public void StammdatenAktualisieren_lehnt_zu_lange_Postleitzahl_ab()
+    {
+        var projekt =
+            new Projekt(
+                Guid.NewGuid(),
+                "Rathaus");
+
+        Assert.Throws<DomainException>(
+            () => projekt.StammdatenAktualisieren(
+                auftraggeber: null,
+                ansprechpartner: null,
+                strasse: null,
+                ort: null,
+                postleitzahl: new string('0', 11),
+                gebaeudeart: null));
+    }
 }
