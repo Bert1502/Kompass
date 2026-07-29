@@ -72,17 +72,19 @@ public sealed class VerbrauchsDatenController : ControllerBase
         [FromBody] VerbrauchsDatenAnlegenRequest request,
         CancellationToken cancellationToken)
     {
-        var datensatz = new VerbrauchsDaten(
-            Guid.NewGuid(),
-            projektId,
-            request.PeriodeVon,
-            request.PeriodeBis,
-            request.Energietraeger,
-            request.Menge,
-            request.Kosten);
+        VerbrauchsDaten datensatz;
 
         try
         {
+            datensatz = new VerbrauchsDaten(
+                Guid.NewGuid(),
+                projektId,
+                request.PeriodeVon,
+                request.PeriodeBis,
+                request.Energietraeger,
+                request.Menge,
+                request.Kosten);
+
             datensatz.Aktualisieren(
                 request.PeriodeVon,
                 request.PeriodeBis,

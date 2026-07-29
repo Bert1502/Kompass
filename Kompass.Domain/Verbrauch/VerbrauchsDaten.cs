@@ -84,7 +84,7 @@ public sealed class VerbrauchsDaten : AggregateRoot
     public decimal? Flaeche { get; private set; }
 
     /// <summary>
-    /// Vergleichswert aus dem B56-Bilanz in kWh für denselben Energieträger.
+    /// Vergleichswert aus der B56-Bilanz in kWh für denselben Energieträger.
     /// Null bedeutet: kein B56-Vergleichswert vorhanden.
     /// </summary>
     public decimal? B56VergleichsWert { get; private set; }
