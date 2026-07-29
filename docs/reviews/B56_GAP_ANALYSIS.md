@@ -1,6 +1,6 @@
 # B56-Gap-Analyse
 
-**Stand:** 29. Juli 2026 (aktualisiert nach Paket-13-Implementierung: Wirtschaftlichkeitsbericht und Förderübersicht)
+**Stand:** 29. Juli 2026 (aktualisiert nach Paket-14-Implementierung: Projektstammdaten – Auftraggeber, Ansprechpartner, Standortdaten, Gebäudeart)
 
 ## 1. Auftrag und Bewertungsgrundlage
 
@@ -96,7 +96,7 @@ implementiert:
   `api/projekte/{id}/berichte/wirtschaftlichkeit/{basis}` und GET
   `api/projekte/{id}/berichte/foerderuebersicht` hinzugefügt.
 
-`dotnet test` bestätigt 239/239 Tests bestanden.
+`dotnet test` bestätigt 249/249 Tests bestanden.
 
 Offene Schwerpunkte für die nächste Ausbaustufe:
 
@@ -587,12 +587,12 @@ Noch offen:
 
 Das Projektmodell enthält derzeit Name, interne Bezeichnung,
 Bearbeitungsstatus, Modernisierungsalternativen, alternative Bauteile,
-Kostenpositionen, Wirtschaftlichkeitsannahmen und Herkunftsreferenz.
+Kostenpositionen, Wirtschaftlichkeitsannahmen, Herkunftsreferenz sowie
+seit Paket 14 Auftraggeber, Ansprechpartner, Strasse, Ort, Postleitzahl
+und Gebäudeart.
 
 Noch nicht modelliert sind unter anderem:
 
-- Auftraggeber und Ansprechpartner;
-- Standortdaten und Gebäudetyp;
 - Freigabestatus;
 - projektbezogene Förderparameter (Verknüpfung mit
   Förderprogramm-Katalog);
@@ -674,6 +674,7 @@ Noch nicht umgesetzt:
 | `20260728075125_AddAlternativeFoerderungZuordnung` | `FoerderungZuordnungen` | ✅ umgesetzt |
 | `20260728103810_AddWaermebruecken` | `Waermebruecken` mit allen Fachfeldern | ✅ umgesetzt |
 | `20260729043015_AddPersistedB56SnapshotVergleiche` | `B56SnapshotVergleiche` mit eindeutigem Index | ✅ umgesetzt |
+| `20260729140029_AddProjektStammdaten` | `Auftraggeber`, `Ansprechpartner`, `Strasse`, `Ort`, `Postleitzahl`, `Gebaeudeart` in `Projekte` | ✅ umgesetzt |
 
 ### 6.2 Ausstehende Migrationen
 
@@ -694,8 +695,7 @@ entworfen werden.
 
 **Migration: Vollständiger Projektstand**
 
-Für Auftraggeber, Ansprechpartner, Standortdaten, Freigabestatus,
-reale Verbrauchsdaten und Berichtseinstellungen werden weitere
+Für Freigabestatus, reale Verbrauchsdaten und Berichtseinstellungen werden weitere
 Tabellen oder JSON-Spalten benötigt. Umfang und Struktur sind nach
 fachlicher Freigabe zu definieren.
 
@@ -730,9 +730,9 @@ für die Nachweisbarkeit erhalten bleiben.
 | `KompassDbContextMigrationTests.cs` | Migrationen | 2 |
 | `OpenXmlB56ArbeitsmappenLeserTests.cs` | OpenXML-Leser | 2 |
 | `ProjektB56ImportBeziehungTests.cs` | Projekt-Import-Beziehung | 2 |
-| `ProjektDomainTests.cs` | Domain-Invarianten | 7 |
-| `ProjektServiceTests.cs` | Projektservice | 6 |
-| `ProjekteControllerTests.cs` | Projekte-API | 12 |
+| `ProjektDomainTests.cs` | Domain-Invarianten | 13 |
+| `ProjektServiceTests.cs` | Projektservice | 8 |
+| `ProjekteControllerTests.cs` | Projekte-API | 15 |
 | `Sha256HashServiceTests.cs` | Hash-Service | 2 |
 | `VollstaendigerAnwenderprozessHttpEndToEndTests.cs` | Alle 18 Abnahmekriterien E2E | 1 |
 | `WirtschaftlichkeitsannahmenControllerTests.cs` | Wirtschaftlichkeit-API | 6 |
@@ -744,7 +744,7 @@ für die Nachweisbarkeit erhalten bleiben.
 | `BerichtsDomainTests.cs` | Berichte-Domain-Modelle | 11 |
 | `BerichteControllerTests.cs` | Berichte-API | 8 |
 | `BerichtsServiceTests.cs` | Berichte-Persistence | 16 |
-| **Gesamt** | | **239** |
+| **Gesamt** | | **249** |
 
 ### 7.2 Noch fehlende Tests
 
@@ -923,6 +923,18 @@ Offene Anschlussaufgaben:
 
 - feldweise Benutzerbestätigung von Konflikten;
 - expliziter Synchronisations-Use-Case (nach fachlicher Spezifikation).
+
+### P7 – Projektstammdaten (Paket 14) ✅ abgeschlossen
+
+Das `Projekt`-Aggregat wurde um Auftraggeber, Ansprechpartner, Strasse,
+Ort, Postleitzahl und Gebäudeart erweitert. Die Felder werden durch
+`StammdatenAktualisieren` validiert und bereinigt. Migration
+`AddProjektStammdaten` und API-Endpunkt `PATCH api/projekte/{id}/stammdaten`
+sind implementiert. Offene Anschlussaufgaben:
+
+- Freigabestatus und Änderungshistorie;
+- reale Verbrauchsdaten (Abschnitt 18);
+- Berichtseinstellungen.
 
 ## 10. Abgrenzung
 

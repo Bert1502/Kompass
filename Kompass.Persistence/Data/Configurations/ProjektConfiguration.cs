@@ -29,6 +29,24 @@ public sealed class ProjektConfiguration : IEntityTypeConfiguration<Projekt>
             .HasDefaultValue(0)
             .IsRequired();
 
+        builder.Property(projekt => projekt.Auftraggeber)
+            .HasMaxLength(Projekt.MaxAuftraggeberLaenge);
+
+        builder.Property(projekt => projekt.Ansprechpartner)
+            .HasMaxLength(Projekt.MaxAnsprechpartnerLaenge);
+
+        builder.Property(projekt => projekt.Strasse)
+            .HasMaxLength(Projekt.MaxStrasseLaenge);
+
+        builder.Property(projekt => projekt.Ort)
+            .HasMaxLength(Projekt.MaxOrtLaenge);
+
+        builder.Property(projekt => projekt.Postleitzahl)
+            .HasMaxLength(Projekt.MaxPostleitzahlLaenge);
+
+        builder.Property(projekt => projekt.Gebaeudeart)
+            .HasMaxLength(Projekt.MaxGebaeudeartLaenge);
+
         builder.HasMany(projekt => projekt.Alternativen)
             .WithOne()
             .HasForeignKey("ProjektId")

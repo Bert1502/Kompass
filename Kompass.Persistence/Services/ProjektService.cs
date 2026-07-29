@@ -28,7 +28,13 @@ public sealed class ProjektService : IProjektService
                 projekt.QuellSnapshotId,
                 projekt.ProjektmodellVersion,
                 projekt.InterneBezeichnung,
-                projekt.Bearbeitungsstatus))
+                projekt.Bearbeitungsstatus,
+                projekt.Auftraggeber,
+                projekt.Ansprechpartner,
+                projekt.Strasse,
+                projekt.Ort,
+                projekt.Postleitzahl,
+                projekt.Gebaeudeart))
             .ToListAsync(cancellationToken);
     }
 
@@ -51,7 +57,13 @@ public sealed class ProjektService : IProjektService
                 projekt.QuellSnapshotId,
                 projekt.ProjektmodellVersion,
                 projekt.InterneBezeichnung,
-                projekt.Bearbeitungsstatus))
+                projekt.Bearbeitungsstatus,
+                projekt.Auftraggeber,
+                projekt.Ansprechpartner,
+                projekt.Strasse,
+                projekt.Ort,
+                projekt.Postleitzahl,
+                projekt.Gebaeudeart))
             .SingleOrDefaultAsync(cancellationToken);
     }
 
@@ -165,6 +177,45 @@ public sealed class ProjektService : IProjektService
         return ErzeugeUebersicht(projekt);
     }
 
+    public async Task<ProjektUebersicht?> StammdatenAktualisierenAsync(
+        Guid id,
+        string? auftraggeber,
+        string? ansprechpartner,
+        string? strasse,
+        string? ort,
+        string? postleitzahl,
+        string? gebaeudeart,
+        CancellationToken cancellationToken = default)
+    {
+        if (id == Guid.Empty)
+        {
+            return null;
+        }
+
+        var projekt = await _dbContext.Projekte
+            .Include(eintrag => eintrag.Alternativen)
+            .SingleOrDefaultAsync(
+                eintrag => eintrag.Id == id,
+                cancellationToken);
+
+        if (projekt is null)
+        {
+            return null;
+        }
+
+        projekt.StammdatenAktualisieren(
+            auftraggeber,
+            ansprechpartner,
+            strasse,
+            ort,
+            postleitzahl,
+            gebaeudeart);
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return ErzeugeUebersicht(projekt);
+    }
+
     public async Task<bool> LoeschenAsync(
         Guid id,
         CancellationToken cancellationToken = default)
@@ -228,6 +279,12 @@ public sealed class ProjektService : IProjektService
             projekt.QuellSnapshotId,
             projekt.ProjektmodellVersion,
             projekt.InterneBezeichnung,
-            projekt.Bearbeitungsstatus);
+            projekt.Bearbeitungsstatus,
+            projekt.Auftraggeber,
+            projekt.Ansprechpartner,
+            projekt.Strasse,
+            projekt.Ort,
+            projekt.Postleitzahl,
+            projekt.Gebaeudeart);
     }
 }

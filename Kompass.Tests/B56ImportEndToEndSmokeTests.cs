@@ -380,6 +380,19 @@ public sealed class B56ImportEndToEndSmokeTests
             throw new NotSupportedException();
         }
 
+        public Task<ProjektUebersicht?> StammdatenAktualisierenAsync(
+            Guid id,
+            string? auftraggeber,
+            string? ansprechpartner,
+            string? strasse,
+            string? ort,
+            string? postleitzahl,
+            string? gebaeudeart,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
         public Task<bool> LoeschenAsync(
             Guid id,
             CancellationToken cancellationToken = default)

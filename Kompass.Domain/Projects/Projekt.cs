@@ -5,6 +5,12 @@ namespace Kompass.Domain.Projects;
 public sealed class Projekt : AggregateRoot
 {
     public const int MaxInterneBezeichnungLaenge = 200;
+    public const int MaxAuftraggeberLaenge = 200;
+    public const int MaxAnsprechpartnerLaenge = 200;
+    public const int MaxStrasseLaenge = 200;
+    public const int MaxOrtLaenge = 100;
+    public const int MaxPostleitzahlLaenge = 10;
+    public const int MaxGebaeudeartLaenge = 100;
 
     private readonly List<Modernisierungsalternative> _alternativen = new();
 
@@ -25,6 +31,18 @@ public sealed class Projekt : AggregateRoot
 
     public Bearbeitungsstatus Bearbeitungsstatus { get; private set; }
         = Bearbeitungsstatus.InBearbeitung;
+
+    public string? Auftraggeber { get; private set; }
+
+    public string? Ansprechpartner { get; private set; }
+
+    public string? Strasse { get; private set; }
+
+    public string? Ort { get; private set; }
+
+    public string? Postleitzahl { get; private set; }
+
+    public string? Gebaeudeart { get; private set; }
 
     public Guid? QuellSnapshotId { get; private set; }
 
@@ -60,6 +78,22 @@ public sealed class Projekt : AggregateRoot
         }
 
         Bearbeitungsstatus = bearbeitungsstatus;
+    }
+
+    public void StammdatenAktualisieren(
+        string? auftraggeber,
+        string? ansprechpartner,
+        string? strasse,
+        string? ort,
+        string? postleitzahl,
+        string? gebaeudeart)
+    {
+        Auftraggeber = BereinigeFeld(auftraggeber, MaxAuftraggeberLaenge, "Auftraggeber");
+        Ansprechpartner = BereinigeFeld(ansprechpartner, MaxAnsprechpartnerLaenge, "Ansprechpartner");
+        Strasse = BereinigeFeld(strasse, MaxStrasseLaenge, "Straße");
+        Ort = BereinigeFeld(ort, MaxOrtLaenge, "Ort");
+        Postleitzahl = BereinigeFeld(postleitzahl, MaxPostleitzahlLaenge, "Postleitzahl");
+        Gebaeudeart = BereinigeFeld(gebaeudeart, MaxGebaeudeartLaenge, "Gebäudeart");
     }
 
     public void AlternativeHinzufuegen(
@@ -180,5 +214,26 @@ public sealed class Projekt : AggregateRoot
         }
 
         return bereinigterName;
+    }
+
+    private static string? BereinigeFeld(
+        string? wert,
+        int maxLaenge,
+        string feldName)
+    {
+        if (wert is null)
+        {
+            return null;
+        }
+
+        var bereinigt = wert.Trim();
+
+        if (bereinigt.Length > maxLaenge)
+        {
+            throw new DomainException(
+                $"Das Feld '{feldName}' darf höchstens {maxLaenge} Zeichen enthalten.");
+        }
+
+        return bereinigt.Length == 0 ? null : bereinigt;
     }
 }
