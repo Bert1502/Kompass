@@ -1,5 +1,6 @@
 using Kompass.Api.Reports;
 using Kompass.Application.Reports;
+using Kompass.Domain.Economics;
 using Kompass.Domain.Projects;
 using Kompass.Domain.Reports;
 using Kompass.Domain.Waermebruecken;
@@ -72,6 +73,80 @@ public sealed class BerichteControllerTests
         Assert.IsType<NotFoundObjectResult>(antwort.Result);
     }
 
+    [Fact]
+    public async Task Wirtschaftlichkeitsbericht_liefert_200_wenn_Projekt_gefunden()
+    {
+        var bericht = ErstelleWirtschaftlichkeitsberichtBericht();
+
+        var controller = new BerichteController(
+            new BerichtsServiceFake(wirtschaftlichkeitsbericht: bericht));
+
+        var antwort =
+            await controller.WirtschaftlichkeitsberichtAsync(
+                bericht.Kopf.ProjektId,
+                WirtschaftlichkeitsBasis.Bilanziert,
+                CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(antwort.Result);
+        Assert.IsType<WirtschaftlichkeitsberichtBericht>(ok.Value);
+    }
+
+    [Fact]
+    public async Task Wirtschaftlichkeitsbericht_liefert_404_wenn_Projekt_nicht_gefunden()
+    {
+        var controller = new BerichteController(
+            new BerichtsServiceFake(wirtschaftlichkeitsbericht: null));
+
+        var antwort =
+            await controller.WirtschaftlichkeitsberichtAsync(
+                Guid.NewGuid(),
+                WirtschaftlichkeitsBasis.Bilanziert,
+                CancellationToken.None);
+
+        Assert.IsType<NotFoundObjectResult>(antwort.Result);
+    }
+
+    [Fact]
+    public async Task Foerderuebersicht_liefert_200_wenn_Projekt_gefunden()
+    {
+        var bericht = ErstelleFoerderuebersichtBericht();
+
+        var controller = new BerichteController(
+            new BerichtsServiceFake(foerderuebersicht: bericht));
+
+        var antwort =
+            await controller.FoerderuebersichtAsync(
+                bericht.Kopf.ProjektId,
+                CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(antwort.Result);
+        Assert.IsType<FoerderuebersichtBericht>(ok.Value);
+    }
+
+    [Fact]
+    public async Task Foerderuebersicht_liefert_404_wenn_Projekt_nicht_gefunden()
+    {
+        var controller = new BerichteController(
+            new BerichtsServiceFake(foerderuebersicht: null));
+
+        var antwort =
+            await controller.FoerderuebersichtAsync(
+                Guid.NewGuid(),
+                CancellationToken.None);
+
+        Assert.IsType<NotFoundObjectResult>(antwort.Result);
+    }
+
+    private static WirtschaftlichkeitsberichtBericht ErstelleWirtschaftlichkeitsberichtBericht() =>
+        new(
+            ErstelleBerichtskopf(Berichtstyp.Wirtschaftlichkeitsbericht),
+            []);
+
+    private static FoerderuebersichtBericht ErstelleFoerderuebersichtBericht() =>
+        new(
+            ErstelleBerichtskopf(Berichtstyp.Foerderuebersicht),
+            []);
+
     private static AlternativenvergleichBericht ErstelleAlternativenvergleichBericht()
     {
         var kopf = ErstelleBerichtskopf(Berichtstyp.Alternativenvergleich);
@@ -100,7 +175,9 @@ public sealed class BerichteControllerTests
 
     private sealed class BerichtsServiceFake(
         AlternativenvergleichBericht? alternativenvergleich = null,
-        WaermebrueckenuebersichtBericht? waermebrueckenuebersicht = null)
+        WaermebrueckenuebersichtBericht? waermebrueckenuebersicht = null,
+        WirtschaftlichkeitsberichtBericht? wirtschaftlichkeitsbericht = null,
+        FoerderuebersichtBericht? foerderuebersicht = null)
         : IBerichtsService
     {
         public Task<AlternativenvergleichBericht?> AlternativenvergleichErzeugenAsync(
@@ -115,6 +192,21 @@ public sealed class BerichteControllerTests
             CancellationToken cancellationToken = default)
         {
             return Task.FromResult(waermebrueckenuebersicht);
+        }
+
+        public Task<WirtschaftlichkeitsberichtBericht?> WirtschaftlichkeitsberichtErzeugenAsync(
+            Guid projektId,
+            WirtschaftlichkeitsBasis basis,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(wirtschaftlichkeitsbericht);
+        }
+
+        public Task<FoerderuebersichtBericht?> FoerderuebersichtErzeugenAsync(
+            Guid projektId,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(foerderuebersicht);
         }
     }
 }

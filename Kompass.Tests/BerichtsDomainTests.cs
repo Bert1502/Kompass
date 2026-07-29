@@ -1,3 +1,4 @@
+using Kompass.Domain.Economics;
 using Kompass.Domain.Projects;
 using Kompass.Domain.Reports;
 
@@ -117,6 +118,82 @@ public sealed class BerichtsDomainTests
         Assert.Contains(Berichtstyp.Waermebrueckenuebersicht, typen);
         Assert.Contains(Berichtstyp.Wirtschaftlichkeitsbericht, typen);
         Assert.Contains(Berichtstyp.Energieberatungsbericht, typen);
+    }
+
+    [Fact]
+    public void WirtschaftlichkeitsberichtZeile_erzeugt_korrekte_Werte()
+    {
+        var alternativeId = Guid.NewGuid();
+        var ergebnis = new Wirtschaftlichkeitsergebnis(
+            Eigenanteil: 40000m,
+            JaehrlicheEnergiekosteneinsparungJahr1: 2000m,
+            KumulierteEnergiekosteneinsparung: 30000m,
+            AmortisationsdauerStatisch: 20m,
+            AmortisationsdauerDynamisch: 22m,
+            Kapitalwert: -15000m,
+            KostenNutzenVerhaeltnis: 0.75m);
+
+        var zeile = new WirtschaftlichkeitsberichtZeile(
+            alternativeId,
+            B56Position: 1,
+            Bezeichnung: "Vollsanierung",
+            Basis: WirtschaftlichkeitsBasis.Bilanziert,
+            Investitionskosten: 50000m,
+            Foerderung: 10000m,
+            Betrachtungszeitraum: 20,
+            Diskontsatz: 0.04m,
+            Inflationsrate: 0.02m,
+            Ergebnis: ergebnis);
+
+        Assert.Equal(alternativeId, zeile.AlternativeId);
+        Assert.Equal(1, zeile.B56Position);
+        Assert.Equal("Vollsanierung", zeile.Bezeichnung);
+        Assert.Equal(WirtschaftlichkeitsBasis.Bilanziert, zeile.Basis);
+        Assert.Equal(50000m, zeile.Investitionskosten);
+        Assert.Equal(10000m, zeile.Foerderung);
+        Assert.Equal(20, zeile.Betrachtungszeitraum);
+        Assert.Equal(ergebnis, zeile.Ergebnis);
+    }
+
+    [Fact]
+    public void WirtschaftlichkeitsberichtBericht_erzeugt_korrekte_Struktur()
+    {
+        var kopf = ErstelleBerichtskopf(Berichtstyp.Wirtschaftlichkeitsbericht);
+        var bericht = new WirtschaftlichkeitsberichtBericht(kopf, []);
+
+        Assert.Equal(kopf, bericht.Kopf);
+        Assert.Empty(bericht.Alternativen);
+        Assert.Equal(Berichtstyp.Wirtschaftlichkeitsbericht, bericht.Kopf.Berichtstyp);
+    }
+
+    [Fact]
+    public void FoerderuebersichtAlternative_erzeugt_korrekte_Werte()
+    {
+        var alternativeId = Guid.NewGuid();
+
+        var zeile = new FoerderuebersichtAlternative(
+            alternativeId,
+            B56Position: 2,
+            Bezeichnung: "Teilsanierung",
+            Gesamtkosten: 20000m,
+            ZugeordneteProgramme: []);
+
+        Assert.Equal(alternativeId, zeile.AlternativeId);
+        Assert.Equal(2, zeile.B56Position);
+        Assert.Equal("Teilsanierung", zeile.Bezeichnung);
+        Assert.Equal(20000m, zeile.Gesamtkosten);
+        Assert.Empty(zeile.ZugeordneteProgramme);
+    }
+
+    [Fact]
+    public void FoerderuebersichtBericht_erzeugt_korrekte_Struktur()
+    {
+        var kopf = ErstelleBerichtskopf(Berichtstyp.Foerderuebersicht);
+        var bericht = new FoerderuebersichtBericht(kopf, []);
+
+        Assert.Equal(kopf, bericht.Kopf);
+        Assert.Empty(bericht.Alternativen);
+        Assert.Equal(Berichtstyp.Foerderuebersicht, bericht.Kopf.Berichtstyp);
     }
 
     private static Berichtskopf ErstelleBerichtskopf(Berichtstyp typ) =>

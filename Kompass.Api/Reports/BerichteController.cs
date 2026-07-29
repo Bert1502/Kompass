@@ -1,4 +1,5 @@
 using Kompass.Application.Reports;
+using Kompass.Domain.Economics;
 using Kompass.Domain.Reports;
 using Microsoft.AspNetCore.Mvc;
 
@@ -51,6 +52,58 @@ public sealed class BerichteController : ControllerBase
     {
         var bericht =
             await _berichtsService.WaermebrueckenuebersichtErzeugenAsync(
+                projektId,
+                cancellationToken);
+
+        if (bericht is null)
+        {
+            return NotFound(new
+            {
+                Nachricht = $"Projekt '{projektId}' nicht gefunden."
+            });
+        }
+
+        return Ok(bericht);
+    }
+
+    [HttpGet("wirtschaftlichkeit/{basis}")]
+    [ProducesResponseType(
+        typeof(WirtschaftlichkeitsberichtBericht),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<WirtschaftlichkeitsberichtBericht>> WirtschaftlichkeitsberichtAsync(
+        Guid projektId,
+        WirtschaftlichkeitsBasis basis,
+        CancellationToken cancellationToken)
+    {
+        var bericht =
+            await _berichtsService.WirtschaftlichkeitsberichtErzeugenAsync(
+                projektId,
+                basis,
+                cancellationToken);
+
+        if (bericht is null)
+        {
+            return NotFound(new
+            {
+                Nachricht = $"Projekt '{projektId}' nicht gefunden."
+            });
+        }
+
+        return Ok(bericht);
+    }
+
+    [HttpGet("foerderuebersicht")]
+    [ProducesResponseType(
+        typeof(FoerderuebersichtBericht),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<FoerderuebersichtBericht>> FoerderuebersichtAsync(
+        Guid projektId,
+        CancellationToken cancellationToken)
+    {
+        var bericht =
+            await _berichtsService.FoerderuebersichtErzeugenAsync(
                 projektId,
                 cancellationToken);
 

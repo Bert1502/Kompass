@@ -1,4 +1,5 @@
 using Kompass.Domain.Economics;
+using Kompass.Domain.Funding;
 using Kompass.Domain.Projects;
 using Kompass.Domain.Reports;
 using Kompass.Domain.Waermebruecken;
@@ -185,6 +186,176 @@ public sealed class BerichtsServiceTests
     }
 }
 
+public sealed class WirtschaftlichkeitsberichtServiceTests
+{
+    [Fact]
+    public async Task Wirtschaftlichkeitsbericht_liefert_null_wenn_Projekt_nicht_gefunden()
+    {
+        await using var db = await BerichtsTestdatenbank.ErstellenAsync();
+
+        var ergebnis = await db.Service.WirtschaftlichkeitsberichtErzeugenAsync(
+            Guid.NewGuid(),
+            WirtschaftlichkeitsBasis.Bilanziert);
+
+        Assert.Null(ergebnis);
+    }
+
+    [Fact]
+    public async Task Wirtschaftlichkeitsbericht_liefert_leeren_Bericht_wenn_keine_Annahmen()
+    {
+        await using var db = await BerichtsTestdatenbank.ErstellenAsync();
+
+        var projektId = await db.ErzeugeProjektAsync("Mustergebäude");
+        await db.ErzeugeAlternativeAsync(projektId, 1, "Alt A", 50000m);
+
+        var bericht = await db.Service.WirtschaftlichkeitsberichtErzeugenAsync(
+            projektId,
+            WirtschaftlichkeitsBasis.Bilanziert);
+
+        Assert.NotNull(bericht);
+        Assert.Equal(projektId, bericht.Kopf.ProjektId);
+        Assert.Equal(Berichtstyp.Wirtschaftlichkeitsbericht, bericht.Kopf.Berichtstyp);
+        Assert.Empty(bericht.Alternativen);
+    }
+
+    [Fact]
+    public async Task Wirtschaftlichkeitsbericht_berechnet_Ergebnis_fuer_Alternative_mit_Annahmen()
+    {
+        await using var db = await BerichtsTestdatenbank.ErstellenAsync();
+
+        var projektId = await db.ErzeugeProjektAsync();
+        var alternativeId = await db.ErzeugeAlternativeAsync(
+            projektId, 1, "Vollsanierung", 50000m);
+
+        await db.ErzeugeWirtschaftlichkeitsannahmenAsync(
+            alternativeId,
+            WirtschaftlichkeitsBasis.Bilanziert,
+            betrachtungszeitraum: 20,
+            diskontsatz: 0.04m,
+            inflationsrate: 0.02m,
+            foerderung: 10000m);
+
+        var bericht = await db.Service.WirtschaftlichkeitsberichtErzeugenAsync(
+            projektId,
+            WirtschaftlichkeitsBasis.Bilanziert);
+
+        Assert.NotNull(bericht);
+        Assert.Single(bericht.Alternativen);
+
+        var zeile = bericht.Alternativen[0];
+        Assert.Equal(alternativeId, zeile.AlternativeId);
+        Assert.Equal("Vollsanierung", zeile.Bezeichnung);
+        Assert.Equal(WirtschaftlichkeitsBasis.Bilanziert, zeile.Basis);
+        Assert.Equal(50000m, zeile.Investitionskosten);
+        Assert.Equal(10000m, zeile.Foerderung);
+        Assert.Equal(40000m, zeile.Ergebnis.Eigenanteil);
+    }
+
+    [Fact]
+    public async Task Wirtschaftlichkeitsbericht_filtert_nach_Basis()
+    {
+        await using var db = await BerichtsTestdatenbank.ErstellenAsync();
+
+        var projektId = await db.ErzeugeProjektAsync();
+        var alternativeId = await db.ErzeugeAlternativeAsync(
+            projektId, 1, "Alt A", 30000m);
+
+        await db.ErzeugeWirtschaftlichkeitsannahmenAsync(
+            alternativeId,
+            WirtschaftlichkeitsBasis.Praktisch,
+            betrachtungszeitraum: 15,
+            diskontsatz: 0.03m,
+            inflationsrate: 0.02m,
+            foerderung: 0m);
+
+        var bilanziertBericht = await db.Service.WirtschaftlichkeitsberichtErzeugenAsync(
+            projektId,
+            WirtschaftlichkeitsBasis.Bilanziert);
+
+        var praktischBericht = await db.Service.WirtschaftlichkeitsberichtErzeugenAsync(
+            projektId,
+            WirtschaftlichkeitsBasis.Praktisch);
+
+        Assert.NotNull(bilanziertBericht);
+        Assert.Empty(bilanziertBericht.Alternativen);
+
+        Assert.NotNull(praktischBericht);
+        Assert.Single(praktischBericht.Alternativen);
+    }
+}
+
+public sealed class FoerderuebersichtServiceTests
+{
+    [Fact]
+    public async Task Foerderuebersicht_liefert_null_wenn_Projekt_nicht_gefunden()
+    {
+        await using var db = await BerichtsTestdatenbank.ErstellenAsync();
+
+        var ergebnis =
+            await db.Service.FoerderuebersichtErzeugenAsync(Guid.NewGuid());
+
+        Assert.Null(ergebnis);
+    }
+
+    [Fact]
+    public async Task Foerderuebersicht_liefert_Bericht_ohne_Alternativen()
+    {
+        await using var db = await BerichtsTestdatenbank.ErstellenAsync();
+
+        var projektId = await db.ErzeugeProjektAsync("Mustergebäude");
+
+        var bericht =
+            await db.Service.FoerderuebersichtErzeugenAsync(projektId);
+
+        Assert.NotNull(bericht);
+        Assert.Equal(projektId, bericht.Kopf.ProjektId);
+        Assert.Equal("Mustergebäude", bericht.Kopf.ProjektName);
+        Assert.Equal(Berichtstyp.Foerderuebersicht, bericht.Kopf.Berichtstyp);
+        Assert.Empty(bericht.Alternativen);
+    }
+
+    [Fact]
+    public async Task Foerderuebersicht_listet_Alternativen_mit_leerer_Programmliste()
+    {
+        await using var db = await BerichtsTestdatenbank.ErstellenAsync();
+
+        var projektId = await db.ErzeugeProjektAsync();
+        await db.ErzeugeAlternativeAsync(projektId, 1, "Alt A", 40000m);
+        await db.ErzeugeAlternativeAsync(projektId, 2, "Alt B", 20000m);
+
+        var bericht =
+            await db.Service.FoerderuebersichtErzeugenAsync(projektId);
+
+        Assert.NotNull(bericht);
+        Assert.Equal(2, bericht.Alternativen.Count);
+        Assert.All(bericht.Alternativen, a => Assert.Empty(a.ZugeordneteProgramme));
+    }
+
+    [Fact]
+    public async Task Foerderuebersicht_zeigt_zugeordnete_Foerderprogramme()
+    {
+        await using var db = await BerichtsTestdatenbank.ErstellenAsync();
+
+        var projektId = await db.ErzeugeProjektAsync();
+        var alternativeId = await db.ErzeugeAlternativeAsync(
+            projektId, 1, "Vollsanierung", 50000m);
+        var programmId = await db.ErzeugeFoerderprogrammAsync("BEG EM", 1);
+        await db.ErzeugeFoerderungZuordnungAsync(alternativeId, programmId);
+
+        var bericht =
+            await db.Service.FoerderuebersichtErzeugenAsync(projektId);
+
+        Assert.NotNull(bericht);
+        Assert.Single(bericht.Alternativen);
+
+        var alternative = bericht.Alternativen[0];
+        Assert.Equal(alternativeId, alternative.AlternativeId);
+        Assert.Equal("Vollsanierung", alternative.Bezeichnung);
+        Assert.Single(alternative.ZugeordneteProgramme);
+        Assert.Equal("BEG EM", alternative.ZugeordneteProgramme[0].Programmkennung);
+    }
+}
+
 internal sealed class BerichtsTestdatenbank : IAsyncDisposable
 {
     private BerichtsTestdatenbank(
@@ -228,7 +399,7 @@ internal sealed class BerichtsTestdatenbank : IAsyncDisposable
         return projekt.Id;
     }
 
-    public async Task ErzeugeAlternativeAsync(
+    public async Task<Guid> ErzeugeAlternativeAsync(
         Guid projektId,
         int b56Position,
         string bezeichnung,
@@ -264,6 +435,70 @@ internal sealed class BerichtsTestdatenbank : IAsyncDisposable
                 .CurrentValue = alternativeId;
         }
 
+        await Context.SaveChangesAsync();
+        Context.ChangeTracker.Clear();
+        return alternativeId;
+    }
+
+    public async Task ErzeugeWirtschaftlichkeitsannahmenAsync(
+        Guid alternativeId,
+        WirtschaftlichkeitsBasis basis,
+        int betrachtungszeitraum,
+        decimal diskontsatz,
+        decimal inflationsrate,
+        decimal foerderung)
+    {
+        var annahmen = new Wirtschaftlichkeitsannahmen(
+            Guid.NewGuid(),
+            alternativeId,
+            basis,
+            betrachtungszeitraum,
+            diskontsatz,
+            inflationsrate,
+            jaehrlicheWartungsmehrkosten: 0m,
+            nutzungsdauer: betrachtungszeitraum,
+            foerderung);
+
+        Context.Wirtschaftlichkeitsannahmen.Add(annahmen);
+        await Context.SaveChangesAsync();
+        Context.ChangeTracker.Clear();
+    }
+
+    public async Task<Guid> ErzeugeFoerderprogrammAsync(
+        string programmkennung,
+        int version)
+    {
+        var programm = new Foerderprogramm(
+            Guid.NewGuid(),
+            programmkennung,
+            version,
+            gueltigAb: new DateOnly(2024, 1, 1),
+            gueltigBis: null,
+            zielgruppe: "Eigentümer",
+            foerdergegenstand: "Gebäudesanierung",
+            technischeMindestanforderungen: "Effizienzhaus 85",
+            foerdersatz: 0.15m,
+            hoechstbetrag: 30000m,
+            kumulierbarkeit: "Nicht kumulierbar",
+            pflichtnachweise: "Energieausweis",
+            quellenstand: "2024-01-01");
+
+        Context.Foerderprogramme.Add(programm);
+        await Context.SaveChangesAsync();
+        Context.ChangeTracker.Clear();
+        return programm.Id;
+    }
+
+    public async Task ErzeugeFoerderungZuordnungAsync(
+        Guid alternativeId,
+        Guid foerderprogrammId)
+    {
+        var zuordnung = new FoerderungZuordnung(
+            Guid.NewGuid(),
+            alternativeId,
+            foerderprogrammId);
+
+        Context.FoerderungZuordnungen.Add(zuordnung);
         await Context.SaveChangesAsync();
         Context.ChangeTracker.Clear();
     }

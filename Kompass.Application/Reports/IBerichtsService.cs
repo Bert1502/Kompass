@@ -1,3 +1,4 @@
+using Kompass.Domain.Economics;
 using Kompass.Domain.Reports;
 
 namespace Kompass.Application.Reports;
@@ -22,6 +23,25 @@ public interface IBerichtsService
     /// Gibt <see langword="null"/> zurück, wenn das Projekt nicht gefunden wurde.
     /// </summary>
     Task<WaermebrueckenuebersichtBericht?> WaermebrueckenuebersichtErzeugenAsync(
+        Guid projektId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Erzeugt den Wirtschaftlichkeitsbericht für das angegebene Projekt und die
+    /// angegebene Berechnungsbasis. Alternativen ohne hinterlegte Annahmen werden
+    /// ausgelassen. Gibt <see langword="null"/> zurück, wenn das Projekt nicht
+    /// gefunden wurde.
+    /// </summary>
+    Task<WirtschaftlichkeitsberichtBericht?> WirtschaftlichkeitsberichtErzeugenAsync(
+        Guid projektId,
+        WirtschaftlichkeitsBasis basis,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Erzeugt die Förderübersicht für das angegebene Projekt.
+    /// Gibt <see langword="null"/> zurück, wenn das Projekt nicht gefunden wurde.
+    /// </summary>
+    Task<FoerderuebersichtBericht?> FoerderuebersichtErzeugenAsync(
         Guid projektId,
         CancellationToken cancellationToken = default);
 }
