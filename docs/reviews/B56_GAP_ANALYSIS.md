@@ -1,6 +1,6 @@
 # B56-Gap-Analyse
 
-**Stand:** 29. Juli 2026 (aktualisiert nach Paket-12-Implementierung: persistierte Snapshot-Vergleiche)
+**Stand:** 29. Juli 2026 (aktualisiert nach Paket-13-Implementierung: Wirtschaftlichkeitsbericht und Förderübersicht)
 
 ## 1. Auftrag und Bewertungsgrundlage
 
@@ -83,8 +83,20 @@ implementiert:
   gespeicherten Vergleich aus der Datenbank; Migration
   `AddPersistedB56SnapshotVergleiche` abgeschlossen; abgeleitete
   Konflikte werden zusammen mit dem Vergleich persistiert.
+- Berichtswesen zweite Stufe (Paket 13):
+  `WirtschaftlichkeitsberichtZeile`- und
+  `WirtschaftlichkeitsberichtBericht`-Domain-Records für den
+  Wirtschaftlichkeitsbericht je Berechnungsbasis; `FoerderuebersichtAlternative`-
+  und `FoerderuebersichtBericht`-Domain-Records für die konsolidierte
+  Förderübersicht; `IBerichtsService` um
+  `WirtschaftlichkeitsberichtErzeugenAsync(projektId, basis)` und
+  `FoerderuebersichtErzeugenAsync(projektId)` erweitert; `BerichtsService`
+  implementiert beide Methoden durch Aggregation vorhandener Domänendaten
+  (ADR-0007); API-Endpunkte GET
+  `api/projekte/{id}/berichte/wirtschaftlichkeit/{basis}` und GET
+  `api/projekte/{id}/berichte/foerderuebersicht` hinzugefügt.
 
-`dotnet test` bestätigt 223/223 Tests bestanden.
+`dotnet test` bestätigt 239/239 Tests bestanden.
 
 Offene Schwerpunkte für die nächste Ausbaustufe:
 
@@ -403,6 +415,40 @@ Nachweise:
 - `Kompass.Tests/FoerderprogrammeControllerTests.cs` (6 Tests)
 - `Kompass.Tests/EfFoerderprogrammServiceTests.cs` (4 Tests)
 
+### 3.15 Berichtswesen zweite Stufe (Wirtschaftlichkeitsbericht und Förderübersicht)
+
+- `WirtschaftlichkeitsberichtZeile`-Record enthält AlternativeId, B56-Position,
+  Bezeichnung, Basis, Investitionskosten, Förderbetrag, Betrachtungszeitraum,
+  Diskontsatz, Inflationsrate und das vollständige `Wirtschaftlichkeitsergebnis`.
+- `WirtschaftlichkeitsberichtBericht`-Record fasst Kopf und Liste aller
+  Alternativen mit Annahmen zusammen; Alternativen ohne hinterlegte Annahmen
+  zur gewählten Basis werden ausgelassen.
+- `FoerderuebersichtAlternative`-Record enthält AlternativeId, B56-Position,
+  Bezeichnung, Gesamtkosten und die vollständige Liste zugeordneter
+  `Foerderprogramm`-Aggregate.
+- `FoerderuebersichtBericht`-Record fasst Kopf und alle Alternativen mit
+  ihren Förderprogrammen zusammen.
+- `IBerichtsService` um `WirtschaftlichkeitsberichtErzeugenAsync(projektId, basis)`
+  und `FoerderuebersichtErzeugenAsync(projektId)` erweitert.
+- `BerichtsService` implementiert beide Methoden durch Aggregation
+  vorhandener Domänendaten ohne eigene Datenbanktabelle (ADR-0007).
+- API-Endpunkte GET `api/projekte/{id}/berichte/wirtschaftlichkeit/{basis}`
+  und GET `api/projekte/{id}/berichte/foerderuebersicht` hinzugefügt.
+- Domain, Service und Controller sind durch je eigene Tests abgesichert.
+
+Nachweise:
+
+- `Kompass.Domain/Reports/WirtschaftlichkeitsberichtZeile.cs`
+- `Kompass.Domain/Reports/WirtschaftlichkeitsberichtBericht.cs`
+- `Kompass.Domain/Reports/FoerderuebersichtAlternative.cs`
+- `Kompass.Domain/Reports/FoerderuebersichtBericht.cs`
+- `Kompass.Application/Reports/IBerichtsService.cs`
+- `Kompass.Persistence/Services/BerichtsService.cs`
+- `Kompass.Api/Reports/BerichteController.cs`
+- `Kompass.Tests/BerichtsDomainTests.cs` (11 Tests)
+- `Kompass.Tests/BerichteControllerTests.cs` (8 Tests)
+- `Kompass.Tests/BerichtsServiceTests.cs` (16 Tests)
+
 ## 4. Teilweise erfüllt
 
 ### 4.1 Unveränderlicher Snapshot
@@ -569,7 +615,7 @@ Programmzuordnung je Alternative sowie die fachliche Förder-Vorprüfung
 
 ### 5.3 Berichtswesen
 
-In Paket 11 (erste Stufe) implementiert:
+In Paket 11 (erste Stufe) und Paket 13 (zweite Stufe) implementiert:
 
 - `Berichtstyp`-Enum mit allen Typen aus Abschnitt 17 der Fachspezifikation;
 - `Berichtskopf`-Record (Projektstand, Datenquelle, Berichtstyp,
@@ -578,17 +624,21 @@ In Paket 11 (erste Stufe) implementiert:
   mit Gesamtkosten, B56-Position und Snapshot-Präsenzstatus zusammen;
 - `WaermebrueckenuebersichtBericht`: listet alle Wärmebrücken eines
   Projekts;
+- `WirtschaftlichkeitsberichtBericht`: fasst je Basis alle Alternativen
+  mit Annahmen und berechneten Ergebnissen (Amortisation, Kapitalwert,
+  Kosten-Nutzen-Verhältnis) zusammen; Alternativen ohne Annahmen werden
+  ausgelassen;
+- `FoerderuebersichtBericht`: listet alle Alternativen mit ihren
+  zugeordneten Förderprogrammen;
 - `IBerichtsService` und `BerichtsService` ohne eigene Datenbanktabelle
   (Aggregation vorhandener Domänendaten, ADR-0007);
-- API-Endpunkte GET `api/projekte/{id}/berichte/alternativenvergleich`
-  und GET `api/projekte/{id}/berichte/waermebrueckenuebersicht`.
+- API-Endpunkte GET `api/projekte/{id}/berichte/alternativenvergleich`,
+  GET `api/projekte/{id}/berichte/waermebrueckenuebersicht`,
+  GET `api/projekte/{id}/berichte/wirtschaftlichkeit/{basis}` und
+  GET `api/projekte/{id}/berichte/foerderuebersicht`.
 
 Noch nicht umgesetzt:
 
-- Wirtschaftlichkeitsbericht (verknüpft `Wirtschaftlichkeitsannahmen`
-  und `Foerderberechnungsergebnis`);
-- Förderübersicht (konsolidierte Darstellung aller
-  Förderprogramm-Zuordnungen);
 - Energieberatungsbericht, Executive Summary, Prüferunterlagen,
   Präsentationen, Kommunikationsunterlagen;
 - persistiertes Berichtsarchiv (nach fachlicher Klärung ob notwendig).
@@ -691,10 +741,10 @@ für die Nachweisbarkeit erhalten bleiben.
 | `WaermebrueckeDomainTests.cs` | Wärmebrücke-Domain-Invarianten | 7 |
 | `EfWaermebrueckeServiceTests.cs` | Wärmebrücke-Persistence | 10 |
 | `WaermebrueckenControllerTests.cs` | Wärmebrücken-API | 9 |
-| `BerichtsDomainTests.cs` | Berichte-Domain-Modelle | 7 |
-| `BerichteControllerTests.cs` | Berichte-API | 4 |
-| `BerichtsServiceTests.cs` | Berichte-Persistence | 8 |
-| **Gesamt** | | **223** |
+| `BerichtsDomainTests.cs` | Berichte-Domain-Modelle | 11 |
+| `BerichteControllerTests.cs` | Berichte-API | 8 |
+| `BerichtsServiceTests.cs` | Berichte-Persistence | 16 |
+| **Gesamt** | | **239** |
 
 ### 7.2 Noch fehlende Tests
 
@@ -840,16 +890,16 @@ sind in Paket 9 umgesetzt. Offene Anschlussaufgaben:
   (nach fachlicher Freigabe);
 - Prüfung technischer Mindestanforderungen je Programm.
 
-### P4 – Berichtswesen (Paket 11) ✅ erste Stufe abgeschlossen
+### P4 – Berichtswesen (Paket 11 + 13) ✅ zweite Stufe abgeschlossen
 
 `Berichtstyp`, `Berichtskopf`, `AlternativenvergleichBericht`,
-`WaermebrueckenuebersichtBericht`, `IBerichtsService`, `BerichtsService`
-und die API-Endpunkte `alternativenvergleich` und
-`waermebrueckenuebersicht` sind implementiert. Keine Datenbankmigration
+`WaermebrueckenuebersichtBericht`, `WirtschaftlichkeitsberichtBericht`,
+`FoerderuebersichtBericht`, `IBerichtsService`, `BerichtsService`
+und die API-Endpunkte `alternativenvergleich`,
+`waermebrueckenuebersicht`, `wirtschaftlichkeit/{basis}` und
+`foerderuebersicht` sind implementiert. Keine Datenbankmigration
 erforderlich (ADR-0007). Offene Anschlussaufgaben:
 
-- Wirtschaftlichkeitsbericht (verknüpft Annahmen und Förderergebnis);
-- Förderübersicht (konsolidierte Förderprogramm-Zuordnung);
 - Energieberatungsbericht, Executive Summary, Prüferunterlagen.
 
 ### P5 – Wärmebrückenmanagement (Paket 10) ✅ erste Stufe abgeschlossen
