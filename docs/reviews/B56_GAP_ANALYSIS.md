@@ -1,6 +1,6 @@
 # B56-Gap-Analyse
 
-**Stand:** 29. Juli 2026 (aktualisiert nach Paket-15-Implementierung: Reale Verbrauchsdaten – Abrechnungsperioden, Mengen, Kosten, Witterungsbereinigung, Flächenbezug, B56-Vergleich, Anpassungsfaktoren, Abweichungsursachen)
+**Stand:** 30. Juli 2026 (aktualisiert nach Paket-16-Implementierung: Feldweise Konfliktlösung – B56KonfliktEintraege-Tabelle, Auto-Initialisierung aus persistiertem Vergleich, Entscheidungs-API)
 
 ## 1. Auftrag und Bewertungsgrundlage
 
@@ -110,8 +110,21 @@ implementiert:
   GET (Einzelabruf), POST, PATCH, DELETE unter
   `api/projekte/{id}/verbrauchsdaten`; Migration `AddVerbrauchsDaten`;
   Domain, Service und Controller durch je eigene Tests abgesichert.
+- Feldweise Konfliktlösung (Paket 16):
+  `B56KonfliktEntscheidungsTyp`-Enum (`Ausstehend`, `Akzeptiert`, `Abgelehnt`);
+  `B56KonfliktEintrag`-Record im Application Layer; `IB56KonfliktService` mit
+  `ListenAsync`, `EntscheidenAsync` und `AlleAusstehendAkzeptierenAsync`;
+  `EfB56KonfliktService` initialisiert Konflikteinträge automatisch aus dem
+  persistierten `VergleichJson` beim ersten Abruf; `B56KonfliktEintragEntity`
+  mit eindeutigem Index über Projekt + Vorgänger + Nachfolger + Bereich +
+  Schlüssel + Feld; `AlterWert` / `NeuerWert` werden für alle drei Bereiche
+  (Bestandskennwert, Bauteil, Modernisierungsalternative) lesbar aufbereitet;
+  API-Endpunkte GET (Liste), POST `{konfliktId}/entscheiden` und POST
+  `alle-akzeptieren` unter
+  `api/projekte/{id}/b56-importe/{importId}/konflikte`; Migration
+  `AddB56KonfliktEintraege`.
 
-`dotnet test` bestätigt 275/275 Tests bestanden.
+`dotnet test` bestätigt 292/292 Tests bestanden.
 
 Offene Schwerpunkte für die nächste Ausbaustufe:
 
@@ -622,6 +635,25 @@ Noch offen:
 - Schutzregel, die verhindert, dass manuelle Ergänzungen automatisch
   durch Snapshot-Werte überschrieben werden, auch nach Synchronisation.
 
+Seit Paket 16 implementiert:
+
+- `B56KonfliktEntscheidungsTyp`-Enum und `B56KonfliktEintrag`-Record bilden
+  das feldweise Konfliktmodell ab.
+- `EfB56KonfliktService` initialisiert Einträge automatisch aus dem
+  gespeicherten `VergleichJson` (Bereiche: Bestandskennwert, Bauteil,
+  Modernisierungsalternative); `AlterWert` und `NeuerWert` werden
+  menschenlesbar aufbereitet.
+- API-Endpunkte erlauben feldgenaue Bestätigung (`POST …/entscheiden`)
+  und Massenbestätigung (`POST …/alle-akzeptieren`).
+- Eindeutiger Index verhindert Doppeleinträge.
+- Tabelle `B56KonfliktEintraege` mit Migration `AddB56KonfliktEintraege`.
+
+Noch offen (nach fachlicher Klärung):
+
+- tatsächliche Anwendung der Entscheidung auf das Projektmodell
+  (Synchronisations-Use-Case);
+- Schutzregel gegen unbeabsichtigtes Überschreiben manueller Ergänzungen.
+
 ## 5. Nicht erfüllt
 
 ### 5.1 Bearbeitbarer vollständiger Projektstand
@@ -717,6 +749,7 @@ Noch nicht umgesetzt:
 | `20260729043015_AddPersistedB56SnapshotVergleiche` | `B56SnapshotVergleiche` mit eindeutigem Index | ✅ umgesetzt |
 | `20260729140029_AddProjektStammdaten` | `Auftraggeber`, `Ansprechpartner`, `Strasse`, `Ort`, `Postleitzahl`, `Gebaeudeart` in `Projekte` | ✅ umgesetzt |
 | `20260729152143_AddVerbrauchsDaten` | `VerbrauchsDaten` mit allen Fachfeldern und Indizes | ✅ umgesetzt |
+| `20260730063823_AddB56KonfliktEintraege` | `B56KonfliktEintraege` mit Entscheidungsfeldern und eindeutigem Index | ✅ umgesetzt |
 
 ### 6.2 Ausstehende Migrationen
 
@@ -789,7 +822,9 @@ für die Nachweisbarkeit erhalten bleiben.
 | `VerbrauchsDatenDomainTests.cs` | Verbrauchsdaten-Domain-Invarianten | 9 |
 | `EfVerbrauchsDatenServiceTests.cs` | Verbrauchsdaten-Persistence | 7 |
 | `VerbrauchsDatenControllerTests.cs` | Verbrauchsdaten-API | 8 |
-| **Gesamt** | | **275** |
+| `B56KonfliktServiceTests.cs` | Konfliktlösung-Persistence (inkl. Auto-Init) | 9 |
+| `B56KonfliktControllerTests.cs` | Konflikt-API | 8 |
+| **Gesamt** | | **292** |
 
 ### 7.2 Noch fehlende Tests
 
@@ -797,8 +832,8 @@ für die Nachweisbarkeit erhalten bleiben.
   Fehler;
 - Snapshot nach Projektlöschung erreichbar halten (sobald Use-Case
   entschieden);
-- feldweise Konfliktlösung beim Synchronisations-Use-Case (sobald
-  fachlich spezifiziert);
+- Anwendung der Konfliktentscheidungen auf das Projektmodell
+  (Synchronisations-Use-Case, sobald fachlich spezifiziert);
 - Förderprogramm-Verknüpfung mit Alternativenberechnung;
 - Kumulierbarkeit mehrerer Förderprogramme.
 
