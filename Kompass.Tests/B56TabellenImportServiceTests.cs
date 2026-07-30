@@ -200,6 +200,62 @@ public sealed class B56TabellenImportServiceTests
                 alternative => alternative.Position));
     }
 
+    [Fact]
+    public async Task Kennwert_mit_numerischen_Spaltenwerten_erzeugt_keine_Warnung()
+    {
+        // Rows like "Primärenergie | 3860.393 | 22351.231" in SCModernisierungen
+        // are data rows, not table headers – they must not generate spurious warnings.
+        var zeilen =
+            new List<B56Zeile>
+            {
+                Zeile(1, ("A", "Modernisierung in einem Zug")),
+                Zeile(2, ("B", "Bezeichnung"), ("C", "Gesamtpaket")),
+                Zeile(3, ("B", "Primärenergiebedarf Gebäude"), ("C", "100.5")),
+                Zeile(4, ("B", "Endenergiebedarf Gebäude"), ("C", "80.25")),
+                // Row that looks like "Primärenergie | 3860.393 | 22351.231":
+                // keyword in first cell, numeric values in subsequent cells.
+                Zeile(5, ("A", "Primärenergie"), ("B", "3860.393"), ("C", "22351.231")),
+                Zeile(6, ("A", "Endenergie"), ("B", "1234.5"), ("C", "6789.0")),
+                Zeile(10, ("A", "Bestand")),
+                Zeile(11, ("B", "Primärenergiebedarf Gebäude"), ("C", "200")),
+                Zeile(20, ("A", "Tabelle U-Werte der Bauteile")),
+                Zeile(22, ("B", "Bauteilcode"), ("C", "Bauteil"), ("D", "Nachbarseite"), ("E", "U-Wert")),
+                Zeile(23, ("B", "AW01"), ("C", "Außenwand"), ("D", "gegen Außenluft"), ("E", "0.24"))
+            };
+
+        var service =
+            new B56TabellenImportService(
+                new B56TabellenFinder());
+
+        var ergebnis =
+            await service.ImportierenAsync(
+                new B56ImportKontext
+                {
+                    ImportId = Guid.NewGuid(),
+                    ProjektId = Guid.NewGuid(),
+                    Projektname = "Testprojekt",
+                    Quelldatei = "test.xlsm",
+                    Archivdatei = "test.xlsm",
+                    SHA256 = "0123456789abcdef",
+                    Importzeitpunkt = DateTimeOffset.UtcNow,
+                    Arbeitsmappe = new B56Arbeitsmappe
+                    {
+                        Dateipfad = "test.xlsm",
+                        Arbeitsblaetter =
+                        [
+                            new B56Arbeitsblatt
+                            {
+                                Name = "SCModernisierungen",
+                                Zeilen = zeilen
+                            }
+                        ]
+                    }
+                });
+
+        Assert.Empty(ergebnis.Warnungen);
+        Assert.Single(ergebnis.Bauteile);
+    }
+
     private static IReadOnlyList<B56Zeile>
         ErzeugeReferenzzeilen()
     {

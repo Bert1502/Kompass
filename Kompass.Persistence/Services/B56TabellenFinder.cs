@@ -50,6 +50,17 @@ public sealed class B56TabellenFinder : IB56TabellenFinder
     private static bool IstTabellenkopf(
         IReadOnlyCollection<string> texte)
     {
+        var nichtNumerisch =
+            texte.Count(
+                t => !double.TryParse(
+                    t,
+                    System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out _));
+
+        if (nichtNumerisch < 2)
+            return false;
+
         return texte.Any(t =>
                     t.Contains("Bauteil",
                         StringComparison.OrdinalIgnoreCase))
