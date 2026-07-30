@@ -7,6 +7,7 @@ using Kompass.Application.Verbrauch;
 using Kompass.Application.Waermebruecken;
 using Kompass.Persistence.Data;
 using Kompass.Persistence.Services;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +24,10 @@ public static class DependencyInjection
             configuration.GetConnectionString("KompassDatabase")
             ?? throw new InvalidOperationException(
                 "Die Datenbankverbindung 'KompassDatabase' wurde nicht gefunden.");
+
+        connectionString =
+            AufloesenRelativerSqlitePfad(
+                connectionString);
 
         services.AddDbContext<KompassDbContext>(
             options =>
@@ -51,5 +56,36 @@ public static class DependencyInjection
         services.AddScoped<IBerichtsService, BerichtsService>();
 
         return services;
+    }
+
+    private static string AufloesenRelativerSqlitePfad(
+        string connectionString)
+    {
+        var sqliteConnectionStringBuilder =
+            new SqliteConnectionStringBuilder(
+                connectionString);
+
+        var datenquelle =
+            sqliteConnectionStringBuilder.DataSource;
+
+        if (string.IsNullOrWhiteSpace(
+                datenquelle) ||
+            string.Equals(
+                datenquelle,
+                ":memory:",
+                StringComparison.OrdinalIgnoreCase) ||
+            Path.IsPathRooted(
+                datenquelle))
+        {
+            return connectionString;
+        }
+
+        sqliteConnectionStringBuilder.DataSource =
+            Path.GetFullPath(
+                Path.Combine(
+                    AppContext.BaseDirectory,
+                    datenquelle));
+
+        return sqliteConnectionStringBuilder.ConnectionString;
     }
 }
