@@ -26,6 +26,12 @@ public sealed class B56KonfliktEintragEntityConfiguration
             .IsRequired()
             .HasMaxLength(200);
 
+        builder.Property(x => x.AlterWert)
+            .HasMaxLength(500);
+
+        builder.Property(x => x.NeuerWert)
+            .HasMaxLength(500);
+
         builder.Property(x => x.ErstelltAm)
             .IsRequired();
 
@@ -41,5 +47,15 @@ public sealed class B56KonfliktEintragEntityConfiguration
             x.VorgaengerImportId,
             x.NachfolgerImportId
         });
+
+        builder.HasIndex(x => new
+        {
+            x.ProjektId,
+            x.VorgaengerImportId,
+            x.NachfolgerImportId,
+            x.Bereich,
+            x.Schluessel,
+            x.Feld
+        }).IsUnique();
     }
 }

@@ -20,6 +20,10 @@ public sealed class B56KonfliktEintragEntity
 
     public B56VergleichsAenderung Aenderung { get; set; }
 
+    public string? AlterWert { get; set; }
+
+    public string? NeuerWert { get; set; }
+
     public B56KonfliktEntscheidungsTyp Entscheidung { get; set; }
 
     public DateTimeOffset? EntschiedenAm { get; set; }

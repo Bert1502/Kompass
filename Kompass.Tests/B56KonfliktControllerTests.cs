@@ -6,6 +6,8 @@ namespace Kompass.Tests.Api;
 
 public sealed class B56KonfliktControllerTests
 {
+    // ─── Listen ──────────────────────────────────────────────────────────────
+
     [Fact]
     public async Task Listen_liefert_400_wenn_vorgaenger_leer()
     {
@@ -71,6 +73,8 @@ public sealed class B56KonfliktControllerTests
         Assert.Empty(liste);
     }
 
+    // ─── EntscheidungSetzen ───────────────────────────────────────────────────
+
     [Fact]
     public async Task EntscheidungSetzen_liefert_204_bei_Erfolg()
     {
@@ -127,6 +131,42 @@ public sealed class B56KonfliktControllerTests
         Assert.IsType<BadRequestObjectResult>(antwort);
     }
 
+    // ─── AlleUebernehmen ─────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task AlleUebernehmen_liefert_400_wenn_vorgaenger_leer()
+    {
+        var controller = new B56KonfliktController(
+            new B56KonfliktServiceFake());
+
+        var antwort =
+            await controller.AlleUebernehmenAsync(
+                Guid.NewGuid(),
+                Guid.NewGuid(),
+                vorgaenger: Guid.Empty,
+                CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(antwort.Result);
+    }
+
+    [Fact]
+    public async Task AlleUebernehmen_liefert_200_mit_Anzahl()
+    {
+        var controller = new B56KonfliktController(
+            new B56KonfliktServiceFake(alleUebernommenAnzahl: 3));
+
+        var antwort =
+            await controller.AlleUebernehmenAsync(
+                Guid.NewGuid(),
+                Guid.NewGuid(),
+                vorgaenger: Guid.NewGuid(),
+                CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(antwort.Result);
+        var ergebnis = Assert.IsType<B56AlleUebernommenAntwort>(ok.Value);
+        Assert.Equal(3, ergebnis.UebernommeneKonflikte);
+    }
+
     private static B56KonfliktEintrag ErstelleKonfliktEintrag()
     {
         var projektId = Guid.NewGuid();
@@ -150,7 +190,8 @@ public sealed class B56KonfliktControllerTests
 
     private sealed class B56KonfliktServiceFake(
         IReadOnlyList<B56KonfliktEintrag>? konflikte = null,
-        bool entscheidungErgebnis = true)
+        bool entscheidungErgebnis = true,
+        int alleUebernommenAnzahl = 0)
         : IB56KonfliktService
     {
         public Task<IReadOnlyList<B56KonfliktEintrag>>
@@ -173,6 +214,15 @@ public sealed class B56KonfliktControllerTests
             CancellationToken cancellationToken = default)
         {
             return Task.FromResult(entscheidungErgebnis);
+        }
+
+        public Task<int> AlleOffenenUebernehmenAsync(
+            Guid projektId,
+            Guid vorgaengerImportId,
+            Guid nachfolgerImportId,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(alleUebernommenAnzahl);
         }
     }
 }

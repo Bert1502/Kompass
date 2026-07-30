@@ -218,6 +218,71 @@ public sealed class EfB56KonfliktServiceTests
         Assert.Empty(ergebnis);
     }
 
+    [Fact]
+    public async Task AlleOffenenUebernehmen_aktualisiert_alle_offenen_Konflikte()
+    {
+        await using var db = await KonfliktTestdatenbank.ErstellenAsync();
+
+        var projektId = Guid.NewGuid();
+        var vorgaenger = Guid.NewGuid();
+        var nachfolger = Guid.NewGuid();
+
+        var vergleich = new B56SnapshotVergleich
+        {
+            ProjektId = projektId,
+            VorgaengerSnapshotId = vorgaenger,
+            NachfolgerSnapshotId = nachfolger,
+            Konflikte =
+            [
+                new B56Vergleichskonflikt(
+                    "Bestandskennwert",
+                    "Heizwärmebedarf",
+                    "Wert",
+                    B56VergleichsAenderung.Geaendert),
+                new B56Vergleichskonflikt(
+                    "Bauteil",
+                    "AW01",
+                    "UWert/Flaeche",
+                    B56VergleichsAenderung.Geaendert)
+            ]
+        };
+
+        await db.SpeichereVergleichAsync(vergleich);
+
+        await db.Service.ListenOderErzeugenAsync(
+            projektId, vorgaenger, nachfolger);
+
+        var anzahl =
+            await db.Service.AlleOffenenUebernehmenAsync(
+                projektId, vorgaenger, nachfolger);
+
+        Assert.Equal(2, anzahl);
+
+        var aktualisiert =
+            await db.Service.ListenOderErzeugenAsync(
+                projektId, vorgaenger, nachfolger);
+
+        Assert.All(
+            aktualisiert,
+            e => Assert.Equal(
+                B56KonfliktEntscheidungsTyp.Uebernehmen,
+                e.Entscheidung));
+    }
+
+    [Fact]
+    public async Task AlleOffenenUebernehmen_liefert_null_wenn_keine_offen()
+    {
+        await using var db = await KonfliktTestdatenbank.ErstellenAsync();
+
+        var anzahl =
+            await db.Service.AlleOffenenUebernehmenAsync(
+                Guid.NewGuid(),
+                Guid.NewGuid(),
+                Guid.NewGuid());
+
+        Assert.Equal(0, anzahl);
+    }
+
     private sealed class KonfliktTestdatenbank : IAsyncDisposable
     {
         private static readonly JsonSerializerOptions JsonOptionen =

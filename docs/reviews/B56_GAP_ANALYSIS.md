@@ -1,6 +1,6 @@
 # B56-Gap-Analyse
 
-**Stand:** 30. Juli 2026 (aktualisiert nach Paket-16-Implementierung: Feldweise Konfliktlösung – B56KonfliktEntscheidungsTyp, B56KonfliktEintrag, IB56KonfliktService, EfB56KonfliktService, Migration AddB56KonfliktEintraege, API-Endpunkte GET und PATCH für Konflikte)
+**Stand:** 30. Juli 2026 (aktualisiert nach Paket-16-Implementierung: Feldweise Konfliktlösung – B56KonfliktEntscheidungsTyp, B56KonfliktEintrag, IB56KonfliktService, EfB56KonfliktService, Migration AddB56KonfliktEintraege, API-Endpunkte GET, PATCH und POST alle-uebernehmen für Konflikte)
 
 ## 1. Auftrag und Bewertungsgrundlage
 
@@ -112,15 +112,18 @@ implementiert:
   Domain, Service und Controller durch je eigene Tests abgesichert.
 - Feldweise Konfliktlösung (Paket 16):
   `B56KonfliktEntscheidungsTyp`-Enum (`Offen`, `Uebernehmen`, `Behalten`);
-  `B56KonfliktEintrag`-Modell mit Bereich, Schluessel, Feld, Aenderung,
-  Entscheidung und Auditfeldern; `IB56KonfliktService` in Application;
-  `EfB56KonfliktService` in Persistence (lazy Erstellung aus persistiertem
-  Vergleich, idempotent beim zweiten Aufruf); API-Endpunkte GET (Liste mit
-  lazy Erstellung) und PATCH (Entscheidung setzen) unter
+  `B56KonfliktEintrag`-Klasse mit Bereich, Schlüssel, Feld, Aenderung,
+  `AlterWert`, `NeuerWert`, Entscheidung und Auditfeldern; `IB56KonfliktService`
+  in Application; `EfB56KonfliktService` in Persistence (lazy Erstellung aus
+  persistiertem Vergleich, idempotent beim zweiten Aufruf, `AlterWert`/`NeuerWert`
+  für Bestandskennwerte, Bauteile und Modernisierungsalternativen aufbereitet);
+  API-Endpunkte GET (Liste mit lazy Erstellung), PATCH (Entscheidung setzen) und
+  POST `alle-uebernehmen` unter
   `api/projekte/{id}/b56-importe/{importId}/konflikte`; Migration
-  `AddB56KonfliktEintraege`; Domain und Service durch je eigene Tests abgesichert.
+  `AddB56KonfliktEintraege`; Domain, Service und Controller durch je eigene Tests
+  abgesichert.
 
-`dotnet test` bestätigt 287/287 Tests bestanden.
+`dotnet test` bestätigt 291/291 Tests bestanden.
 
 Offene Schwerpunkte für die nächste Ausbaustufe:
 
@@ -527,7 +530,7 @@ Nachweise:
 - `Kompass.Persistence/Services/EfB56KonfliktService.cs`
 - `Kompass.Api/B56Import/B56KonfliktController.cs`
 - `Kompass.Persistence/Migrations/20260730070445_AddB56KonfliktEintraege.cs`
-- `Kompass.Tests/EfB56KonfliktServiceTests.cs` (6 Tests)
+- `Kompass.Tests/EfB56KonfliktServiceTests.cs` (9 Tests)
 - `Kompass.Tests/B56KonfliktControllerTests.cs` (6 Tests)
 
 
@@ -662,6 +665,25 @@ Noch offen:
 - Schutzregel, die verhindert, dass manuelle Ergänzungen automatisch
   durch Snapshot-Werte überschrieben werden, auch nach Synchronisation.
 
+Seit Paket 16 implementiert:
+
+- `B56KonfliktEntscheidungsTyp`-Enum und `B56KonfliktEintrag`-Record bilden
+  das feldweise Konfliktmodell ab.
+- `EfB56KonfliktService` initialisiert Einträge automatisch aus dem
+  gespeicherten `VergleichJson` (Bereiche: Bestandskennwert, Bauteil,
+  Modernisierungsalternative); `AlterWert` und `NeuerWert` werden
+  menschenlesbar aufbereitet.
+- API-Endpunkte erlauben feldgenaue Bestätigung (`POST …/entscheiden`)
+  und Massenbestätigung (`POST …/alle-akzeptieren`).
+- Eindeutiger Index verhindert Doppeleinträge.
+- Tabelle `B56KonfliktEintraege` mit Migration `AddB56KonfliktEintraege`.
+
+Noch offen (nach fachlicher Klärung):
+
+- tatsächliche Anwendung der Entscheidung auf das Projektmodell
+  (Synchronisations-Use-Case);
+- Schutzregel gegen unbeabsichtigtes Überschreiben manueller Ergänzungen.
+
 ## 5. Nicht erfüllt
 
 ### 5.1 Bearbeitbarer vollständiger Projektstand
@@ -759,6 +781,7 @@ Noch nicht umgesetzt:
 | `20260729140029_AddProjektStammdaten` | `Auftraggeber`, `Ansprechpartner`, `Strasse`, `Ort`, `Postleitzahl`, `Gebaeudeart` in `Projekte` | ✅ umgesetzt |
 | `20260729152143_AddVerbrauchsDaten` | `VerbrauchsDaten` mit allen Fachfeldern und Indizes | ✅ umgesetzt |
 | `20260730070445_AddB56KonfliktEintraege` | `B56KonfliktEintraege` mit Entscheidungsstatus und Indizes | ✅ umgesetzt |
+| `20260730092438_AddB56KonfliktAlterNeuerWert` | `AlterWert`, `NeuerWert` Spalten und eindeutiger Index auf `B56KonfliktEintraege` | ✅ umgesetzt |
 
 ### 6.2 Ausstehende Migrationen
 
@@ -821,9 +844,9 @@ für die Nachweisbarkeit erhalten bleiben.
 | `VerbrauchsDatenDomainTests.cs` | Verbrauchsdaten-Domain-Invarianten | 9 |
 | `EfVerbrauchsDatenServiceTests.cs` | Verbrauchsdaten-Persistence | 7 |
 | `VerbrauchsDatenControllerTests.cs` | Verbrauchsdaten-API | 8 |
-| `B56KonfliktControllerTests.cs` | Konflikte-API | 6 |
-| `EfB56KonfliktServiceTests.cs` | Konflikte-Persistence | 6 |
-| **Gesamt** | | **287** |
+| `B56KonfliktControllerTests.cs` | Konflikte-API (inkl. AlleUebernehmen) | 8 |
+| `EfB56KonfliktServiceTests.cs` | Konflikte-Persistence (inkl. Auto-Init, AlterWert/NeuerWert) | 9 |
+| **Gesamt** | | **291** |
 
 ### 7.2 Noch fehlende Tests
 
@@ -831,6 +854,8 @@ für die Nachweisbarkeit erhalten bleiben.
   Fehler;
 - Snapshot nach Projektlöschung erreichbar halten (sobald Use-Case
   entschieden);
+- Anwendung der Konfliktentscheidungen auf das Projektmodell
+  (Synchronisations-Use-Case, sobald fachlich spezifiziert);
 - Förderprogramm-Verknüpfung mit Alternativenberechnung;
 - Kumulierbarkeit mehrerer Förderprogramme.
 

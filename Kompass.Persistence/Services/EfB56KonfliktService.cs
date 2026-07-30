@@ -75,21 +75,49 @@ public sealed class EfB56KonfliktService : IB56KonfliktService
                 exception);
         }
 
+        var kennwerteNachName =
+            vergleich.BestandskennwertVergleiche
+                .ToDictionary(
+                    k => k.Name,
+                    StringComparer.OrdinalIgnoreCase);
+
+        var bauteileNachCode =
+            vergleich.GesamtbauteilVergleiche
+                .ToDictionary(
+                    b => b.Bauteilcode,
+                    StringComparer.OrdinalIgnoreCase);
+
+        var alternativenNachPosition =
+            vergleich.AlternativVergleiche
+                .ToDictionary(a => a.B56Position.ToString());
+
         var jetzt = DateTimeOffset.UtcNow;
 
         var neueEintraege = vergleich.Konflikte
-            .Select(k => new B56KonfliktEintragEntity
+            .Select(k =>
             {
-                Id = Guid.NewGuid(),
-                ProjektId = projektId,
-                VorgaengerImportId = vorgaengerImportId,
-                NachfolgerImportId = nachfolgerImportId,
-                Bereich = k.Bereich,
-                Schluessel = k.Schluessel,
-                Feld = k.Feld,
-                Aenderung = k.Aenderung,
-                Entscheidung = B56KonfliktEntscheidungsTyp.Offen,
-                ErstelltAm = jetzt
+                var (alterWert, neuerWert) =
+                    ErmittleWerte(
+                        k,
+                        kennwerteNachName,
+                        bauteileNachCode,
+                        alternativenNachPosition);
+
+                return new B56KonfliktEintragEntity
+                {
+                    Id = Guid.NewGuid(),
+                    ProjektId = projektId,
+                    VorgaengerImportId = vorgaengerImportId,
+                    NachfolgerImportId = nachfolgerImportId,
+                    Bereich = k.Bereich,
+                    Schluessel = k.Schluessel,
+                    Feld = k.Feld,
+                    Aenderung = k.Aenderung,
+                    AlterWert = alterWert,
+                    NeuerWert = neuerWert,
+                    Entscheidung = B56KonfliktEntscheidungsTyp.Offen,
+                    ErstelltAm = jetzt
+                };
             })
             .ToList();
 
@@ -135,6 +163,90 @@ public sealed class EfB56KonfliktService : IB56KonfliktService
         return true;
     }
 
+    public async Task<int> AlleOffenenUebernehmenAsync(
+        Guid projektId,
+        Guid vorgaengerImportId,
+        Guid nachfolgerImportId,
+        CancellationToken cancellationToken = default)
+    {
+        var offene =
+            await _dbContext.B56KonfliktEintraege
+                .Where(k =>
+                    k.ProjektId == projektId &&
+                    k.VorgaengerImportId == vorgaengerImportId &&
+                    k.NachfolgerImportId == nachfolgerImportId &&
+                    k.Entscheidung == B56KonfliktEntscheidungsTyp.Offen)
+                .ToListAsync(cancellationToken);
+
+        if (offene.Count == 0)
+        {
+            return 0;
+        }
+
+        var jetzt = DateTimeOffset.UtcNow;
+
+        foreach (var entity in offene)
+        {
+            entity.Entscheidung = B56KonfliktEntscheidungsTyp.Uebernehmen;
+            entity.EntschiedenAm = jetzt;
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return offene.Count;
+    }
+
+    private static (string? AlterWert, string? NeuerWert) ErmittleWerte(
+        B56Vergleichskonflikt konflikt,
+        Dictionary<string, B56KennwertVergleich> kennwerte,
+        Dictionary<string, B56BauteilVergleich> bauteile,
+        Dictionary<string, B56AlternativeVergleich> alternativen)
+    {
+        if (konflikt.Bereich == "Bestandskennwert" &&
+            kennwerte.TryGetValue(
+                konflikt.Schluessel,
+                out var kennwert))
+        {
+            return (
+                kennwert.AlterWert?.ToString("G"),
+                kennwert.NeuerWert?.ToString("G"));
+        }
+
+        if (konflikt.Bereich == "Bauteil" &&
+            bauteile.TryGetValue(
+                konflikt.Schluessel,
+                out var bauteil))
+        {
+            var alt =
+                bauteil.AlterUWert.HasValue || bauteil.AlteFlaeche.HasValue
+                    ? $"U-Wert: {bauteil.AlterUWert?.ToString("G") ?? "-"}; Fläche: {bauteil.AlteFlaeche?.ToString("G") ?? "-"}"
+                    : null;
+
+            var neu =
+                bauteil.NeuerUWert.HasValue || bauteil.NeueFlaeche.HasValue
+                    ? $"U-Wert: {bauteil.NeuerUWert?.ToString("G") ?? "-"}; Fläche: {bauteil.NeueFlaeche?.ToString("G") ?? "-"}"
+                    : null;
+
+            return (alt, neu);
+        }
+
+        if (konflikt.Bereich == "Modernisierungsalternative" &&
+            alternativen.TryGetValue(
+                konflikt.Schluessel,
+                out var alternative))
+        {
+            return (
+                string.IsNullOrEmpty(alternative.AlteBezeichnung)
+                    ? null
+                    : alternative.AlteBezeichnung,
+                string.IsNullOrEmpty(alternative.NeueBezeichnung)
+                    ? null
+                    : alternative.NeueBezeichnung);
+        }
+
+        return (null, null);
+    }
+
     private static B56KonfliktEintrag ZuModell(
         B56KonfliktEintragEntity entity)
     {
@@ -148,6 +260,8 @@ public sealed class EfB56KonfliktService : IB56KonfliktService
             Schluessel = entity.Schluessel,
             Feld = entity.Feld,
             Aenderung = entity.Aenderung,
+            AlterWert = entity.AlterWert,
+            NeuerWert = entity.NeuerWert,
             Entscheidung = entity.Entscheidung,
             EntschiedenAm = entity.EntschiedenAm,
             ErstelltAm = entity.ErstelltAm

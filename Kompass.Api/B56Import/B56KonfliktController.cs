@@ -15,6 +15,11 @@ public sealed class B56KonfliktController : ControllerBase
         _konfliktService = konfliktService;
     }
 
+    /// <summary>
+    /// Listet alle Konflikteinträge für einen Snapshot-Vergleich.
+    /// Initialisiert die Einträge automatisch, wenn sie noch nicht
+    /// vorhanden sind.
+    /// </summary>
     [HttpGet]
     [ProducesResponseType(
         typeof(IReadOnlyList<B56KonfliktEintragAntwort>),
@@ -49,6 +54,9 @@ public sealed class B56KonfliktController : ControllerBase
                 .ToList());
     }
 
+    /// <summary>
+    /// Setzt die Entscheidung für einen einzelnen Konflikteintrag.
+    /// </summary>
     [HttpPatch("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -89,6 +97,40 @@ public sealed class B56KonfliktController : ControllerBase
 
         return NoContent();
     }
+
+    /// <summary>
+    /// Übernimmt alle noch offenen Konflikte eines Vergleichs.
+    /// </summary>
+    [HttpPost("alle-uebernehmen")]
+    [ProducesResponseType(
+        typeof(B56AlleUebernommenAntwort),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<B56AlleUebernommenAntwort>>
+        AlleUebernehmenAsync(
+            Guid projektId,
+            Guid nachfolgerImportId,
+            [FromQuery] Guid vorgaenger,
+            CancellationToken cancellationToken)
+    {
+        if (vorgaenger == Guid.Empty)
+        {
+            return BadRequest(new
+            {
+                Nachricht =
+                    "Der Query-Parameter 'vorgaenger' muss eine gültige Import-ID enthalten."
+            });
+        }
+
+        var anzahl =
+            await _konfliktService.AlleOffenenUebernehmenAsync(
+                projektId,
+                vorgaenger,
+                nachfolgerImportId,
+                cancellationToken);
+
+        return Ok(new B56AlleUebernommenAntwort(anzahl));
+    }
 }
 
 public sealed record B56KonfliktEintragAntwort(
@@ -100,6 +142,8 @@ public sealed record B56KonfliktEintragAntwort(
     string Schluessel,
     string Feld,
     B56VergleichsAenderung Aenderung,
+    string? AlterWert,
+    string? NeuerWert,
     B56KonfliktEntscheidungsTyp Entscheidung,
     DateTimeOffset? EntschiedenAm,
     DateTimeOffset ErstelltAm)
@@ -116,6 +160,8 @@ public sealed record B56KonfliktEintragAntwort(
             eintrag.Schluessel,
             eintrag.Feld,
             eintrag.Aenderung,
+            eintrag.AlterWert,
+            eintrag.NeuerWert,
             eintrag.Entscheidung,
             eintrag.EntschiedenAm,
             eintrag.ErstelltAm);
@@ -124,3 +170,6 @@ public sealed record B56KonfliktEintragAntwort(
 
 public sealed record B56KonfliktEntscheidungAnfrage(
     B56KonfliktEntscheidungsTyp Entscheidung);
+
+public sealed record B56AlleUebernommenAntwort(
+    int UebernommeneKonflikte);
