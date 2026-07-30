@@ -1,4 +1,5 @@
-﻿using Kompass.Domain.Economics;
+﻿using Kompass.Application.B56Import;
+using Kompass.Domain.Economics;
 using Kompass.Domain.Funding;
 using Kompass.Domain.Projects;
 using Kompass.Domain.Verbrauch;

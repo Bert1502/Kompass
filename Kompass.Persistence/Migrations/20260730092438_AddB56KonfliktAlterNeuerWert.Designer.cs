@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Kompass.Persistence.Migrations
 {
     [DbContext(typeof(KompassDbContext))]
-    [Migration("20260730063823_AddB56KonfliktEintraege")]
-    partial class AddB56KonfliktEintraege
+    [Migration("20260730092438_AddB56KonfliktAlterNeuerWert")]
+    partial class AddB56KonfliktAlterNeuerWert
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -832,7 +832,7 @@ namespace Kompass.Persistence.Migrations
 
             modelBuilder.Entity("Kompass.Persistence.Data.Entities.B56KonfliktEintragEntity", b =>
                 {
-                    b.Property<Guid>("KonfliktId")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
@@ -854,12 +854,15 @@ namespace Kompass.Persistence.Migrations
                     b.Property<DateTimeOffset?>("EntschiedenAm")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTimeOffset>("ErstelltAm")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Feld")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid>("NachfolgerSnapshotId")
+                    b.Property<Guid>("NachfolgerImportId")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("NeuerWert")
@@ -874,14 +877,16 @@ namespace Kompass.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid>("VorgaengerSnapshotId")
+                    b.Property<Guid>("VorgaengerImportId")
                         .HasColumnType("TEXT");
 
-                    b.HasKey("KonfliktId");
+                    b.HasKey("Id");
 
-                    b.HasIndex("ProjektId", "VorgaengerSnapshotId", "NachfolgerSnapshotId");
+                    b.HasIndex("ProjektId", "NachfolgerImportId");
 
-                    b.HasIndex("ProjektId", "VorgaengerSnapshotId", "NachfolgerSnapshotId", "Bereich", "Schluessel", "Feld")
+                    b.HasIndex("ProjektId", "VorgaengerImportId", "NachfolgerImportId");
+
+                    b.HasIndex("ProjektId", "VorgaengerImportId", "NachfolgerImportId", "Bereich", "Schluessel", "Feld")
                         .IsUnique();
 
                     b.ToTable("B56KonfliktEintraege", (string)null);

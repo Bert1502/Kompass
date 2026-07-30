@@ -4,8 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Kompass.Api.B56Import;
 
 [ApiController]
-[Route(
-    "api/projekte/{projektId:guid}/b56-importe/{nachfolgerImportId:guid}/konflikte")]
+[Route("api/projekte/{projektId:guid}/b56-importe/{nachfolgerImportId:guid}/konflikte")]
 public sealed class B56KonfliktController : ControllerBase
 {
     private readonly IB56KonfliktService _konfliktService;
@@ -23,10 +22,10 @@ public sealed class B56KonfliktController : ControllerBase
     /// </summary>
     [HttpGet]
     [ProducesResponseType(
-        typeof(IReadOnlyList<B56KonfliktAntwort>),
+        typeof(IReadOnlyList<B56KonfliktEintragAntwort>),
         StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<IReadOnlyList<B56KonfliktAntwort>>>
+    public async Task<ActionResult<IReadOnlyList<B56KonfliktEintragAntwort>>>
         ListenAsync(
             Guid projektId,
             Guid nachfolgerImportId,
@@ -43,7 +42,7 @@ public sealed class B56KonfliktController : ControllerBase
         }
 
         var eintraege =
-            await _konfliktService.ListenAsync(
+            await _konfliktService.ListenOderErzeugenAsync(
                 projektId,
                 vorgaenger,
                 nachfolgerImportId,
@@ -51,77 +50,64 @@ public sealed class B56KonfliktController : ControllerBase
 
         return Ok(
             eintraege
-                .Select(B56KonfliktAntwort.Aus)
+                .Select(B56KonfliktEintragAntwort.Aus)
                 .ToList());
     }
 
     /// <summary>
     /// Setzt die Entscheidung für einen einzelnen Konflikteintrag.
     /// </summary>
-    [HttpPost("{konfliktId:guid}/entscheiden")]
-    [ProducesResponseType(
-        typeof(B56KonfliktAntwort),
-        StatusCodes.Status200OK)]
+    [HttpPatch("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<B56KonfliktAntwort>> EntscheidenAsync(
+    public async Task<IActionResult> EntscheidungSetzenAsync(
         Guid projektId,
         Guid nachfolgerImportId,
-        Guid konfliktId,
-        [FromQuery] Guid vorgaenger,
-        [FromBody] B56KonfliktEntscheidungRequest request,
+        Guid id,
+        [FromBody] B56KonfliktEntscheidungAnfrage anfrage,
         CancellationToken cancellationToken)
     {
-        if (vorgaenger == Guid.Empty)
+        if (anfrage.Entscheidung == B56KonfliktEntscheidungsTyp.Offen)
         {
             return BadRequest(new
             {
                 Nachricht =
-                    "Der Query-Parameter 'vorgaenger' muss eine gültige Import-ID enthalten."
+                    "Die Entscheidung 'Offen' ist kein zulässiger Zielzustand. " +
+                    "Wählen Sie 'Uebernehmen' oder 'Behalten'."
             });
         }
 
-        if (request.Entscheidung ==
-            B56KonfliktEntscheidungsTyp.Ausstehend)
-        {
-            return BadRequest(new
-            {
-                Nachricht =
-                    "Die Entscheidung muss 'Akzeptiert' oder 'Abgelehnt' sein."
-            });
-        }
-
-        var eintrag =
-            await _konfliktService.EntscheidenAsync(
+        var gefunden =
+            await _konfliktService.EntscheidungSetzenAsync(
                 projektId,
-                vorgaenger,
                 nachfolgerImportId,
-                konfliktId,
-                request.Entscheidung,
+                id,
+                anfrage.Entscheidung,
                 cancellationToken);
 
-        if (eintrag is null)
+        if (!gefunden)
         {
             return NotFound(new
             {
                 Nachricht =
-                    $"Der Konflikteintrag '{konfliktId}' wurde nicht gefunden."
+                    $"Der Konflikteintrag '{id}' wurde nicht gefunden."
             });
         }
 
-        return Ok(B56KonfliktAntwort.Aus(eintrag));
+        return NoContent();
     }
 
     /// <summary>
-    /// Akzeptiert alle noch ausstehenden Konflikte eines Vergleichs.
+    /// Übernimmt alle noch offenen Konflikte eines Vergleichs.
     /// </summary>
-    [HttpPost("alle-akzeptieren")]
+    [HttpPost("alle-uebernehmen")]
     [ProducesResponseType(
-        typeof(B56AlleAkzeptiertAntwort),
+        typeof(B56AlleUebernommenAntwort),
         StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<B56AlleAkzeptiertAntwort>>
-        AlleAkzeptierenAsync(
+    public async Task<ActionResult<B56AlleUebernommenAntwort>>
+        AlleUebernehmenAsync(
             Guid projektId,
             Guid nachfolgerImportId,
             [FromQuery] Guid vorgaenger,
@@ -137,21 +123,21 @@ public sealed class B56KonfliktController : ControllerBase
         }
 
         var anzahl =
-            await _konfliktService.AlleAusstehendAkzeptierenAsync(
+            await _konfliktService.AlleOffenenUebernehmenAsync(
                 projektId,
                 vorgaenger,
                 nachfolgerImportId,
                 cancellationToken);
 
-        return Ok(new B56AlleAkzeptiertAntwort(anzahl));
+        return Ok(new B56AlleUebernommenAntwort(anzahl));
     }
 }
 
-public sealed record B56KonfliktAntwort(
-    Guid KonfliktId,
+public sealed record B56KonfliktEintragAntwort(
+    Guid Id,
     Guid ProjektId,
-    Guid VorgaengerSnapshotId,
-    Guid NachfolgerSnapshotId,
+    Guid VorgaengerImportId,
+    Guid NachfolgerImportId,
     string Bereich,
     string Schluessel,
     string Feld,
@@ -159,16 +145,17 @@ public sealed record B56KonfliktAntwort(
     string? AlterWert,
     string? NeuerWert,
     B56KonfliktEntscheidungsTyp Entscheidung,
-    DateTimeOffset? EntschiedenAm)
+    DateTimeOffset? EntschiedenAm,
+    DateTimeOffset ErstelltAm)
 {
-    public static B56KonfliktAntwort Aus(
+    public static B56KonfliktEintragAntwort Aus(
         B56KonfliktEintrag eintrag)
     {
-        return new B56KonfliktAntwort(
-            eintrag.KonfliktId,
+        return new B56KonfliktEintragAntwort(
+            eintrag.Id,
             eintrag.ProjektId,
-            eintrag.VorgaengerSnapshotId,
-            eintrag.NachfolgerSnapshotId,
+            eintrag.VorgaengerImportId,
+            eintrag.NachfolgerImportId,
             eintrag.Bereich,
             eintrag.Schluessel,
             eintrag.Feld,
@@ -176,12 +163,13 @@ public sealed record B56KonfliktAntwort(
             eintrag.AlterWert,
             eintrag.NeuerWert,
             eintrag.Entscheidung,
-            eintrag.EntschiedenAm);
+            eintrag.EntschiedenAm,
+            eintrag.ErstelltAm);
     }
 }
 
-public sealed record B56KonfliktEntscheidungRequest(
+public sealed record B56KonfliktEntscheidungAnfrage(
     B56KonfliktEntscheidungsTyp Entscheidung);
 
-public sealed record B56AlleAkzeptiertAntwort(
-    int AkzeptierteKonflikte);
+public sealed record B56AlleUebernommenAntwort(
+    int UebernommeneKonflikte);

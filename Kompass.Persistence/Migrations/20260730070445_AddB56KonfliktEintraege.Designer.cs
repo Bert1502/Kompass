@@ -3,6 +3,7 @@ using System;
 using Kompass.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Kompass.Persistence.Migrations
 {
     [DbContext(typeof(KompassDbContext))]
-    partial class KompassDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260730070445_AddB56KonfliktEintraege")]
+    partial class AddB56KonfliktEintraege
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.29");
@@ -836,10 +839,6 @@ namespace Kompass.Persistence.Migrations
                     b.Property<int>("Aenderung")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("AlterWert")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Bereich")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -862,10 +861,6 @@ namespace Kompass.Persistence.Migrations
                     b.Property<Guid>("NachfolgerImportId")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("NeuerWert")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
                     b.Property<Guid>("ProjektId")
                         .HasColumnType("TEXT");
 
@@ -882,9 +877,6 @@ namespace Kompass.Persistence.Migrations
                     b.HasIndex("ProjektId", "NachfolgerImportId");
 
                     b.HasIndex("ProjektId", "VorgaengerImportId", "NachfolgerImportId");
-
-                    b.HasIndex("ProjektId", "VorgaengerImportId", "NachfolgerImportId", "Bereich", "Schluessel", "Feld")
-                        .IsUnique();
 
                     b.ToTable("B56KonfliktEintraege", (string)null);
                 });

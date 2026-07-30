@@ -7,32 +7,31 @@ public interface IB56KonfliktService
     /// Initialisiert die Einträge automatisch aus dem gespeicherten
     /// Vergleich, wenn sie noch nicht vorhanden sind.
     /// </summary>
-    Task<IReadOnlyList<B56KonfliktEintrag>> ListenAsync(
+    Task<IReadOnlyList<B56KonfliktEintrag>> ListenOderErzeugenAsync(
         Guid projektId,
-        Guid vorgaengerSnapshotId,
-        Guid nachfolgerSnapshotId,
+        Guid vorgaengerImportId,
+        Guid nachfolgerImportId,
         CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Setzt die Entscheidung für einen einzelnen Konflikteintrag
-    /// (Akzeptiert oder Abgelehnt).
-    /// Gibt null zurück, wenn der Eintrag nicht gefunden wurde.
+    /// (Uebernehmen oder Behalten).
+    /// Gibt false zurück, wenn der Eintrag nicht gefunden wurde.
     /// </summary>
-    Task<B56KonfliktEintrag?> EntscheidenAsync(
+    Task<bool> EntscheidungSetzenAsync(
         Guid projektId,
-        Guid vorgaengerSnapshotId,
-        Guid nachfolgerSnapshotId,
-        Guid konfliktId,
+        Guid nachfolgerImportId,
+        Guid id,
         B56KonfliktEntscheidungsTyp entscheidung,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Setzt alle noch ausstehenden Konflikte eines Vergleichs auf
-    /// Akzeptiert. Gibt die Anzahl der aktualisierten Einträge zurück.
+    /// Setzt alle noch offenen Konflikte eines Vergleichs auf
+    /// Uebernehmen. Gibt die Anzahl der aktualisierten Einträge zurück.
     /// </summary>
-    Task<int> AlleAusstehendAkzeptierenAsync(
+    Task<int> AlleOffenenUebernehmenAsync(
         Guid projektId,
-        Guid vorgaengerSnapshotId,
-        Guid nachfolgerSnapshotId,
+        Guid vorgaengerImportId,
+        Guid nachfolgerImportId,
         CancellationToken cancellationToken = default);
 }

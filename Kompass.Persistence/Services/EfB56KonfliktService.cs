@@ -19,162 +19,62 @@ public sealed class EfB56KonfliktService : IB56KonfliktService
         _dbContext = dbContext;
     }
 
-    public async Task<IReadOnlyList<B56KonfliktEintrag>> ListenAsync(
+    public async Task<IReadOnlyList<B56KonfliktEintrag>> ListenOderErzeugenAsync(
         Guid projektId,
-        Guid vorgaengerSnapshotId,
-        Guid nachfolgerSnapshotId,
+        Guid vorgaengerImportId,
+        Guid nachfolgerImportId,
         CancellationToken cancellationToken = default)
     {
-        var vorhandene =
-            await _dbContext.B56KonfliktEintraege
-                .Where(e =>
-                    e.ProjektId == projektId &&
-                    e.VorgaengerSnapshotId == vorgaengerSnapshotId &&
-                    e.NachfolgerSnapshotId == nachfolgerSnapshotId)
-                .ToListAsync(cancellationToken);
+        var vorhandene = await _dbContext.B56KonfliktEintraege
+            .Where(k =>
+                k.ProjektId == projektId &&
+                k.VorgaengerImportId == vorgaengerImportId &&
+                k.NachfolgerImportId == nachfolgerImportId)
+            .ToListAsync(cancellationToken);
 
         if (vorhandene.Count > 0)
         {
             return vorhandene
+                .OrderBy(k => k.Bereich)
+                .ThenBy(k => k.Schluessel)
                 .Select(ZuModell)
                 .ToList();
         }
 
-        var vergleich =
-            await LadeVergleichAsync(
-                projektId,
-                vorgaengerSnapshotId,
-                nachfolgerSnapshotId,
-                cancellationToken);
-
-        if (vergleich is null ||
-            vergleich.Konflikte.Count == 0)
-        {
-            return [];
-        }
-
-        var neueEintraege =
-            ErstelleEintraege(
-                projektId,
-                vorgaengerSnapshotId,
-                nachfolgerSnapshotId,
-                vergleich);
-
-        _dbContext.B56KonfliktEintraege.AddRange(neueEintraege);
-
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        return neueEintraege
-            .Select(ZuModell)
-            .ToList();
-    }
-
-    public async Task<B56KonfliktEintrag?> EntscheidenAsync(
-        Guid projektId,
-        Guid vorgaengerSnapshotId,
-        Guid nachfolgerSnapshotId,
-        Guid konfliktId,
-        B56KonfliktEntscheidungsTyp entscheidung,
-        CancellationToken cancellationToken = default)
-    {
-        if (entscheidung == B56KonfliktEntscheidungsTyp.Ausstehend)
-        {
-            throw new ArgumentException(
-                "Eine Entscheidung muss entweder 'Akzeptiert' oder 'Abgelehnt' sein.",
-                nameof(entscheidung));
-        }
-
-        var entity =
-            await _dbContext.B56KonfliktEintraege
-                .SingleOrDefaultAsync(
-                    e =>
-                        e.KonfliktId == konfliktId &&
-                        e.ProjektId == projektId &&
-                        e.VorgaengerSnapshotId == vorgaengerSnapshotId &&
-                        e.NachfolgerSnapshotId == nachfolgerSnapshotId,
-                    cancellationToken);
-
-        if (entity is null)
-        {
-            return null;
-        }
-
-        entity.Entscheidung = (int)entscheidung;
-        entity.EntschiedenAm = DateTimeOffset.UtcNow;
-
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        return ZuModell(entity);
-    }
-
-    public async Task<int> AlleAusstehendAkzeptierenAsync(
-        Guid projektId,
-        Guid vorgaengerSnapshotId,
-        Guid nachfolgerSnapshotId,
-        CancellationToken cancellationToken = default)
-    {
-        var ausstehende =
-            await _dbContext.B56KonfliktEintraege
-                .Where(e =>
-                    e.ProjektId == projektId &&
-                    e.VorgaengerSnapshotId == vorgaengerSnapshotId &&
-                    e.NachfolgerSnapshotId == nachfolgerSnapshotId &&
-                    e.Entscheidung ==
-                        (int)B56KonfliktEntscheidungsTyp.Ausstehend)
-                .ToListAsync(cancellationToken);
-
-        if (ausstehende.Count == 0)
-        {
-            return 0;
-        }
-
-        var jetzt = DateTimeOffset.UtcNow;
-
-        foreach (var entity in ausstehende)
-        {
-            entity.Entscheidung =
-                (int)B56KonfliktEntscheidungsTyp.Akzeptiert;
-            entity.EntschiedenAm = jetzt;
-        }
-
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        return ausstehende.Count;
-    }
-
-    private async Task<B56SnapshotVergleich?> LadeVergleichAsync(
-        Guid projektId,
-        Guid vorgaengerSnapshotId,
-        Guid nachfolgerSnapshotId,
-        CancellationToken cancellationToken)
-    {
-        var entity =
+        var vergleichEntity =
             await _dbContext.B56SnapshotVergleiche
                 .AsNoTracking()
                 .SingleOrDefaultAsync(
                     v =>
                         v.ProjektId == projektId &&
-                        v.VorgaengerSnapshotId == vorgaengerSnapshotId &&
-                        v.NachfolgerSnapshotId == nachfolgerSnapshotId,
+                        v.VorgaengerSnapshotId == vorgaengerImportId &&
+                        v.NachfolgerSnapshotId == nachfolgerImportId,
                     cancellationToken);
 
-        if (entity is null ||
-            string.IsNullOrWhiteSpace(entity.VergleichJson))
+        if (vergleichEntity is null ||
+            string.IsNullOrWhiteSpace(vergleichEntity.VergleichJson))
         {
-            return null;
+            return Array.Empty<B56KonfliktEintrag>();
         }
 
-        return JsonSerializer.Deserialize<B56SnapshotVergleich>(
-            entity.VergleichJson,
-            JsonOptionen);
-    }
+        B56SnapshotVergleich vergleich;
 
-    private static IReadOnlyList<B56KonfliktEintragEntity> ErstelleEintraege(
-        Guid projektId,
-        Guid vorgaengerSnapshotId,
-        Guid nachfolgerSnapshotId,
-        B56SnapshotVergleich vergleich)
-    {
+        try
+        {
+            vergleich =
+                JsonSerializer.Deserialize<B56SnapshotVergleich>(
+                    vergleichEntity.VergleichJson,
+                    JsonOptionen)
+                ?? throw new InvalidOperationException(
+                    "Das persistierte Vergleichsergebnis ist leer.");
+        }
+        catch (JsonException exception)
+        {
+            throw new InvalidOperationException(
+                "Das persistierte Vergleichsergebnis ist beschädigt.",
+                exception);
+        }
+
         var kennwerteNachName =
             vergleich.BestandskennwertVergleiche
                 .ToDictionary(
@@ -191,39 +91,109 @@ public sealed class EfB56KonfliktService : IB56KonfliktService
             vergleich.AlternativVergleiche
                 .ToDictionary(a => a.B56Position.ToString());
 
-        var eintraege =
-            new List<B56KonfliktEintragEntity>(
-                vergleich.Konflikte.Count);
+        var jetzt = DateTimeOffset.UtcNow;
 
-        foreach (var konflikt in vergleich.Konflikte)
-        {
-            var (alterWert, neuerWert) =
-                ErmittleWerte(
-                    konflikt,
-                    kennwerteNachName,
-                    bauteileNachCode,
-                    alternativenNachPosition);
+        var neueEintraege = vergleich.Konflikte
+            .Select(k =>
+            {
+                var (alterWert, neuerWert) =
+                    ErmittleWerte(
+                        k,
+                        kennwerteNachName,
+                        bauteileNachCode,
+                        alternativenNachPosition);
 
-            eintraege.Add(
-                new B56KonfliktEintragEntity
+                return new B56KonfliktEintragEntity
                 {
-                    KonfliktId = Guid.NewGuid(),
+                    Id = Guid.NewGuid(),
                     ProjektId = projektId,
-                    VorgaengerSnapshotId = vorgaengerSnapshotId,
-                    NachfolgerSnapshotId = nachfolgerSnapshotId,
-                    Bereich = konflikt.Bereich,
-                    Schluessel = konflikt.Schluessel,
-                    Feld = konflikt.Feld,
-                    Aenderung = (int)konflikt.Aenderung,
+                    VorgaengerImportId = vorgaengerImportId,
+                    NachfolgerImportId = nachfolgerImportId,
+                    Bereich = k.Bereich,
+                    Schluessel = k.Schluessel,
+                    Feld = k.Feld,
+                    Aenderung = k.Aenderung,
                     AlterWert = alterWert,
                     NeuerWert = neuerWert,
-                    Entscheidung =
-                        (int)B56KonfliktEntscheidungsTyp.Ausstehend,
-                    EntschiedenAm = null
-                });
+                    Entscheidung = B56KonfliktEntscheidungsTyp.Offen,
+                    ErstelltAm = jetzt
+                };
+            })
+            .ToList();
+
+        if (neueEintraege.Count > 0)
+        {
+            _dbContext.B56KonfliktEintraege.AddRange(neueEintraege);
+            await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        return eintraege;
+        return neueEintraege
+            .OrderBy(k => k.Bereich)
+            .ThenBy(k => k.Schluessel)
+            .Select(ZuModell)
+            .ToList();
+    }
+
+    public async Task<bool> EntscheidungSetzenAsync(
+        Guid projektId,
+        Guid nachfolgerImportId,
+        Guid id,
+        B56KonfliktEntscheidungsTyp entscheidung,
+        CancellationToken cancellationToken = default)
+    {
+        var entity =
+            await _dbContext.B56KonfliktEintraege
+                .SingleOrDefaultAsync(
+                    k =>
+                        k.Id == id &&
+                        k.ProjektId == projektId &&
+                        k.NachfolgerImportId == nachfolgerImportId,
+                    cancellationToken);
+
+        if (entity is null)
+        {
+            return false;
+        }
+
+        entity.Entscheidung = entscheidung;
+        entity.EntschiedenAm = DateTimeOffset.UtcNow;
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return true;
+    }
+
+    public async Task<int> AlleOffenenUebernehmenAsync(
+        Guid projektId,
+        Guid vorgaengerImportId,
+        Guid nachfolgerImportId,
+        CancellationToken cancellationToken = default)
+    {
+        var offene =
+            await _dbContext.B56KonfliktEintraege
+                .Where(k =>
+                    k.ProjektId == projektId &&
+                    k.VorgaengerImportId == vorgaengerImportId &&
+                    k.NachfolgerImportId == nachfolgerImportId &&
+                    k.Entscheidung == B56KonfliktEntscheidungsTyp.Offen)
+                .ToListAsync(cancellationToken);
+
+        if (offene.Count == 0)
+        {
+            return 0;
+        }
+
+        var jetzt = DateTimeOffset.UtcNow;
+
+        foreach (var entity in offene)
+        {
+            entity.Entscheidung = B56KonfliktEntscheidungsTyp.Uebernehmen;
+            entity.EntschiedenAm = jetzt;
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return offene.Count;
     }
 
     private static (string? AlterWert, string? NeuerWert) ErmittleWerte(
@@ -280,18 +250,21 @@ public sealed class EfB56KonfliktService : IB56KonfliktService
     private static B56KonfliktEintrag ZuModell(
         B56KonfliktEintragEntity entity)
     {
-        return new B56KonfliktEintrag(
-            entity.KonfliktId,
-            entity.ProjektId,
-            entity.VorgaengerSnapshotId,
-            entity.NachfolgerSnapshotId,
-            entity.Bereich,
-            entity.Schluessel,
-            entity.Feld,
-            (B56VergleichsAenderung)entity.Aenderung,
-            entity.AlterWert,
-            entity.NeuerWert,
-            (B56KonfliktEntscheidungsTyp)entity.Entscheidung,
-            entity.EntschiedenAm);
+        return new B56KonfliktEintrag
+        {
+            Id = entity.Id,
+            ProjektId = entity.ProjektId,
+            VorgaengerImportId = entity.VorgaengerImportId,
+            NachfolgerImportId = entity.NachfolgerImportId,
+            Bereich = entity.Bereich,
+            Schluessel = entity.Schluessel,
+            Feld = entity.Feld,
+            Aenderung = entity.Aenderung,
+            AlterWert = entity.AlterWert,
+            NeuerWert = entity.NeuerWert,
+            Entscheidung = entity.Entscheidung,
+            EntschiedenAm = entity.EntschiedenAm,
+            ErstelltAm = entity.ErstelltAm
+        };
     }
 }

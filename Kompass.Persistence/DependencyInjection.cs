@@ -1,4 +1,4 @@
-﻿using Kompass.Application.B56Import;
+using Kompass.Application.B56Import;
 using Kompass.Application.Economics;
 using Kompass.Application.Funding;
 using Kompass.Application.Projects;
@@ -46,9 +46,9 @@ public static class DependencyInjection
 
         services.AddScoped<IVerbrauchsDatenService, EfVerbrauchsDatenService>();
 
-        services.AddScoped<IBerichtsService, BerichtsService>();
-
         services.AddScoped<IB56KonfliktService, EfB56KonfliktService>();
+
+        services.AddScoped<IBerichtsService, BerichtsService>();
 
         return services;
     }

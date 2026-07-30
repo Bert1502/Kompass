@@ -12,7 +12,7 @@ public sealed class B56KonfliktEintragEntityConfiguration
     {
         builder.ToTable("B56KonfliktEintraege");
 
-        builder.HasKey(x => x.KonfliktId);
+        builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Bereich)
             .IsRequired()
@@ -26,30 +26,33 @@ public sealed class B56KonfliktEintragEntityConfiguration
             .IsRequired()
             .HasMaxLength(200);
 
-        builder.Property(x => x.Aenderung)
-            .IsRequired();
-
-        builder.Property(x => x.Entscheidung)
-            .IsRequired();
-
         builder.Property(x => x.AlterWert)
             .HasMaxLength(500);
 
         builder.Property(x => x.NeuerWert)
             .HasMaxLength(500);
 
+        builder.Property(x => x.ErstelltAm)
+            .IsRequired();
+
         builder.HasIndex(x => new
         {
             x.ProjektId,
-            x.VorgaengerSnapshotId,
-            x.NachfolgerSnapshotId
+            x.NachfolgerImportId
         });
 
         builder.HasIndex(x => new
         {
             x.ProjektId,
-            x.VorgaengerSnapshotId,
-            x.NachfolgerSnapshotId,
+            x.VorgaengerImportId,
+            x.NachfolgerImportId
+        });
+
+        builder.HasIndex(x => new
+        {
+            x.ProjektId,
+            x.VorgaengerImportId,
+            x.NachfolgerImportId,
             x.Bereich,
             x.Schluessel,
             x.Feld

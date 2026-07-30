@@ -15,34 +15,32 @@ namespace Kompass.Persistence.Migrations
                 name: "B56KonfliktEintraege",
                 columns: table => new
                 {
-                    KonfliktId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
                     ProjektId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    VorgaengerSnapshotId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    NachfolgerSnapshotId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    VorgaengerImportId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    NachfolgerImportId = table.Column<Guid>(type: "TEXT", nullable: false),
                     Bereich = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
                     Schluessel = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
                     Feld = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
                     Aenderung = table.Column<int>(type: "INTEGER", nullable: false),
-                    AlterWert = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
-                    NeuerWert = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
                     Entscheidung = table.Column<int>(type: "INTEGER", nullable: false),
-                    EntschiedenAm = table.Column<DateTimeOffset>(type: "TEXT", nullable: true)
+                    EntschiedenAm = table.Column<DateTimeOffset>(type: "TEXT", nullable: true),
+                    ErstelltAm = table.Column<DateTimeOffset>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_B56KonfliktEintraege", x => x.KonfliktId);
+                    table.PrimaryKey("PK_B56KonfliktEintraege", x => x.Id);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_B56KonfliktEintraege_ProjektId_VorgaengerSnapshotId_NachfolgerSnapshotId",
+                name: "IX_B56KonfliktEintraege_ProjektId_NachfolgerImportId",
                 table: "B56KonfliktEintraege",
-                columns: new[] { "ProjektId", "VorgaengerSnapshotId", "NachfolgerSnapshotId" });
+                columns: new[] { "ProjektId", "NachfolgerImportId" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_B56KonfliktEintraege_ProjektId_VorgaengerSnapshotId_NachfolgerSnapshotId_Bereich_Schluessel_Feld",
+                name: "IX_B56KonfliktEintraege_ProjektId_VorgaengerImportId_NachfolgerImportId",
                 table: "B56KonfliktEintraege",
-                columns: new[] { "ProjektId", "VorgaengerSnapshotId", "NachfolgerSnapshotId", "Bereich", "Schluessel", "Feld" },
-                unique: true);
+                columns: new[] { "ProjektId", "VorgaengerImportId", "NachfolgerImportId" });
         }
 
         /// <inheritdoc />

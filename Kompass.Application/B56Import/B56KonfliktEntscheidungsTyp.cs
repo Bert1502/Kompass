@@ -2,7 +2,7 @@ namespace Kompass.Application.B56Import;
 
 public enum B56KonfliktEntscheidungsTyp
 {
-    Ausstehend = 0,
-    Akzeptiert = 1,
-    Abgelehnt = 2
+    Offen = 0,
+    Uebernehmen = 1,
+    Behalten = 2
 }

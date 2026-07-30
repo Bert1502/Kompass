@@ -1,6 +1,5 @@
 using Kompass.Api.B56Import;
 using Kompass.Application.B56Import;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Kompass.Tests.Api;
@@ -12,160 +11,136 @@ public sealed class B56KonfliktControllerTests
     [Fact]
     public async Task Listen_liefert_400_wenn_vorgaenger_leer()
     {
-        var controller =
-            new B56KonfliktController(
-                new KonfliktServiceFake());
+        var controller = new B56KonfliktController(
+            new B56KonfliktServiceFake());
 
         var antwort =
             await controller.ListenAsync(
                 Guid.NewGuid(),
                 Guid.NewGuid(),
-                vorgaenger: Guid.Empty,
+                Guid.Empty,
                 CancellationToken.None);
 
         Assert.IsType<BadRequestObjectResult>(antwort.Result);
     }
 
     [Fact]
-    public async Task Listen_liefert_200_mit_Konfliktliste()
+    public async Task Listen_liefert_200_mit_Konflikten()
     {
-        var eintrag = ErstelleEintrag();
+        var eintrag = ErstelleKonfliktEintrag();
 
-        var controller =
-            new B56KonfliktController(
-                new KonfliktServiceFake(liste: [eintrag]));
+        var controller = new B56KonfliktController(
+            new B56KonfliktServiceFake(konflikte: [eintrag]));
 
         var antwort =
             await controller.ListenAsync(
                 eintrag.ProjektId,
-                eintrag.NachfolgerSnapshotId,
-                vorgaenger: eintrag.VorgaengerSnapshotId,
+                eintrag.NachfolgerImportId,
+                eintrag.VorgaengerImportId,
                 CancellationToken.None);
 
         var ok = Assert.IsType<OkObjectResult>(antwort.Result);
-        var gesendet =
-            Assert.IsAssignableFrom<IReadOnlyList<B56KonfliktAntwort>>(
+        var liste =
+            Assert.IsAssignableFrom<
+                IReadOnlyList<B56KonfliktEintragAntwort>>(
                 ok.Value);
 
-        Assert.Single(gesendet);
-        Assert.Equal(eintrag.KonfliktId, gesendet[0].KonfliktId);
-    }
-
-    // ─── Entscheiden ─────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task Entscheiden_liefert_400_wenn_vorgaenger_leer()
-    {
-        var controller =
-            new B56KonfliktController(
-                new KonfliktServiceFake());
-
-        var request =
-            new B56KonfliktEntscheidungRequest(
-                B56KonfliktEntscheidungsTyp.Akzeptiert);
-
-        var antwort =
-            await controller.EntscheidenAsync(
-                Guid.NewGuid(),
-                Guid.NewGuid(),
-                Guid.NewGuid(),
-                vorgaenger: Guid.Empty,
-                request,
-                CancellationToken.None);
-
-        Assert.IsType<BadRequestObjectResult>(antwort.Result);
+        Assert.Single(liste);
+        Assert.Equal(eintrag.Bereich, liste[0].Bereich);
+        Assert.Equal(eintrag.Schluessel, liste[0].Schluessel);
+        Assert.Equal(B56KonfliktEntscheidungsTyp.Offen, liste[0].Entscheidung);
     }
 
     [Fact]
-    public async Task Entscheiden_liefert_400_wenn_Entscheidung_Ausstehend()
+    public async Task Listen_liefert_200_mit_leerer_Liste_wenn_kein_Vergleich_vorhanden()
     {
-        var controller =
-            new B56KonfliktController(
-                new KonfliktServiceFake());
-
-        var request =
-            new B56KonfliktEntscheidungRequest(
-                B56KonfliktEntscheidungsTyp.Ausstehend);
+        var controller = new B56KonfliktController(
+            new B56KonfliktServiceFake(konflikte: []));
 
         var antwort =
-            await controller.EntscheidenAsync(
+            await controller.ListenAsync(
                 Guid.NewGuid(),
                 Guid.NewGuid(),
                 Guid.NewGuid(),
-                vorgaenger: Guid.NewGuid(),
-                request,
-                CancellationToken.None);
-
-        Assert.IsType<BadRequestObjectResult>(antwort.Result);
-    }
-
-    [Fact]
-    public async Task Entscheiden_liefert_404_wenn_Konflikt_nicht_gefunden()
-    {
-        var controller =
-            new B56KonfliktController(
-                new KonfliktServiceFake(entschieden: null));
-
-        var request =
-            new B56KonfliktEntscheidungRequest(
-                B56KonfliktEntscheidungsTyp.Abgelehnt);
-
-        var antwort =
-            await controller.EntscheidenAsync(
-                Guid.NewGuid(),
-                Guid.NewGuid(),
-                Guid.NewGuid(),
-                vorgaenger: Guid.NewGuid(),
-                request,
-                CancellationToken.None);
-
-        Assert.IsType<NotFoundObjectResult>(antwort.Result);
-    }
-
-    [Fact]
-    public async Task Entscheiden_liefert_200_mit_aktualisiertem_Eintrag()
-    {
-        var eintrag = ErstelleEintrag(
-            entscheidung: B56KonfliktEntscheidungsTyp.Akzeptiert,
-            entschiedenAm: DateTimeOffset.UtcNow);
-
-        var controller =
-            new B56KonfliktController(
-                new KonfliktServiceFake(entschieden: eintrag));
-
-        var request =
-            new B56KonfliktEntscheidungRequest(
-                B56KonfliktEntscheidungsTyp.Akzeptiert);
-
-        var antwort =
-            await controller.EntscheidenAsync(
-                eintrag.ProjektId,
-                eintrag.NachfolgerSnapshotId,
-                eintrag.KonfliktId,
-                vorgaenger: eintrag.VorgaengerSnapshotId,
-                request,
                 CancellationToken.None);
 
         var ok = Assert.IsType<OkObjectResult>(antwort.Result);
-        var gesendet =
-            Assert.IsType<B56KonfliktAntwort>(ok.Value);
+        var liste =
+            Assert.IsAssignableFrom<
+                IReadOnlyList<B56KonfliktEintragAntwort>>(
+                ok.Value);
 
-        Assert.Equal(
-            B56KonfliktEntscheidungsTyp.Akzeptiert,
-            gesendet.Entscheidung);
+        Assert.Empty(liste);
     }
 
-    // ─── Alle akzeptieren ────────────────────────────────────────────────────
+    // ─── EntscheidungSetzen ───────────────────────────────────────────────────
 
     [Fact]
-    public async Task AlleAkzeptieren_liefert_400_wenn_vorgaenger_leer()
+    public async Task EntscheidungSetzen_liefert_204_bei_Erfolg()
     {
-        var controller =
-            new B56KonfliktController(
-                new KonfliktServiceFake());
+        var id = Guid.NewGuid();
+
+        var controller = new B56KonfliktController(
+            new B56KonfliktServiceFake(entscheidungErgebnis: true));
 
         var antwort =
-            await controller.AlleAkzeptierenAsync(
+            await controller.EntscheidungSetzenAsync(
+                Guid.NewGuid(),
+                Guid.NewGuid(),
+                id,
+                new B56KonfliktEntscheidungAnfrage(
+                    B56KonfliktEntscheidungsTyp.Uebernehmen),
+                CancellationToken.None);
+
+        Assert.IsType<NoContentResult>(antwort);
+    }
+
+    [Fact]
+    public async Task EntscheidungSetzen_liefert_404_wenn_nicht_gefunden()
+    {
+        var controller = new B56KonfliktController(
+            new B56KonfliktServiceFake(entscheidungErgebnis: false));
+
+        var antwort =
+            await controller.EntscheidungSetzenAsync(
+                Guid.NewGuid(),
+                Guid.NewGuid(),
+                Guid.NewGuid(),
+                new B56KonfliktEntscheidungAnfrage(
+                    B56KonfliktEntscheidungsTyp.Behalten),
+                CancellationToken.None);
+
+        Assert.IsType<NotFoundObjectResult>(antwort);
+    }
+
+    [Fact]
+    public async Task EntscheidungSetzen_liefert_400_wenn_Entscheidung_Offen()
+    {
+        var controller = new B56KonfliktController(
+            new B56KonfliktServiceFake(entscheidungErgebnis: true));
+
+        var antwort =
+            await controller.EntscheidungSetzenAsync(
+                Guid.NewGuid(),
+                Guid.NewGuid(),
+                Guid.NewGuid(),
+                new B56KonfliktEntscheidungAnfrage(
+                    B56KonfliktEntscheidungsTyp.Offen),
+                CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(antwort);
+    }
+
+    // ─── AlleUebernehmen ─────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task AlleUebernehmen_liefert_400_wenn_vorgaenger_leer()
+    {
+        var controller = new B56KonfliktController(
+            new B56KonfliktServiceFake());
+
+        var antwort =
+            await controller.AlleUebernehmenAsync(
                 Guid.NewGuid(),
                 Guid.NewGuid(),
                 vorgaenger: Guid.Empty,
@@ -175,85 +150,79 @@ public sealed class B56KonfliktControllerTests
     }
 
     [Fact]
-    public async Task AlleAkzeptieren_liefert_200_mit_Anzahl()
+    public async Task AlleUebernehmen_liefert_200_mit_Anzahl()
     {
-        var controller =
-            new B56KonfliktController(
-                new KonfliktServiceFake(alleAkzeptiertAnzahl: 3));
+        var controller = new B56KonfliktController(
+            new B56KonfliktServiceFake(alleUebernommenAnzahl: 3));
 
         var antwort =
-            await controller.AlleAkzeptierenAsync(
+            await controller.AlleUebernehmenAsync(
                 Guid.NewGuid(),
                 Guid.NewGuid(),
                 vorgaenger: Guid.NewGuid(),
                 CancellationToken.None);
 
         var ok = Assert.IsType<OkObjectResult>(antwort.Result);
-        var gesendet =
-            Assert.IsType<B56AlleAkzeptiertAntwort>(ok.Value);
-
-        Assert.Equal(3, gesendet.AkzeptierteKonflikte);
+        var ergebnis = Assert.IsType<B56AlleUebernommenAntwort>(ok.Value);
+        Assert.Equal(3, ergebnis.UebernommeneKonflikte);
     }
 
-    // ─── Hilfsmethoden ────────────────────────────────────────────────────────
-
-    private static B56KonfliktEintrag ErstelleEintrag(
-        B56KonfliktEntscheidungsTyp entscheidung =
-            B56KonfliktEntscheidungsTyp.Ausstehend,
-        DateTimeOffset? entschiedenAm = null)
+    private static B56KonfliktEintrag ErstelleKonfliktEintrag()
     {
-        return new B56KonfliktEintrag(
-            KonfliktId: Guid.NewGuid(),
-            ProjektId: Guid.NewGuid(),
-            VorgaengerSnapshotId: Guid.NewGuid(),
-            NachfolgerSnapshotId: Guid.NewGuid(),
-            Bereich: "Bestandskennwert",
-            Schluessel: "Heizwärmebedarf",
-            Feld: "Wert",
-            Aenderung: B56VergleichsAenderung.Geaendert,
-            AlterWert: "120.5",
-            NeuerWert: "98.3",
-            Entscheidung: entscheidung,
-            EntschiedenAm: entschiedenAm);
-    }
+        var projektId = Guid.NewGuid();
+        var vorgaenger = Guid.NewGuid();
+        var nachfolger = Guid.NewGuid();
 
-    private sealed class KonfliktServiceFake : IB56KonfliktService
-    {
-        private readonly IReadOnlyList<B56KonfliktEintrag> _liste;
-        private readonly B56KonfliktEintrag? _entschieden;
-        private readonly int _alleAkzeptiertAnzahl;
-
-        public KonfliktServiceFake(
-            IReadOnlyList<B56KonfliktEintrag>? liste = null,
-            B56KonfliktEintrag? entschieden = null,
-            int alleAkzeptiertAnzahl = 0)
+        return new B56KonfliktEintrag
         {
-            _liste = liste ?? [];
-            _entschieden = entschieden;
-            _alleAkzeptiertAnzahl = alleAkzeptiertAnzahl;
+            Id = Guid.NewGuid(),
+            ProjektId = projektId,
+            VorgaengerImportId = vorgaenger,
+            NachfolgerImportId = nachfolger,
+            Bereich = "Bestandskennwert",
+            Schluessel = "Heizwärmebedarf",
+            Feld = "Wert",
+            Aenderung = B56VergleichsAenderung.Geaendert,
+            Entscheidung = B56KonfliktEntscheidungsTyp.Offen,
+            ErstelltAm = DateTimeOffset.UtcNow
+        };
+    }
+
+    private sealed class B56KonfliktServiceFake(
+        IReadOnlyList<B56KonfliktEintrag>? konflikte = null,
+        bool entscheidungErgebnis = true,
+        int alleUebernommenAnzahl = 0)
+        : IB56KonfliktService
+    {
+        public Task<IReadOnlyList<B56KonfliktEintrag>>
+            ListenOderErzeugenAsync(
+                Guid projektId,
+                Guid vorgaengerImportId,
+                Guid nachfolgerImportId,
+                CancellationToken cancellationToken = default)
+        {
+            IReadOnlyList<B56KonfliktEintrag> ergebnis =
+                konflikte ?? [];
+            return Task.FromResult(ergebnis);
         }
 
-        public Task<IReadOnlyList<B56KonfliktEintrag>> ListenAsync(
+        public Task<bool> EntscheidungSetzenAsync(
             Guid projektId,
-            Guid vorgaengerSnapshotId,
-            Guid nachfolgerSnapshotId,
-            CancellationToken cancellationToken = default)
-            => Task.FromResult(_liste);
-
-        public Task<B56KonfliktEintrag?> EntscheidenAsync(
-            Guid projektId,
-            Guid vorgaengerSnapshotId,
-            Guid nachfolgerSnapshotId,
-            Guid konfliktId,
+            Guid nachfolgerImportId,
+            Guid id,
             B56KonfliktEntscheidungsTyp entscheidung,
             CancellationToken cancellationToken = default)
-            => Task.FromResult(_entschieden);
+        {
+            return Task.FromResult(entscheidungErgebnis);
+        }
 
-        public Task<int> AlleAusstehendAkzeptierenAsync(
+        public Task<int> AlleOffenenUebernehmenAsync(
             Guid projektId,
-            Guid vorgaengerSnapshotId,
-            Guid nachfolgerSnapshotId,
+            Guid vorgaengerImportId,
+            Guid nachfolgerImportId,
             CancellationToken cancellationToken = default)
-            => Task.FromResult(_alleAkzeptiertAnzahl);
+        {
+            return Task.FromResult(alleUebernommenAnzahl);
+        }
     }
 }
