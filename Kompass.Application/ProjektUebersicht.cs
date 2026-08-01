@@ -15,4 +15,7 @@ public sealed record ProjektUebersicht(
     string? Strasse = null,
     string? Ort = null,
     string? Postleitzahl = null,
-    string? Gebaeudeart = null);
+    string? Gebaeudeart = null,
+    Freigabestatus Freigabestatus = Freigabestatus.NichtFreigegeben,
+    DateTime? FreigegebenAm = null,
+    string? Notizen = null);

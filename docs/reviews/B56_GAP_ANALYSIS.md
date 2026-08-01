@@ -1,6 +1,6 @@
 # B56-Gap-Analyse
 
-**Stand:** 1. August 2026 (aktualisiert nach Paket-17-Implementierung: Verbrauchsvergleichsbericht – VerbrauchsvergleichBericht, VerbrauchsvergleichZeile, VerbrauchsvergleichErzeugenAsync, API GET .../berichte/verbrauchsvergleich; Verbrauchsdaten-Zusammenfassung – VerbrauchsZusammenfassungJeEnergietraeger, ZusammenfassenAsync, API GET .../verbrauchsdaten/zusammenfassung; 304 Tests)
+**Stand:** 1. August 2026 (aktualisiert nach Paket-18-Implementierung: Freigabestatus und Projektnotizen – `Freigabestatus`-Enum, `FreigabestatusAktualisieren`-Methode mit Statusübergangsvalidierung, `NotizenAktualisieren`-Methode, API-Endpunkte PATCH .../freigabestatus und PATCH .../notizen, Migration `AddProjektFreigabestatus`; 325 Tests)
 
 ## 1. Auftrag und Bewertungsgrundlage
 
@@ -122,12 +122,26 @@ implementiert:
   `api/projekte/{id}/b56-importe/{importId}/konflikte`; Migration
   `AddB56KonfliktEintraege`; Domain, Service und Controller durch je eigene Tests
   abgesichert.
+- Freigabestatus und Projektnotizen (Paket 18):
+  `Freigabestatus`-Enum (`NichtFreigegeben`, `ZurFreigabeEingereicht`, `Freigegeben`);
+  `FreigabestatusAktualisieren`-Methode auf dem `Projekt`-Aggregat mit Statusübergangs­
+  validierung (Freigabe nur nach Einreichung); `FreigegebenAm`-Zeitstempel wird beim
+  Übergang nach `Freigegeben` gesetzt; `NotizenAktualisieren`-Methode mit Bereinigung
+  und Längenbegrenzung (2 000 Zeichen); `ProjektUebersicht` um `Freigabestatus`,
+  `FreigegebenAm` und `Notizen` erweitert; `IProjektService` um
+  `FreigabestatusAktualisierenAsync` und `NotizenAktualisierenAsync` ergänzt;
+  `ProjektService` implementiert beide Methoden; Migration `AddProjektFreigabestatus`
+  ergänzt `Freigabestatus` (INTEGER, Default 0), `FreigegebenAm` (TEXT, nullable)
+  und `Notizen` (TEXT, maxLength 2 000, nullable) in der Tabelle `Projekte`;
+  API-Endpunkte `PATCH api/projekte/{id}/freigabestatus` und
+  `PATCH api/projekte/{id}/notizen` hinzugefügt; Domain, Service und Controller
+  durch je eigene Tests abgesichert.
 
-`dotnet test` bestätigt 291/291 Tests bestanden.
+`dotnet test` bestätigt 325/325 Tests bestanden.
 
 Offene Schwerpunkte für die nächste Ausbaustufe:
 
-- Freigabestatus und Änderungshistorie für das Projektmodell;
+- Änderungshistorie und Revisionierung für das Projektmodell;
 - Förderprogramm-Verknüpfung mit Alternativenberechnung;
 - weitere Berichtstypen (Energieberatungsbericht, Executive Summary, Prüferunterlagen).
 
@@ -533,6 +547,44 @@ Nachweise:
 - `Kompass.Tests/EfB56KonfliktServiceTests.cs` (9 Tests)
 - `Kompass.Tests/B56KonfliktControllerTests.cs` (6 Tests)
 
+### 3.18 Freigabestatus und Projektnotizen (Paket 18)
+
+- `Freigabestatus`-Enum mit Werten `NichtFreigegeben`, `ZurFreigabeEingereicht`
+  und `Freigegeben` modelliert den Freigabe-Lebenszyklus eines Projekts.
+- `FreigabestatusAktualisieren`-Methode auf dem `Projekt`-Aggregat erzwingt
+  Statusübergänge: Freigabe (`Freigegeben`) ist nur aus dem Zustand
+  `ZurFreigabeEingereicht` erlaubt; alle anderen Übergänge sind zulässig.
+- `FreigegebenAm`-Zeitstempel (UTC) wird beim Übergang nach `Freigegeben`
+  gesetzt und bei späterem Zurücksetzen erhalten.
+- `NotizenAktualisieren`-Methode bereinigt führende und nachfolgende Leerzeichen,
+  setzt leere Eingaben auf `null` und begrenzt die Länge auf 2 000 Zeichen.
+- `ProjektUebersicht`-Record um `Freigabestatus`, `FreigegebenAm` und `Notizen`
+  erweitert.
+- `IProjektService` um `FreigabestatusAktualisierenAsync` und
+  `NotizenAktualisierenAsync` ergänzt; `ProjektService` implementiert beide
+  Methoden.
+- Migration `AddProjektFreigabestatus` ergänzt `Freigabestatus` (INTEGER, Default 0),
+  `FreigegebenAm` (TEXT, nullable) und `Notizen` (TEXT, maxLength 2 000, nullable)
+  in der Tabelle `Projekte`.
+- API-Endpunkte `PATCH api/projekte/{id}/freigabestatus` und
+  `PATCH api/projekte/{id}/notizen` hinzugefügt.
+- Domain, Service und Controller sind durch je eigene Tests abgesichert.
+
+Nachweise:
+
+- `Kompass.Domain/Projects/Freigabestatus.cs`
+- `Kompass.Domain/Projects/Projekt.cs` (`FreigabestatusAktualisieren`, `NotizenAktualisieren`)
+- `Kompass.Application/ProjektUebersicht.cs`
+- `Kompass.Application/IProjektService.cs`
+- `Kompass.Persistence/Services/ProjektService.cs`
+- `Kompass.Persistence/Data/Configurations/ProjektConfiguration.cs`
+- `Kompass.Persistence/Migrations/20260801081028_AddProjektFreigabestatus.cs`
+- `Kompass.Api/Projects/ProjekteController.cs`
+- `Kompass.Api/Projects/ProjektFreigabestatusAktualisierenRequest.cs`
+- `Kompass.Api/Projects/ProjektNotizenAktualisierenRequest.cs`
+- `Kompass.Tests/FreigabestatusDomainTests.cs` (9 Tests)
+- `Kompass.Tests/EfProjektFreigabestatusTests.cs` (6 Tests)
+
 
 ## 4. Teilweise erfüllt
 
@@ -693,12 +745,11 @@ Bearbeitungsstatus, Modernisierungsalternativen, alternative Bauteile,
 Kostenpositionen, Wirtschaftlichkeitsannahmen, Herkunftsreferenz, seit
 Paket 14 Auftraggeber, Ansprechpartner, Strasse, Ort, Postleitzahl und
 Gebäudeart, seit Paket 15 reale Verbrauchsdaten je Abrechnungsperiode
-und Energieträger sowie seit Paket 16 feldweise Konfliktentscheidungen
-für Re-Import-Konflikte.
+und Energieträger, seit Paket 16 feldweise Konfliktentscheidungen
+für Re-Import-Konflikte sowie seit Paket 18 Freigabestatus und Projektnotizen.
 
 Noch nicht modelliert sind unter anderem:
 
-- Freigabestatus;
 - projektbezogene Förderparameter (Verknüpfung mit
   Förderprogramm-Katalog);
 - Energiepreise und Preissteigerungen auf Projektebene;
@@ -782,6 +833,7 @@ Noch nicht umgesetzt:
 | `20260729152143_AddVerbrauchsDaten` | `VerbrauchsDaten` mit allen Fachfeldern und Indizes | ✅ umgesetzt |
 | `20260730070445_AddB56KonfliktEintraege` | `B56KonfliktEintraege` mit Entscheidungsstatus und Indizes | ✅ umgesetzt |
 | `20260730092438_AddB56KonfliktAlterNeuerWert` | `AlterWert`, `NeuerWert` Spalten und eindeutiger Index auf `B56KonfliktEintraege` | ✅ umgesetzt |
+| `20260801081028_AddProjektFreigabestatus` | `Freigabestatus`, `FreigegebenAm`, `Notizen` in `Projekte` | ✅ umgesetzt |
 
 ### 6.2 Ausstehende Migrationen
 
@@ -846,7 +898,9 @@ für die Nachweisbarkeit erhalten bleiben.
 | `VerbrauchsDatenControllerTests.cs` | Verbrauchsdaten-API | 8 |
 | `B56KonfliktControllerTests.cs` | Konflikte-API (inkl. AlleUebernehmen) | 8 |
 | `EfB56KonfliktServiceTests.cs` | Konflikte-Persistence (inkl. Auto-Init, AlterWert/NeuerWert) | 9 |
-| **Gesamt** | | **291** |
+| `FreigabestatusDomainTests.cs` | Freigabestatus- und Notizen-Domain-Invarianten | 9 |
+| `EfProjektFreigabestatusTests.cs` | Freigabestatus- und Notizen-Persistence | 6 |
+| **Gesamt** | | **325** |
 
 ### 7.2 Noch fehlende Tests
 

@@ -47,6 +47,15 @@ public sealed class ProjektConfiguration : IEntityTypeConfiguration<Projekt>
         builder.Property(projekt => projekt.Gebaeudeart)
             .HasMaxLength(Projekt.MaxGebaeudeartLaenge);
 
+        builder.Property(projekt => projekt.Freigabestatus)
+            .HasDefaultValue(Freigabestatus.NichtFreigegeben)
+            .IsRequired();
+
+        builder.Property(projekt => projekt.FreigegebenAm);
+
+        builder.Property(projekt => projekt.Notizen)
+            .HasMaxLength(Projekt.MaxNotizenLaenge);
+
         builder.HasMany(projekt => projekt.Alternativen)
             .WithOne()
             .HasForeignKey("ProjektId")

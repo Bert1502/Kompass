@@ -400,6 +400,22 @@ public sealed class B56ImportEndToEndSmokeTests
             throw new NotSupportedException();
         }
 
+        public Task<ProjektUebersicht?> FreigabestatusAktualisierenAsync(
+            Guid id,
+            Kompass.Domain.Projects.Freigabestatus status,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<ProjektUebersicht?> NotizenAktualisierenAsync(
+            Guid id,
+            string? notizen,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
         public Task<AlternativeKurzinfo?> AlternativeNachIdAbrufenAsync(
             Guid projektId,
             Guid alternativeId,

@@ -247,8 +247,7 @@ public sealed class ProjekteController : ControllerBase
         }
     }
 
-    [HttpPatch("{id:guid}/projektdaten")]
-    [ProducesResponseType(
+    [HttpPatch("{id:guid}/projektdaten")]    [ProducesResponseType(
         typeof(ProjektUebersicht),
         StatusCodes.Status200OK)]
     [ProducesResponseType(
@@ -286,6 +285,98 @@ public sealed class ProjekteController : ControllerBase
             _logger.LogWarning(
                 exception,
                 "Projektdaten konnten wegen ungültiger Daten nicht aktualisiert werden.");
+
+            return BadRequest(new
+            {
+                Nachricht = exception.Message
+            });
+        }
+    }
+
+    [HttpPatch("{id:guid}/freigabestatus")]
+    [ProducesResponseType(
+        typeof(ProjektUebersicht),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(
+        StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProjektUebersicht>>
+        FreigabestatusAktualisierenAsync(
+            Guid id,
+            [FromBody] ProjektFreigabestatusAktualisierenRequest request,
+            CancellationToken cancellationToken)
+    {
+        try
+        {
+            var projekt =
+                await _projektService.FreigabestatusAktualisierenAsync(
+                    id,
+                    request.Freigabestatus,
+                    cancellationToken);
+
+            if (projekt is null)
+            {
+                return NotFound(new
+                {
+                    Nachricht =
+                        $"Das Projekt mit der ID '{id}' wurde nicht gefunden."
+                });
+            }
+
+            return Ok(projekt);
+        }
+        catch (DomainException exception)
+        {
+            _logger.LogWarning(
+                exception,
+                "Freigabestatus konnte wegen ungültiger Daten nicht aktualisiert werden.");
+
+            return BadRequest(new
+            {
+                Nachricht = exception.Message
+            });
+        }
+    }
+
+    [HttpPatch("{id:guid}/notizen")]
+    [ProducesResponseType(
+        typeof(ProjektUebersicht),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(
+        StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProjektUebersicht>>
+        NotizenAktualisierenAsync(
+            Guid id,
+            [FromBody] ProjektNotizenAktualisierenRequest request,
+            CancellationToken cancellationToken)
+    {
+        try
+        {
+            var projekt =
+                await _projektService.NotizenAktualisierenAsync(
+                    id,
+                    request.Notizen,
+                    cancellationToken);
+
+            if (projekt is null)
+            {
+                return NotFound(new
+                {
+                    Nachricht =
+                        $"Das Projekt mit der ID '{id}' wurde nicht gefunden."
+                });
+            }
+
+            return Ok(projekt);
+        }
+        catch (DomainException exception)
+        {
+            _logger.LogWarning(
+                exception,
+                "Notizen konnten wegen ungültiger Daten nicht aktualisiert werden.");
 
             return BadRequest(new
             {
