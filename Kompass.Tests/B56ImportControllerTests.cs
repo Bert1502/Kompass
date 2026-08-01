@@ -485,7 +485,7 @@ public sealed class B56ImportControllerTests
             alternative.Bezeichnung);
 
         Assert.Equal(
-            4,
+            3,
             alternative.Kennwerte.Count);
     }
 
@@ -503,8 +503,7 @@ public sealed class B56ImportControllerTests
                  {
                      "Primärenergiebedarf Gebäude",
                      "Endenergiebedarf Gebäude",
-                     "CO2-Emissionen Gebäude",
-                     "Investitionskosten"
+                     "CO2-Emissionen Gebäude"
                  })
         {
             alternative.Kennwerte.Add(

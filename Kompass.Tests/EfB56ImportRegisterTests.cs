@@ -280,9 +280,9 @@ public sealed class EfB56ImportRegisterTests
             new B56Kennwert
             {
                 Name =
-                    "Investitionskosten",
+                    "Primärenergiebedarf Gebäude",
                 Wert =
-                    20000
+                    150
             });
 
         return new B56ImportPipelineErgebnis
