@@ -36,7 +36,7 @@ public sealed class XmlReferenzdatenProvider : IReferenzdatenProvider
             var dict = row.Elements()
                 .ToDictionary(
                     element => element.Name.LocalName.Trim().ToLowerInvariant(),
-                    element => element.Value,
+                    element => (string?)element.Value,
                     StringComparer.OrdinalIgnoreCase);
 
             result.Add(ReferenzdatenImportParser.Parse(dict, ReferenzdatenImportart.DateiImport));

@@ -25,11 +25,8 @@ public sealed class JsonReferenzdatenProvider : IReferenzdatenProvider
             return [];
         }
 
-        await using var stream = File.OpenRead(_optionen.JsonDateiPfad);
-
-        var entries = await JsonSerializer.DeserializeAsync<List<Dictionary<string, string?>>(
-            stream,
-            cancellationToken: cancellationToken);
+        var json = await File.ReadAllTextAsync(_optionen.JsonDateiPfad, cancellationToken);
+        var entries = JsonSerializer.Deserialize<List<Dictionary<string, string?>>>(json);
 
         if (entries is null)
         {

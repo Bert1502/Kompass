@@ -299,7 +299,6 @@ public sealed class EfReferenzdatenService : IReferenzdatenService
 
         var datensatz = await query
             .OrderByDescending(eintrag => eintrag.GueltigAb)
-            .ThenByDescending(eintrag => eintrag.LetzteAktualisierungUtc)
             .FirstOrDefaultAsync(cancellationToken);
 
         return datensatz is null

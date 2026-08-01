@@ -29,15 +29,24 @@ public sealed class ExcelReferenzdatenProvider : IReferenzdatenProvider
         using var document = SpreadsheetDocument.Open(_optionen.ExcelDateiPfad, false);
         var workbookPart = document.WorkbookPart ?? throw new InvalidOperationException("Ungültige Excel-Datei.");
         var sharedStrings = workbookPart.SharedStringTablePart?.SharedStringTable;
-        var firstSheet = workbookPart.Workbook.Sheets?.Elements<Sheet>().FirstOrDefault();
+        var sheets = workbookPart.Workbook?.Sheets;
+        var firstSheet = sheets?.Elements<Sheet>().FirstOrDefault();
 
         if (firstSheet is null)
         {
             return Task.FromResult<IReadOnlyList<ReferenzdatenImportEintrag>>([]);
         }
 
-        var worksheetPart = (WorksheetPart)workbookPart.GetPartById(firstSheet.Id!);
-        var rows = worksheetPart.Worksheet.Descendants<Row>().ToList();
+        var sheetId = firstSheet.Id?.Value;
+
+        if (string.IsNullOrWhiteSpace(sheetId))
+        {
+            return Task.FromResult<IReadOnlyList<ReferenzdatenImportEintrag>>([]);
+        }
+
+        var worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheetId);
+        var worksheet = worksheetPart.Worksheet;
+        var rows = worksheet?.Descendants<Row>().ToList() ?? [];
 
         if (rows.Count < 2)
         {

@@ -97,8 +97,12 @@ public sealed class EfReferenzdatenServiceTests
 
         Assert.True(result.LokalerFallbackVerwendet);
         Assert.Equal(2, result.ProviderErgebnisse.Count);
-        Assert.True(result.ProviderErgebnisse.Any(e => e.ProviderName == "throwing" && e.Fehler is not null));
-        Assert.True(result.ProviderErgebnisse.Any(e => e.ProviderName == "static" && e.ImportierteDatensaetze == 1));
+        Assert.Contains(
+            result.ProviderErgebnisse,
+            e => e.ProviderName == "throwing" && e.Fehler is not null);
+        Assert.Contains(
+            result.ProviderErgebnisse,
+            e => e.ProviderName == "static" && e.ImportierteDatensaetze == 1);
     }
 
     private static Referenzdatensatz ErzeugeDatensatz(
