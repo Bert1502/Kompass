@@ -14,6 +14,17 @@ public sealed partial class B56TabellenImportService
     private const string Modernisierungsblatt =
         "SCModernisierungen";
 
+    private static readonly IReadOnlySet<string> IgnorierteArbeitsblaetter =
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "SCNeubau",
+            "SCEnergiebilanzNeubau",
+            "SCNeubauberatungsbericht",
+            "SCEnergiebilanz",
+            "SCZonendaten",
+            "SCModernisierungen"
+        };
+
     private static readonly IReadOnlyList<string> Kennwertnamen =
     [
         "Primärenergiebedarf Gebäude",
@@ -90,6 +101,8 @@ public sealed partial class B56TabellenImportService
             tabellen
                 .Where(
                     tabelle =>
+                        !IgnorierteArbeitsblaetter.Contains(
+                            tabelle.Arbeitsblatt) &&
                         !IstZugeordneteBauteiltabelle(
                             tabelle))
                 .Select(

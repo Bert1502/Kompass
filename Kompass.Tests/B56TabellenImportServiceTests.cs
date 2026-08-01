@@ -256,6 +256,70 @@ public sealed class B56TabellenImportServiceTests
         Assert.Single(ergebnis.Bauteile);
     }
 
+    [Theory]
+    [InlineData("SCNeubau")]
+    [InlineData("SCEnergiebilanzNeubau")]
+    [InlineData("SCNeubauberatungsbericht")]
+    [InlineData("SCEnergiebilanz")]
+    [InlineData("SCZonendaten")]
+    [InlineData("SCModernisierungen")]
+    public async Task Tabellen_in_ignorierten_Arbeitsblaettern_erzeugen_keine_Warnung(
+        string arbeitsblattName)
+    {
+        // Tables detected in worksheets that are not part of the
+        // fachlich relevant import scope must be silently ignored.
+        var zeilen =
+            new List<B56Zeile>
+            {
+                Zeile(1,
+                    ("A", "Bauteil"),
+                    ("B", "Fläche"),
+                    ("C", "U-Wert"),
+                    ("D", "Transmission")),
+                Zeile(2,
+                    ("A", "AW01"),
+                    ("B", "42.5"),
+                    ("C", "0.24"),
+                    ("D", "10.2"))
+            };
+
+        var service =
+            new B56TabellenImportService(
+                new B56TabellenFinder());
+
+        var ergebnis =
+            await service.ImportierenAsync(
+                new B56ImportKontext
+                {
+                    ImportId = Guid.NewGuid(),
+                    ProjektId = Guid.NewGuid(),
+                    Projektname = "Testprojekt",
+                    Quelldatei = "test.xlsm",
+                    Archivdatei = "test.xlsm",
+                    SHA256 = "0123456789abcdef",
+                    Importzeitpunkt = DateTimeOffset.UtcNow,
+                    Arbeitsmappe = new B56Arbeitsmappe
+                    {
+                        Dateipfad = "test.xlsm",
+                        Arbeitsblaetter =
+                        [
+                            new B56Arbeitsblatt
+                            {
+                                Name = arbeitsblattName,
+                                Zeilen = zeilen
+                            },
+                            new B56Arbeitsblatt
+                            {
+                                Name = "SCModernisierungen",
+                                Zeilen = []
+                            }
+                        ]
+                    }
+                });
+
+        Assert.Empty(ergebnis.Warnungen);
+    }
+
     private static IReadOnlyList<B56Zeile>
         ErzeugeReferenzzeilen()
     {
