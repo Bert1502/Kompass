@@ -1,6 +1,6 @@
 # B56-Gap-Analyse
 
-**Stand:** 30. Juli 2026 (aktualisiert nach Paket-16-Implementierung: Feldweise Konfliktlösung – B56KonfliktEntscheidungsTyp, B56KonfliktEintrag, IB56KonfliktService, EfB56KonfliktService, Migration AddB56KonfliktEintraege, API-Endpunkte GET, PATCH und POST alle-uebernehmen für Konflikte)
+**Stand:** 1. August 2026 (aktualisiert nach Paket-17-Implementierung: Verbrauchsvergleichsbericht – VerbrauchsvergleichBericht, VerbrauchsvergleichZeile, VerbrauchsvergleichErzeugenAsync, API GET .../berichte/verbrauchsvergleich; Verbrauchsdaten-Zusammenfassung – VerbrauchsZusammenfassungJeEnergietraeger, ZusammenfassenAsync, API GET .../verbrauchsdaten/zusammenfassung; 304 Tests)
 
 ## 1. Auftrag und Bewertungsgrundlage
 
@@ -947,14 +947,18 @@ weitere B56-Exportbereiche sind ausdrücklich offen.
 
 ### R10 – Wirtschaftlichkeit noch nicht mit realen Kostendaten verknüpft
 
-**Priorität: mittel.**
+**Priorität: mitigiert.**
 `Wirtschaftlichkeitsannahmen` und `Kostenpositionen` sind getrennt
-modelliert. Die Berechnung erwartet `investitionskosten` als Parameter,
-der aktuell nicht automatisch aus den Kostenpositionen aggregiert wird.
+modelliert. Die Berechnung verwendet `alternative.Gesamtkosten`, das
+automatisch aus den Kostenpositionen der Modernisierungsalternative
+aggregiert wird. Die Verknüpfung realer Verbrauchsdaten mit der
+Wirtschaftlichkeitsberechnung (praktische Basis) ist durch den
+`ZusammenfassenAsync`-Endpunkt in Paket 17 unterstützt: Anwender
+erhalten je Energieträger annualisierte Jahresmengen als Eingabehilfe
+für `EndenergieIstZustand` in `EnergietraegerAnnahme`.
 
-**Maßnahme:** Nach Abschluss des bearbeitbaren Projektstands einen
-Aggregations-Use-Case definieren, der Kostenpositionen zu Investitions-
-kosten verdichtet und als Eingabe für `Berechnen` bereitstellt.
+**Restrisiko:** Die automatische Übernahme von Jahresmengen in die
+Annahmen ist noch nicht implementiert (fachliche Spezifikation offen).
 
 ### R11 – Förderprogramm-Katalog noch nicht mit Alternativen verknüpft
 
@@ -1045,10 +1049,11 @@ Flächenbezug, B56-Vergleich, Anpassungsfaktor, Abweichungsursache),
 `api/projekte/{id}/verbrauchsdaten` sind implementiert. Offene
 Anschlussaufgaben:
 
-- Verknüpfung realer Verbrauchsdaten mit Wirtschaftlichkeitsberechnung
-  (praktische Basis);
 - aggregierter Vergleich realer Verbrauchsdaten gegenüber B56-Bilanz
-  im Berichtswesen.
+  im Berichtswesen – in Paket 17 umgesetzt (siehe P10).
+- Verknüpfung realer Verbrauchsdaten mit Wirtschaftlichkeitsberechnung
+  (praktische Basis) – Zusammenfassung je Energieträger in Paket 17
+  umgesetzt (siehe P10).
 
 ### P9 – Feldweise Konfliktlösung (Paket 16) ✅ abgeschlossen
 
@@ -1062,6 +1067,31 @@ setzen) unter `api/projekte/{id}/b56-importe/{importId}/konflikte`
 sind implementiert. Offene Anschlussaufgaben:
 
 - expliziter Synchronisations-Use-Case (nach fachlicher Spezifikation).
+
+### P10 – Verbrauchsvergleichsbericht und Verbrauchsdaten-Zusammenfassung (Paket 17) ✅ abgeschlossen
+
+`VerbrauchsvergleichZeile`-Record (Periode, Energieträger, Menge,
+witterungsbereinigte Menge, B56-Vergleichswert, Abweichung, Abweichungs-
+prozent) und `VerbrauchsvergleichBericht`-Record im Domain;
+`Berichtstyp.Verbrauchsvergleich` hinzugefügt;
+`IBerichtsService.VerbrauchsvergleichErzeugenAsync` und
+`BerichtsService`-Implementierung (Aggregation realer Verbräuche mit
+B56-Gegenüberstellung, ADR-0007); API-Endpunkt
+`GET api/projekte/{id}/berichte/verbrauchsvergleich` hinzugefügt.
+
+`VerbrauchsZusammenfassungJeEnergietraeger`-Record (Energieträger,
+Anzahl Perioden, Gesamtmenge, witterungsbereinigte Gesamtmenge,
+hochgerechnete Jahresmenge, Gesamtkosten) im Domain;
+`IVerbrauchsDatenService.ZusammenfassenAsync` und
+`EfVerbrauchsDatenService`-Implementierung (Gruppierung nach
+Energieträger, annualisierte Jahresmenge als Eingabehilfe für die
+Wirtschaftlichkeitsberechnung auf praktischer Basis);
+API-Endpunkt `GET api/projekte/{id}/verbrauchsdaten/zusammenfassung`
+hinzugefügt. Offene Anschlussaufgaben:
+
+- automatische Übernahme von Jahresmengenwerten in
+  `EnergietraegerAnnahme.EndenergieIstZustand` (nach fachlicher
+  Spezifikation des Übernahme-Workflows).
 
 ## 10. Abgrenzung
 

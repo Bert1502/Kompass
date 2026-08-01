@@ -3,6 +3,7 @@ using Kompass.Domain.Economics;
 using Kompass.Domain.Funding;
 using Kompass.Domain.Projects;
 using Kompass.Domain.Reports;
+using Kompass.Domain.Verbrauch;
 using Kompass.Domain.Waermebruecken;
 using Kompass.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
@@ -247,5 +248,71 @@ public sealed class BerichtsService : IBerichtsService
             .ToList();
 
         return new FoerderuebersichtBericht(kopf, alternativen);
+    }
+
+    public async Task<VerbrauchsvergleichBericht?> VerbrauchsvergleichErzeugenAsync(
+        Guid projektId,
+        CancellationToken cancellationToken = default)
+    {
+        var projekt = await _dbContext.Projekte
+            .AsNoTracking()
+            .Where(p => p.Id == projektId)
+            .Select(p => new
+            {
+                p.Id,
+                p.Name,
+                p.InterneBezeichnung,
+                p.Bearbeitungsstatus,
+                p.QuellSnapshotId,
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (projekt is null)
+        {
+            return null;
+        }
+
+        var verbrauchsDaten = await _dbContext.VerbrauchsDaten
+            .AsNoTracking()
+            .Where(v => v.ProjektId == projektId)
+            .OrderBy(v => v.PeriodeVon)
+            .ThenBy(v => v.Energietraeger)
+            .ToListAsync(cancellationToken);
+
+        var kopf = new Berichtskopf(
+            projekt.Id,
+            projekt.Name,
+            projekt.InterneBezeichnung,
+            projekt.Bearbeitungsstatus,
+            projekt.QuellSnapshotId,
+            DateTimeOffset.UtcNow,
+            Berichtstyp.Verbrauchsvergleich);
+
+        var zeilen = verbrauchsDaten
+            .Select(v =>
+            {
+                decimal? abweichung = v.B56VergleichsWert.HasValue
+                    ? v.WitterungsbereinigteMenge - v.B56VergleichsWert.Value
+                    : null;
+
+                decimal? abweichungProzent =
+                    abweichung.HasValue && v.B56VergleichsWert!.Value != 0
+                        ? abweichung.Value / v.B56VergleichsWert.Value * 100m
+                        : null;
+
+                return new VerbrauchsvergleichZeile(
+                    v.Id,
+                    v.PeriodeVon,
+                    v.PeriodeBis,
+                    v.Energietraeger,
+                    v.Menge,
+                    v.WitterungsbereinigteMenge,
+                    v.B56VergleichsWert,
+                    abweichung,
+                    abweichungProzent);
+            })
+            .ToList();
+
+        return new VerbrauchsvergleichBericht(kopf, zeilen);
     }
 }

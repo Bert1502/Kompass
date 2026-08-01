@@ -137,6 +137,37 @@ public sealed class BerichteControllerTests
         Assert.IsType<NotFoundObjectResult>(antwort.Result);
     }
 
+    [Fact]
+    public async Task Verbrauchsvergleich_liefert_200_wenn_Projekt_gefunden()
+    {
+        var bericht = ErstelleVerbrauchsvergleichBericht();
+
+        var controller = new BerichteController(
+            new BerichtsServiceFake(verbrauchsvergleich: bericht));
+
+        var antwort =
+            await controller.VerbrauchsvergleichAsync(
+                bericht.Kopf.ProjektId,
+                CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(antwort.Result);
+        Assert.IsType<VerbrauchsvergleichBericht>(ok.Value);
+    }
+
+    [Fact]
+    public async Task Verbrauchsvergleich_liefert_404_wenn_Projekt_nicht_gefunden()
+    {
+        var controller = new BerichteController(
+            new BerichtsServiceFake(verbrauchsvergleich: null));
+
+        var antwort =
+            await controller.VerbrauchsvergleichAsync(
+                Guid.NewGuid(),
+                CancellationToken.None);
+
+        Assert.IsType<NotFoundObjectResult>(antwort.Result);
+    }
+
     private static WirtschaftlichkeitsberichtBericht ErstelleWirtschaftlichkeitsberichtBericht() =>
         new(
             ErstelleBerichtskopf(Berichtstyp.Wirtschaftlichkeitsbericht),
@@ -145,6 +176,11 @@ public sealed class BerichteControllerTests
     private static FoerderuebersichtBericht ErstelleFoerderuebersichtBericht() =>
         new(
             ErstelleBerichtskopf(Berichtstyp.Foerderuebersicht),
+            []);
+
+    private static VerbrauchsvergleichBericht ErstelleVerbrauchsvergleichBericht() =>
+        new(
+            ErstelleBerichtskopf(Berichtstyp.Verbrauchsvergleich),
             []);
 
     private static AlternativenvergleichBericht ErstelleAlternativenvergleichBericht()
@@ -177,7 +213,8 @@ public sealed class BerichteControllerTests
         AlternativenvergleichBericht? alternativenvergleich = null,
         WaermebrueckenuebersichtBericht? waermebrueckenuebersicht = null,
         WirtschaftlichkeitsberichtBericht? wirtschaftlichkeitsbericht = null,
-        FoerderuebersichtBericht? foerderuebersicht = null)
+        FoerderuebersichtBericht? foerderuebersicht = null,
+        VerbrauchsvergleichBericht? verbrauchsvergleich = null)
         : IBerichtsService
     {
         public Task<AlternativenvergleichBericht?> AlternativenvergleichErzeugenAsync(
@@ -207,6 +244,13 @@ public sealed class BerichteControllerTests
             CancellationToken cancellationToken = default)
         {
             return Task.FromResult(foerderuebersicht);
+        }
+
+        public Task<VerbrauchsvergleichBericht?> VerbrauchsvergleichErzeugenAsync(
+            Guid projektId,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(verbrauchsvergleich);
         }
     }
 }

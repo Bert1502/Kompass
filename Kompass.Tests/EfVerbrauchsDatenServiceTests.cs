@@ -186,6 +186,110 @@ public sealed class EfVerbrauchsDatenServiceTests
         Assert.False(geloescht);
     }
 
+    [Fact]
+    public async Task Zusammenfassen_liefert_null_wenn_Projekt_nicht_gefunden()
+    {
+        await using var db = await VerbrauchsTestdatenbank.ErstellenAsync();
+
+        var ergebnis =
+            await db.Service.ZusammenfassenAsync(Guid.NewGuid());
+
+        Assert.Null(ergebnis);
+    }
+
+    [Fact]
+    public async Task Zusammenfassen_liefert_leere_Liste_ohne_Verbrauchsdaten()
+    {
+        await using var db = await VerbrauchsTestdatenbank.ErstellenAsync();
+
+        var projektId = await db.ErzeugeProjektAsync();
+
+        var ergebnis = await db.Service.ZusammenfassenAsync(projektId);
+
+        Assert.NotNull(ergebnis);
+        Assert.Empty(ergebnis);
+    }
+
+    [Fact]
+    public async Task Zusammenfassen_gruppiert_nach_Energietraeger()
+    {
+        await using var db = await VerbrauchsTestdatenbank.ErstellenAsync();
+
+        var projektId = await db.ErzeugeProjektAsync();
+
+        await db.ErzeugeVerbrauchsDatenAsync(
+            projektId,
+            new DateOnly(2023, 1, 1),
+            new DateOnly(2023, 12, 31),
+            Energietraeger.Gas,
+            11000m,
+            2200m);
+
+        await db.ErzeugeVerbrauchsDatenAsync(
+            projektId,
+            new DateOnly(2024, 1, 1),
+            new DateOnly(2024, 12, 31),
+            Energietraeger.Gas,
+            12000m,
+            2400m);
+
+        await db.ErzeugeVerbrauchsDatenAsync(
+            projektId,
+            new DateOnly(2024, 1, 1),
+            new DateOnly(2024, 12, 31),
+            Energietraeger.Strom,
+            5000m,
+            1500m);
+
+        var ergebnis = await db.Service.ZusammenfassenAsync(projektId);
+
+        Assert.NotNull(ergebnis);
+        Assert.Equal(2, ergebnis.Count);
+
+        var gas = ergebnis.Single(e => e.Energietraeger == Energietraeger.Gas);
+        Assert.Equal(2, gas.AnzahlAbrechnungsperioden);
+        Assert.Equal(23000m, gas.GesamtmengeKwh);
+        Assert.Equal(4600m, gas.GesamtkostenEur);
+
+        var strom = ergebnis.Single(e => e.Energietraeger == Energietraeger.Strom);
+        Assert.Equal(1, strom.AnzahlAbrechnungsperioden);
+        Assert.Equal(5000m, strom.GesamtmengeKwh);
+    }
+
+    [Fact]
+    public async Task Zusammenfassen_berechnet_jaehrliche_Menge_korrekt()
+    {
+        await using var db = await VerbrauchsTestdatenbank.ErstellenAsync();
+
+        var projektId = await db.ErzeugeProjektAsync();
+
+        // 2 Perioden Gas: 12000 kWh je Jahr → jaehrliche Menge ~12000 kWh
+        await db.ErzeugeVerbrauchsDatenAsync(
+            projektId,
+            new DateOnly(2023, 1, 1),
+            new DateOnly(2023, 12, 31),
+            Energietraeger.Gas,
+            12000m,
+            2400m);
+
+        await db.ErzeugeVerbrauchsDatenAsync(
+            projektId,
+            new DateOnly(2024, 1, 1),
+            new DateOnly(2024, 12, 31),
+            Energietraeger.Gas,
+            12000m,
+            2400m);
+
+        var ergebnis = await db.Service.ZusammenfassenAsync(projektId);
+
+        Assert.NotNull(ergebnis);
+        var gas = Assert.Single(ergebnis);
+        Assert.Equal(Energietraeger.Gas, gas.Energietraeger);
+        Assert.Equal(24000m, gas.GesamtmengeKwh);
+        // Jaehrliche Menge: Gesamtmenge / Gesamttage * 365 – annähernd 12000 kWh/a
+        Assert.InRange(gas.JaehrlicheMengeKwh, 11900m, 12100m);
+    }
+
     private sealed class VerbrauchsTestdatenbank : IAsyncDisposable
     {
         private VerbrauchsTestdatenbank(
@@ -229,6 +333,28 @@ public sealed class EfVerbrauchsDatenServiceTests
             Context.ChangeTracker.Clear();
 
             return projekt.Id;
+        }
+
+        public async Task ErzeugeVerbrauchsDatenAsync(
+            Guid projektId,
+            DateOnly periodeVon,
+            DateOnly periodeBis,
+            Energietraeger energietraeger,
+            decimal menge,
+            decimal kosten)
+        {
+            var daten = new VerbrauchsDaten(
+                Guid.NewGuid(),
+                projektId,
+                periodeVon,
+                periodeBis,
+                energietraeger,
+                menge,
+                kosten);
+
+            Context.VerbrauchsDaten.Add(daten);
+            await Context.SaveChangesAsync();
+            Context.ChangeTracker.Clear();
         }
 
         public async ValueTask DisposeAsync()

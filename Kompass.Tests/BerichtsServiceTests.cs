@@ -2,6 +2,7 @@ using Kompass.Domain.Economics;
 using Kompass.Domain.Funding;
 using Kompass.Domain.Projects;
 using Kompass.Domain.Reports;
+using Kompass.Domain.Verbrauch;
 using Kompass.Domain.Waermebruecken;
 using Kompass.Persistence.Data;
 using Kompass.Persistence.Services;
@@ -354,6 +355,118 @@ public sealed class FoerderuebersichtServiceTests
         Assert.Single(alternative.ZugeordneteProgramme);
         Assert.Equal("BEG EM", alternative.ZugeordneteProgramme[0].Programmkennung);
     }
+
+    [Fact]
+    public async Task Verbrauchsvergleich_liefert_null_wenn_Projekt_nicht_gefunden()
+    {
+        await using var db = await BerichtsTestdatenbank.ErstellenAsync();
+
+        var bericht =
+            await db.Service.VerbrauchsvergleichErzeugenAsync(Guid.NewGuid());
+
+        Assert.Null(bericht);
+    }
+
+    [Fact]
+    public async Task Verbrauchsvergleich_liefert_leeren_Bericht_ohne_Verbrauchsdaten()
+    {
+        await using var db = await BerichtsTestdatenbank.ErstellenAsync();
+
+        var projektId = await db.ErzeugeProjektAsync("Mustergebäude");
+
+        var bericht =
+            await db.Service.VerbrauchsvergleichErzeugenAsync(projektId);
+
+        Assert.NotNull(bericht);
+        Assert.Equal(projektId, bericht.Kopf.ProjektId);
+        Assert.Equal("Mustergebäude", bericht.Kopf.ProjektName);
+        Assert.Equal(Berichtstyp.Verbrauchsvergleich, bericht.Kopf.Berichtstyp);
+        Assert.Empty(bericht.Zeilen);
+    }
+
+    [Fact]
+    public async Task Verbrauchsvergleich_listet_Zeilen_sortiert_nach_Periode()
+    {
+        await using var db = await BerichtsTestdatenbank.ErstellenAsync();
+
+        var projektId = await db.ErzeugeProjektAsync();
+
+        await db.ErzeugeVerbrauchsDatenAsync(
+            projektId,
+            new DateOnly(2024, 1, 1),
+            new DateOnly(2024, 12, 31),
+            Energietraeger.Gas,
+            12000m,
+            2400m);
+
+        await db.ErzeugeVerbrauchsDatenAsync(
+            projektId,
+            new DateOnly(2023, 1, 1),
+            new DateOnly(2023, 12, 31),
+            Energietraeger.Gas,
+            11000m,
+            2200m);
+
+        var bericht =
+            await db.Service.VerbrauchsvergleichErzeugenAsync(projektId);
+
+        Assert.NotNull(bericht);
+        Assert.Equal(2, bericht.Zeilen.Count);
+        Assert.Equal(new DateOnly(2023, 1, 1), bericht.Zeilen[0].PeriodeVon);
+        Assert.Equal(new DateOnly(2024, 1, 1), bericht.Zeilen[1].PeriodeVon);
+    }
+
+    [Fact]
+    public async Task Verbrauchsvergleich_berechnet_Abweichung_korrekt()
+    {
+        await using var db = await BerichtsTestdatenbank.ErstellenAsync();
+
+        var projektId = await db.ErzeugeProjektAsync();
+
+        await db.ErzeugeVerbrauchsDatenAsync(
+            projektId,
+            new DateOnly(2024, 1, 1),
+            new DateOnly(2024, 12, 31),
+            Energietraeger.Gas,
+            12000m,
+            2400m,
+            b56VergleichsWert: 10000m);
+
+        var bericht =
+            await db.Service.VerbrauchsvergleichErzeugenAsync(projektId);
+
+        Assert.NotNull(bericht);
+        var zeile = Assert.Single(bericht.Zeilen);
+        Assert.Equal(12000m, zeile.Menge);
+        Assert.Equal(10000m, zeile.B56VergleichsWert);
+        Assert.Equal(2000m, zeile.Abweichung);
+        Assert.Equal(20m, zeile.AbweichungProzent);
+    }
+
+    [Fact]
+    public async Task Verbrauchsvergleich_hat_keine_Abweichung_ohne_B56Vergleichswert()
+    {
+        await using var db = await BerichtsTestdatenbank.ErstellenAsync();
+
+        var projektId = await db.ErzeugeProjektAsync();
+
+        await db.ErzeugeVerbrauchsDatenAsync(
+            projektId,
+            new DateOnly(2024, 1, 1),
+            new DateOnly(2024, 12, 31),
+            Energietraeger.Strom,
+            5000m,
+            1000m);
+
+        var bericht =
+            await db.Service.VerbrauchsvergleichErzeugenAsync(projektId);
+
+        Assert.NotNull(bericht);
+        var zeile = Assert.Single(bericht.Zeilen);
+        Assert.Null(zeile.B56VergleichsWert);
+        Assert.Null(zeile.Abweichung);
+        Assert.Null(zeile.AbweichungProzent);
+    }
 }
 
 internal sealed class BerichtsTestdatenbank : IAsyncDisposable
@@ -499,6 +612,45 @@ internal sealed class BerichtsTestdatenbank : IAsyncDisposable
             foerderprogrammId);
 
         Context.FoerderungZuordnungen.Add(zuordnung);
+        await Context.SaveChangesAsync();
+        Context.ChangeTracker.Clear();
+    }
+
+    public async Task ErzeugeVerbrauchsDatenAsync(
+        Guid projektId,
+        DateOnly periodeVon,
+        DateOnly periodeBis,
+        Energietraeger energietraeger,
+        decimal menge,
+        decimal kosten,
+        decimal? b56VergleichsWert = null)
+    {
+        var daten = new VerbrauchsDaten(
+            Guid.NewGuid(),
+            projektId,
+            periodeVon,
+            periodeBis,
+            energietraeger,
+            menge,
+            kosten);
+
+        if (b56VergleichsWert.HasValue)
+        {
+            daten.Aktualisieren(
+                periodeVon,
+                periodeBis,
+                energietraeger,
+                menge,
+                kosten,
+                witterungsbereinigungsFaktor: null,
+                flaeche: null,
+                b56VergleichsWert,
+                anpassungsFaktor: null,
+                anpassungsBegruendung: null,
+                abweichungsursache: null);
+        }
+
+        Context.VerbrauchsDaten.Add(daten);
         await Context.SaveChangesAsync();
         Context.ChangeTracker.Clear();
     }

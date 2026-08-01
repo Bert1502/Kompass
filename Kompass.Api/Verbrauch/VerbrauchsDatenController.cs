@@ -205,4 +205,29 @@ public sealed class VerbrauchsDatenController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpGet("zusammenfassung")]
+    [ProducesResponseType(
+        typeof(IReadOnlyList<VerbrauchsZusammenfassungJeEnergietraeger>),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<VerbrauchsZusammenfassungJeEnergietraeger>>> ZusammenfassenAsync(
+        Guid projektId,
+        CancellationToken cancellationToken)
+    {
+        var zusammenfassung =
+            await _verbrauchsDatenService.ZusammenfassenAsync(
+                projektId,
+                cancellationToken);
+
+        if (zusammenfassung is null)
+        {
+            return NotFound(new
+            {
+                Nachricht = $"Projekt '{projektId}' nicht gefunden."
+            });
+        }
+
+        return Ok(zusammenfassung);
+    }
 }
