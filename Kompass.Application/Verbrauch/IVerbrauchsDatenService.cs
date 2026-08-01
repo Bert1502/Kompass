@@ -44,4 +44,13 @@ public interface IVerbrauchsDatenService
         Guid projektId,
         Guid id,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gibt eine Zusammenfassung der Verbrauchsdaten je Energieträger zurück.
+    /// Liefert <see langword="null"/>, wenn das Projekt nicht gefunden wurde.
+    /// Ist kein Verbrauchsdatensatz vorhanden, wird eine leere Liste zurückgegeben.
+    /// </summary>
+    Task<IReadOnlyList<VerbrauchsZusammenfassungJeEnergietraeger>?> ZusammenfassenAsync(
+        Guid projektId,
+        CancellationToken cancellationToken = default);
 }

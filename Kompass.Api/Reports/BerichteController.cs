@@ -117,4 +117,29 @@ public sealed class BerichteController : ControllerBase
 
         return Ok(bericht);
     }
+
+    [HttpGet("verbrauchsvergleich")]
+    [ProducesResponseType(
+        typeof(VerbrauchsvergleichBericht),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<VerbrauchsvergleichBericht>> VerbrauchsvergleichAsync(
+        Guid projektId,
+        CancellationToken cancellationToken)
+    {
+        var bericht =
+            await _berichtsService.VerbrauchsvergleichErzeugenAsync(
+                projektId,
+                cancellationToken);
+
+        if (bericht is null)
+        {
+            return NotFound(new
+            {
+                Nachricht = $"Projekt '{projektId}' nicht gefunden."
+            });
+        }
+
+        return Ok(bericht);
+    }
 }

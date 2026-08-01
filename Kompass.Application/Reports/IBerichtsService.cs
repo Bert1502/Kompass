@@ -44,4 +44,12 @@ public interface IBerichtsService
     Task<FoerderuebersichtBericht?> FoerderuebersichtErzeugenAsync(
         Guid projektId,
         CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Erzeugt den Verbrauchsvergleichsbericht für das angegebene Projekt.
+    /// Stellt reale Verbrauchsdaten den B56-Bilanzwerten gegenüber.
+    /// Gibt <see langword="null"/> zurück, wenn das Projekt nicht gefunden wurde.
+    /// </summary>
+    Task<VerbrauchsvergleichBericht?> VerbrauchsvergleichErzeugenAsync(
+        Guid projektId,
+        CancellationToken cancellationToken = default);
 }

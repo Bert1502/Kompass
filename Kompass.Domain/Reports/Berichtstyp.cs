@@ -10,4 +10,5 @@ public enum Berichtstyp
     Waermebrueckenuebersicht,
     Wirtschaftlichkeitsbericht,
     Energieberatungsbericht,
+    Verbrauchsvergleich,
 }

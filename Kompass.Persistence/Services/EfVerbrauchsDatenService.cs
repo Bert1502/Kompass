@@ -105,4 +105,49 @@ public sealed class EfVerbrauchsDatenService : IVerbrauchsDatenService
 
         return true;
     }
+
+    public async Task<IReadOnlyList<VerbrauchsZusammenfassungJeEnergietraeger>?> ZusammenfassenAsync(
+        Guid projektId,
+        CancellationToken cancellationToken = default)
+    {
+        var projektVorhanden = await _dbContext.Projekte
+            .AnyAsync(p => p.Id == projektId, cancellationToken);
+
+        if (!projektVorhanden)
+        {
+            return null;
+        }
+
+        var datensaetze = await _dbContext.VerbrauchsDaten
+            .AsNoTracking()
+            .Where(v => v.ProjektId == projektId)
+            .ToListAsync(cancellationToken);
+
+        var zusammenfassungen = datensaetze
+            .GroupBy(v => v.Energietraeger)
+            .Select(gruppe =>
+            {
+                var gesamtTage = gruppe.Sum(
+                    v => (v.PeriodeBis.ToDateTime(TimeOnly.MinValue) -
+                          v.PeriodeVon.ToDateTime(TimeOnly.MinValue)).TotalDays);
+
+                var gesamtMenge = gruppe.Sum(v => v.Menge);
+
+                var jaehrlicheMenge = gesamtTage > 0
+                    ? gesamtMenge / (decimal)gesamtTage * 365m
+                    : 0m;
+
+                return new VerbrauchsZusammenfassungJeEnergietraeger(
+                    gruppe.Key,
+                    gruppe.Count(),
+                    gesamtMenge,
+                    gruppe.Sum(v => v.WitterungsbereinigteMenge),
+                    Math.Round(jaehrlicheMenge, 2),
+                    gruppe.Sum(v => v.Kosten));
+            })
+            .OrderBy(z => z.Energietraeger)
+            .ToList();
+
+        return zusammenfassungen;
+    }
 }

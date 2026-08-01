@@ -196,6 +196,41 @@ public sealed class VerbrauchsDatenControllerTests
         Assert.IsType<NotFoundObjectResult>(antwort);
     }
 
+    [Fact]
+    public async Task Zusammenfassung_liefert_200_mit_Liste()
+    {
+        var zusammenfassung = new List<VerbrauchsZusammenfassungJeEnergietraeger>
+        {
+            new(Energietraeger.Gas, 2, 24000m, 24000m, 12000m, 4800m),
+        };
+
+        var controller = new VerbrauchsDatenController(
+            new VerbrauchsDatenServiceFake(zusammenfassung: zusammenfassung));
+
+        var antwort =
+            await controller.ZusammenfassenAsync(
+                Guid.NewGuid(),
+                CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(antwort.Result);
+        var ergebnis = Assert.IsAssignableFrom<IReadOnlyList<VerbrauchsZusammenfassungJeEnergietraeger>>(ok.Value);
+        Assert.Single(ergebnis);
+    }
+
+    [Fact]
+    public async Task Zusammenfassung_liefert_404_wenn_Projekt_nicht_gefunden()
+    {
+        var controller = new VerbrauchsDatenController(
+            new VerbrauchsDatenServiceFake(zusammenfassung: null));
+
+        var antwort =
+            await controller.ZusammenfassenAsync(
+                Guid.NewGuid(),
+                CancellationToken.None);
+
+        Assert.IsType<NotFoundObjectResult>(antwort.Result);
+    }
+
     private static VerbrauchsDaten ErstelleVerbrauchsDaten() =>
         new(
             Guid.NewGuid(),
@@ -211,7 +246,8 @@ public sealed class VerbrauchsDatenControllerTests
         VerbrauchsDaten? einzelne = null,
         VerbrauchsDaten? angelegt = null,
         bool aktualisierenErgebnis = true,
-        bool loeschenErgebnis = true)
+        bool loeschenErgebnis = true,
+        IReadOnlyList<VerbrauchsZusammenfassungJeEnergietraeger>? zusammenfassung = null)
         : IVerbrauchsDatenService
     {
         public Task<IReadOnlyList<VerbrauchsDaten>> ListenAsync(
@@ -250,6 +286,13 @@ public sealed class VerbrauchsDatenControllerTests
             CancellationToken cancellationToken = default)
         {
             return Task.FromResult(loeschenErgebnis);
+        }
+
+        public Task<IReadOnlyList<VerbrauchsZusammenfassungJeEnergietraeger>?> ZusammenfassenAsync(
+            Guid projektId,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(zusammenfassung);
         }
     }
 }
