@@ -256,6 +256,105 @@ public sealed class B56TabellenImportServiceTests
         Assert.Single(ergebnis.Bauteile);
     }
 
+    [Fact]
+    public async Task Importiert_Berichtskennwerte_aus_SCEnergiebericht_je_Position()
+    {
+        var service =
+            new B56TabellenImportService(
+                new B56TabellenFinder());
+
+        var ergebnis =
+            await service.ImportierenAsync(
+                new B56ImportKontext
+                {
+                    ImportId = Guid.NewGuid(),
+                    ProjektId = Guid.NewGuid(),
+                    Projektname = "Testprojekt",
+                    Quelldatei = "test.xlsm",
+                    Archivdatei = "test.xlsm",
+                    SHA256 = "0123456789abcdef",
+                    Importzeitpunkt = DateTimeOffset.UtcNow,
+                    Arbeitsmappe = new B56Arbeitsmappe
+                    {
+                        Dateipfad = "test.xlsm",
+                        Arbeitsblaetter =
+                        [
+                            new B56Arbeitsblatt
+                            {
+                                Name = "SCModernisierungen",
+                                Zeilen = ErzeugeReferenzzeilen()
+                            },
+                            new B56Arbeitsblatt
+                            {
+                                Name = "SCEnergiebericht",
+                                Zeilen = ErzeugeEnergieberichtZeilen()
+                            }
+                        ]
+                    }
+                });
+
+        Assert.Contains(
+            ergebnis.Bestandskennwerte,
+            kennwert =>
+                kennwert.Name == "Endenergiebedarf Bericht" &&
+                kennwert.Wert == 393298d &&
+                kennwert.Einheit == "[kWh/a]");
+
+        Assert.Contains(
+            ergebnis.Bestandskennwerte,
+            kennwert =>
+                kennwert.Name == "CO2-Emission Bericht" &&
+                kennwert.Wert == 90207d &&
+                kennwert.Einheit == "[kg]");
+
+        var alternative1 =
+            Assert.Single(
+                ergebnis.Modernisierungsalternativen,
+                alternative => alternative.Position == 1);
+
+        Assert.Contains(
+            alternative1.Kennwerte,
+            kennwert =>
+                kennwert.Name == "Endenergiebedarf Bericht" &&
+                kennwert.Wert == 190644d);
+
+        Assert.Contains(
+            alternative1.Kennwerte,
+            kennwert =>
+                kennwert.Name == "Endenergieeinsparung gegenüber Bedarf" &&
+                kennwert.Wert == 202653d);
+
+        Assert.Contains(
+            alternative1.Kennwerte,
+            kennwert =>
+                kennwert.Name == "CO2-Einsparung gegenüber Bedarf" &&
+                kennwert.Wert == 316498d);
+
+        var alternative2 =
+            Assert.Single(
+                ergebnis.Modernisierungsalternativen,
+                alternative => alternative.Position == 2);
+
+        Assert.Contains(
+            alternative2.Kennwerte,
+            kennwert =>
+                kennwert.Name == "Endenergiebedarf Bericht" &&
+                kennwert.Wert == 393298d);
+
+        Assert.Contains(
+            alternative2.Kennwerte,
+            kennwert =>
+                kennwert.Name == "CO2-Emission Bericht" &&
+                kennwert.Wert == 90207d);
+
+        Assert.DoesNotContain(
+            ergebnis.Warnungen,
+            warnung =>
+                warnung.Contains(
+                    "SCEnergiebericht",
+                    StringComparison.OrdinalIgnoreCase));
+    }
+
     [Theory]
     [InlineData("SCNeubau")]
     [InlineData("SCEnergiebilanzNeubau")]
@@ -413,6 +512,92 @@ public sealed class B56TabellenImportServiceTests
                 ("C", "Fenster"),
                 ("D", "Fenster(tür)"),
                 ("E", "1.3"))
+        ];
+    }
+
+    private static IReadOnlyList<B56Zeile>
+        ErzeugeEnergieberichtZeilen()
+    {
+        return
+        [
+            Zeile(
+                115,
+                ("A", "Reduktion des Endenergiebedarfs")),
+            Zeile(
+                116,
+                ("U", "Bedarf"),
+                ("V", "Einsparung gegenüber Bedarf"),
+                ("W", "Referenz")),
+            Zeile(
+                118,
+                ("B", "Mod2: Fenster"),
+                ("T", "Bestand"),
+                ("U", "393298"),
+                ("V", "---")),
+            Zeile(
+                119,
+                ("B", "Mod1: Gesamtpaket"),
+                ("T", "Mod2"),
+                ("U", "190644"),
+                ("V", "202653")),
+            Zeile(
+                120,
+                ("B", "Mod9: Unbekannt"),
+                ("T", "Mod1"),
+                ("U", "420743"),
+                ("V", "-27445")),
+            Zeile(
+                130,
+                ("A", "Reduktion des Primäreneribedarfs")),
+            Zeile(
+                131,
+                ("U", "Bedarf"),
+                ("V", "Einsparung gegenüber Bedarf"),
+                ("W", "Referenz")),
+            Zeile(
+                133,
+                ("B", "Mod2: Fenster"),
+                ("T", "Bestand"),
+                ("U", "401921"),
+                ("V", "---")),
+            Zeile(
+                134,
+                ("B", "Mod1: Gesamtpaket"),
+                ("T", "Mod2"),
+                ("U", "272654"),
+                ("V", "120644")),
+            Zeile(
+                135,
+                ("B", "Mod9: Unbekannt"),
+                ("T", "Mod1"),
+                ("U", "433882"),
+                ("V", "-40584")),
+            Zeile(
+                145,
+                ("A", "Reduktion CO2-Emission")),
+            Zeile(
+                146,
+                ("U", "Emission"),
+                ("V", "Einsparung gegenüber Bedarf"),
+                ("W", "Referenz")),
+            Zeile(
+                148,
+                ("B", "Mod2: Fenster"),
+                ("T", "Bestand"),
+                ("U", "90207"),
+                ("V", "---")),
+            Zeile(
+                149,
+                ("B", "Mod1: Gesamtpaket"),
+                ("T", "Mod2"),
+                ("U", "76800"),
+                ("V", "316498")),
+            Zeile(
+                150,
+                ("B", "Mod9: Unbekannt"),
+                ("T", "Mod1"),
+                ("U", "98166"),
+                ("V", "295132"))
         ];
     }
 

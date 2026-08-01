@@ -13,6 +13,8 @@ public sealed partial class B56TabellenImportService
 {
     private const string Modernisierungsblatt =
         "SCModernisierungen";
+    private const string EnergieberichtBlatt =
+        "SCEnergiebericht";
 
     private static readonly IReadOnlySet<string> IgnorierteArbeitsblaetter =
         new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -86,12 +88,24 @@ public sealed partial class B56TabellenImportService
 
         var bestandskennwerte =
             BestandskennwerteImportieren(
-                modernisierungsblatt);
+                modernisierungsblatt)
+                .ToList();
 
         var modernisierungsalternativen =
             ModernisierungsalternativenImportieren(
                 modernisierungsblatt,
-                cancellationToken);
+                cancellationToken)
+                .ToList();
+
+        var energieberichtblatt =
+            kontext.Arbeitsmappe.ArbeitsblattSuchen(
+                EnergieberichtBlatt);
+
+        var importierteBerichtstabellen =
+            BerichtskennwerteImportieren(
+                energieberichtblatt,
+                bestandskennwerte,
+                modernisierungsalternativen);
 
         var warnungen =
             tabellen
@@ -100,6 +114,8 @@ public sealed partial class B56TabellenImportService
                         !IgnorierteArbeitsblaetter.Contains(
                             tabelle.Arbeitsblatt) &&
                         !IstZugeordneteBauteiltabelle(
+                            tabelle) &&
+                        !IstZugeordneteBerichtstabelle(
                             tabelle))
                 .Select(
                     tabelle =>
@@ -110,7 +126,8 @@ public sealed partial class B56TabellenImportService
         var importierteBereiche =
             (bauteile.Count > 0 ? 1 : 0) +
             (bestandskennwerte.Count > 0 ? 1 : 0) +
-            (modernisierungsalternativen.Count > 0 ? 1 : 0);
+            (modernisierungsalternativen.Count > 0 ? 1 : 0) +
+            importierteBerichtstabellen;
 
         return Task.FromResult(
             new B56TabellenImportErgebnis
@@ -352,6 +369,184 @@ public sealed partial class B56TabellenImportService
         return ergebnis;
     }
 
+    private static int BerichtskennwerteImportieren(
+        B56Arbeitsblatt? arbeitsblatt,
+        IList<B56Kennwert> bestandskennwerte,
+        IReadOnlyList<B56Modernisierungsalternative>
+            modernisierungsalternativen)
+    {
+        if (arbeitsblatt is null)
+        {
+            return 0;
+        }
+
+        var konfigurationen =
+            new[]
+            {
+                new BerichtskennwertKonfiguration(
+                    "Reduktion des Endenergiebedarfs",
+                    "Endenergiebedarf Bericht",
+                    "Endenergieeinsparung gegenüber Bedarf",
+                    "[kWh/a]"),
+                new BerichtskennwertKonfiguration(
+                    "Reduktion des Primäreneribedarfs",
+                    "Primärenergiebedarf Bericht",
+                    "Primärenergieeinsparung gegenüber Bedarf",
+                    "[kWh/a]"),
+                new BerichtskennwertKonfiguration(
+                    "Reduktion CO2-Emission",
+                    "CO2-Emission Bericht",
+                    "CO2-Einsparung gegenüber Bedarf",
+                    "[kg]")
+            };
+
+        var importierteAbschnitte = 0;
+
+        foreach (var konfiguration in konfigurationen)
+        {
+            if (BerichtskennwerteImportieren(
+                    arbeitsblatt,
+                    konfiguration,
+                    bestandskennwerte,
+                    modernisierungsalternativen))
+            {
+                importierteAbschnitte++;
+            }
+        }
+
+        return importierteAbschnitte;
+    }
+
+    private static bool BerichtskennwerteImportieren(
+        B56Arbeitsblatt arbeitsblatt,
+        BerichtskennwertKonfiguration konfiguration,
+        IList<B56Kennwert> bestandskennwerte,
+        IReadOnlyList<B56Modernisierungsalternative>
+            modernisierungsalternativen)
+    {
+        var startzeile =
+            arbeitsblatt.Zeilen.FirstOrDefault(
+                zeile =>
+                    Wert(zeile, "A") ==
+                    konfiguration.Abschnittstitel);
+
+        if (startzeile is null)
+        {
+            return false;
+        }
+
+        var abschnitt =
+            arbeitsblatt.Zeilen
+                .Where(
+                    zeile =>
+                        zeile.Zeilennummer >
+                        startzeile.Zeilennummer)
+                .TakeWhile(
+                    zeile =>
+                        string.IsNullOrWhiteSpace(
+                            Wert(zeile, "A")))
+                .ToList();
+
+        var importiert = false;
+
+        var bestandswert =
+            abschnitt
+                .Where(
+                    zeile =>
+                        string.Equals(
+                            Wert(zeile, "T"),
+                            "Bestand",
+                            StringComparison.OrdinalIgnoreCase))
+                .Select(
+                    zeile =>
+                        Zahl(
+                            Wert(zeile, "U")))
+                .FirstOrDefault(
+                    wert => wert.HasValue);
+
+        if (bestandswert.HasValue)
+        {
+            bestandskennwerte.Add(
+                new B56Kennwert
+                {
+                    Name =
+                        konfiguration.Bedarfsname,
+                    Einheit =
+                        konfiguration.Einheit,
+                    Wert =
+                        bestandswert.Value
+                });
+
+            importiert = true;
+        }
+
+        foreach (var zeile in abschnitt)
+        {
+            var position =
+                AlternativePositionErmitteln(
+                    Wert(zeile, "B"));
+
+            if (!position.HasValue)
+            {
+                continue;
+            }
+
+            var alternative =
+                modernisierungsalternativen
+                    .SingleOrDefault(
+                        kandidat =>
+                            kandidat.Position ==
+                            position.Value);
+
+            if (alternative is null)
+            {
+                continue;
+            }
+
+            var bedarf =
+                Zahl(
+                    Wert(zeile, "U"));
+
+            if (bedarf.HasValue)
+            {
+                alternative.Kennwerte.Add(
+                    new B56Kennwert
+                    {
+                        Name =
+                            konfiguration.Bedarfsname,
+                        Einheit =
+                            konfiguration.Einheit,
+                        Wert =
+                            bedarf.Value
+                    });
+
+                importiert = true;
+            }
+
+            var einsparung =
+                Zahl(
+                    Wert(zeile, "V"));
+
+            if (einsparung.HasValue)
+            {
+                alternative.Kennwerte.Add(
+                    new B56Kennwert
+                    {
+                        Name =
+                            konfiguration.Einsparungsname,
+                        Einheit =
+                            konfiguration.Einheit,
+                        Wert =
+                            einsparung.Value
+                    });
+
+                importiert = true;
+            }
+        }
+
+        return importiert;
+    }
+
     private static string Feldwert(
         IReadOnlyList<B56Zeile> zeilen,
         string feldname)
@@ -429,9 +624,68 @@ public sealed partial class B56TabellenImportService
                         StringComparison.OrdinalIgnoreCase));
     }
 
+    private static bool IstZugeordneteBerichtstabelle(
+        B56Tabelle tabelle)
+    {
+        return string.Equals(
+                   tabelle.Arbeitsblatt,
+                   EnergieberichtBlatt,
+                   StringComparison.OrdinalIgnoreCase) &&
+               (tabelle.Spalten.Any(
+                    spalte =>
+                        string.Equals(
+                            spalte,
+                            "Bedarf",
+                            StringComparison.OrdinalIgnoreCase)) ||
+                tabelle.Spalten.Any(
+                    spalte =>
+                        string.Equals(
+                            spalte,
+                            "Emission",
+                            StringComparison.OrdinalIgnoreCase))) &&
+               tabelle.Spalten.Any(
+                   spalte =>
+                       string.Equals(
+                           spalte,
+                           "Einsparung gegenüber Bedarf",
+                           StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static int? AlternativePositionErmitteln(
+        string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        var treffer =
+            BerichtsalternativeRegex()
+                .Match(text);
+
+        return treffer.Success &&
+               int.TryParse(
+                   treffer.Groups["position"].Value,
+                   out var position)
+            ? position
+            : null;
+    }
+
+    private sealed record BerichtskennwertKonfiguration(
+        string Abschnittstitel,
+        string Bedarfsname,
+        string Einsparungsname,
+        string Einheit);
+
     [GeneratedRegex(
         @"^Modernisierung\s+\d+$",
         RegexOptions.IgnoreCase |
         RegexOptions.CultureInvariant)]
     private static partial Regex ModernisierungsnameRegex();
+
+    [GeneratedRegex(
+        @"^(?:Mod|MP)\s*(?<position>\d+)\b",
+        RegexOptions.IgnoreCase |
+        RegexOptions.CultureInvariant)]
+    private static partial Regex BerichtsalternativeRegex();
 }
