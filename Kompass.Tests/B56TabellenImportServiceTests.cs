@@ -355,6 +355,81 @@ public sealed class B56TabellenImportServiceTests
                     StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public async Task Importiert_Bauteilanteile_und_Energiebedarf_nach_Energietraeger()
+    {
+        var service =
+            new B56TabellenImportService(
+                new B56TabellenFinder());
+
+        var ergebnis =
+            await service.ImportierenAsync(
+                new B56ImportKontext
+                {
+                    ImportId = Guid.NewGuid(),
+                    ProjektId = Guid.NewGuid(),
+                    Projektname = "Testprojekt",
+                    Quelldatei = "test.xlsm",
+                    Archivdatei = "test.xlsm",
+                    SHA256 = "0123456789abcdef",
+                    Importzeitpunkt = DateTimeOffset.UtcNow,
+                    Arbeitsmappe = new B56Arbeitsmappe
+                    {
+                        Dateipfad = "test.xlsm",
+                        Arbeitsblaetter =
+                        [
+                            new B56Arbeitsblatt
+                            {
+                                Name = "SCModernisierungen",
+                                Zeilen = ErzeugeReferenzzeilenMitAnteilen()
+                            },
+                            new B56Arbeitsblatt
+                            {
+                                Name = "SCEnergiebilanz",
+                                Zeilen = ErzeugeEnergietraegerBedarfZeilen()
+                            }
+                        ]
+                    }
+                });
+
+        var bauteil =
+            Assert.Single(
+                ergebnis.Bauteile,
+                eintrag => eintrag.Bauteilcode == "AW01");
+
+        Assert.Equal(42.5d, bauteil.Flaeche);
+        Assert.Equal(12.3d, bauteil.TransmissionAnteil);
+        Assert.Equal(24.6d, bauteil.Flaechenanteil);
+
+        Assert.Contains(
+            ergebnis.Bestandskennwerte,
+            kennwert =>
+                kennwert.Name == "Energiebedarf Erdgas" &&
+                kennwert.Wert == 12000d);
+
+        var alternative1 =
+            Assert.Single(
+                ergebnis.Modernisierungsalternativen,
+                alternative => alternative.Position == 1);
+
+        Assert.Contains(
+            alternative1.Kennwerte,
+            kennwert =>
+                kennwert.Name == "Energiebedarf Erdgas" &&
+                kennwert.Wert == 9000d);
+
+        var alternative2 =
+            Assert.Single(
+                ergebnis.Modernisierungsalternativen,
+                alternative => alternative.Position == 2);
+
+        Assert.Contains(
+            alternative2.Kennwerte,
+            kennwert =>
+                kennwert.Name == "Energiebedarf Strom" &&
+                kennwert.Wert == 1800d);
+    }
+
     [Theory]
     [InlineData("SCNeubau")]
     [InlineData("SCEnergiebilanzNeubau")]
@@ -516,6 +591,40 @@ public sealed class B56TabellenImportServiceTests
     }
 
     private static IReadOnlyList<B56Zeile>
+        ErzeugeReferenzzeilenMitAnteilen()
+    {
+        return
+        [
+            Zeile(4, ("A", "Modernisierung in einem Zug")),
+            Zeile(5, ("B", "Bezeichnung"), ("C", "Gesamtpaket")),
+            Zeile(28, ("A", "Modernisierung 1")),
+            Zeile(29, ("B", "Bezeichnung"), ("C", "Fenster")),
+            Zeile(52, ("A", "Modernisierung 2")),
+            Zeile(53, ("B", "Bezeichnung"), ("C", "Dach")),
+            Zeile(227, ("A", "Bestand")),
+            Zeile(245, ("A", "Tabelle U-Werte der Bauteile")),
+            Zeile(
+                247,
+                ("B", "Bauteilcode"),
+                ("C", "Bauteil"),
+                ("D", "Nachbarseite"),
+                ("E", "U-Wert"),
+                ("F", "Fläche"),
+                ("G", "Transmission"),
+                ("H", "Flächenanteil")),
+            Zeile(
+                248,
+                ("B", "AW01"),
+                ("C", "Außenwand"),
+                ("D", "gegen Außenluft"),
+                ("E", "0.24"),
+                ("F", "42.5"),
+                ("G", "12.3"),
+                ("H", "24.6"))
+        ];
+    }
+
+    private static IReadOnlyList<B56Zeile>
         ErzeugeEnergieberichtZeilen()
     {
         return
@@ -598,6 +707,32 @@ public sealed class B56TabellenImportServiceTests
                 ("T", "Mod1"),
                 ("U", "98166"),
                 ("V", "295132"))
+        ];
+    }
+
+    private static IReadOnlyList<B56Zeile>
+        ErzeugeEnergietraegerBedarfZeilen()
+    {
+        return
+        [
+            Zeile(
+                5,
+                ("A", "Energieträger"),
+                ("B", "Bestand"),
+                ("C", "Mod1"),
+                ("D", "Mod2")),
+            Zeile(
+                6,
+                ("A", "Erdgas"),
+                ("B", "12000"),
+                ("C", "9000"),
+                ("D", "8500")),
+            Zeile(
+                7,
+                ("A", "Strom"),
+                ("B", "2400"),
+                ("C", "2100"),
+                ("D", "1800"))
         ];
     }
 

@@ -11,4 +11,8 @@ public sealed class B56Bauteil
     public double Flaeche { get; init; }
 
     public double UWert { get; init; }
+
+    public double? TransmissionAnteil { get; init; }
+
+    public double? Flaechenanteil { get; init; }
 }

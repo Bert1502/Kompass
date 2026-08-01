@@ -36,7 +36,9 @@ public sealed record B56BauteilDto(
     string Bezeichnung,
     string Nachbarseite,
     double Flaeche,
-    double UWert);
+    double UWert,
+    double? TransmissionAnteil = null,
+    double? Flaechenanteil = null);
 
 public sealed record B56KennwertDto(
     string Name,

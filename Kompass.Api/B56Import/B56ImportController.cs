@@ -383,7 +383,9 @@ public sealed record B56BauteilAntwort(
     string Bezeichnung,
     string Nachbarseite,
     double Flaeche,
-    double UWert)
+    double UWert,
+    double? TransmissionAnteil = null,
+    double? Flaechenanteil = null)
 {
     public static B56BauteilAntwort Aus(
         B56Bauteil bauteil)
@@ -393,7 +395,9 @@ public sealed record B56BauteilAntwort(
             bauteil.Bezeichnung,
             bauteil.Nachbarseite,
             bauteil.Flaeche,
-            bauteil.UWert);
+            bauteil.UWert,
+            bauteil.TransmissionAnteil,
+            bauteil.Flaechenanteil);
     }
 }
 

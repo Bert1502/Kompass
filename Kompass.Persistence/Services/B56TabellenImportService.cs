@@ -107,6 +107,12 @@ public sealed partial class B56TabellenImportService
                 bestandskennwerte,
                 modernisierungsalternativen);
 
+        var importierteEnergiebedarfe =
+            EnergiebedarfeNachEnergietraegerImportieren(
+                kontext.Arbeitsmappe,
+                bestandskennwerte,
+                modernisierungsalternativen);
+
         var warnungen =
             tabellen
                 .Where(
@@ -127,7 +133,8 @@ public sealed partial class B56TabellenImportService
             (bauteile.Count > 0 ? 1 : 0) +
             (bestandskennwerte.Count > 0 ? 1 : 0) +
             (modernisierungsalternativen.Count > 0 ? 1 : 0) +
-            importierteBerichtstabellen;
+            importierteBerichtstabellen +
+            (importierteEnergiebedarfe > 0 ? 1 : 0);
 
         return Task.FromResult(
             new B56TabellenImportErgebnis
@@ -161,14 +168,41 @@ public sealed partial class B56TabellenImportService
         var kopfzeile =
             arbeitsblatt.Zeilen.FirstOrDefault(
                 zeile =>
-                    Wert(zeile, "B") ==
-                        "Bauteilcode" &&
-                    Wert(zeile, "C") ==
-                        "Bauteil" &&
-                    Wert(zeile, "E") ==
-                        "U-Wert");
+                    zeile.Zellen.Any(
+                        zelle =>
+                            string.Equals(
+                                zelle.Wert.Trim(),
+                                "Bauteilcode",
+                                StringComparison.OrdinalIgnoreCase)) &&
+                    zeile.Zellen.Any(
+                        zelle =>
+                            string.Equals(
+                                zelle.Wert.Trim(),
+                                "U-Wert",
+                                StringComparison.OrdinalIgnoreCase)));
 
         if (kopfzeile is null)
+        {
+            return [];
+        }
+
+        var bauteilcodeSpalte =
+            FindeSpalte(kopfzeile, "Bauteilcode");
+        var bezeichnungSpalte =
+            FindeSpalte(kopfzeile, "Bauteil");
+        var nachbarseiteSpalte =
+            FindeSpalte(kopfzeile, "Nachbarseite");
+        var uWertSpalte =
+            FindeSpalte(kopfzeile, "U-Wert");
+        var flaecheSpalte =
+            FindeSpalte(kopfzeile, "Fläche", "Flaeche");
+        var transmissionSpalte =
+            FindeSpalte(kopfzeile, "Transmission");
+        var flaechenanteilSpalte =
+            FindeSpalte(kopfzeile, "Flächenanteil", "Flaechenanteil");
+
+        if (string.IsNullOrWhiteSpace(bauteilcodeSpalte) ||
+            string.IsNullOrWhiteSpace(uWertSpalte))
         {
             return [];
         }
@@ -181,29 +215,54 @@ public sealed partial class B56TabellenImportService
             .SkipWhile(
                 zeile =>
                     string.IsNullOrWhiteSpace(
-                        Wert(zeile, "B")))
+                        Wert(zeile, bauteilcodeSpalte)))
             .TakeWhile(
                 zeile =>
                     !string.IsNullOrWhiteSpace(
-                        Wert(zeile, "B")))
+                        Wert(zeile, bauteilcodeSpalte)))
             .Select(
                 zeile =>
                 {
                     var uWert =
                         Zahl(
-                            Wert(zeile, "E"));
+                            Wert(zeile, uWertSpalte));
 
                     return uWert.HasValue
                         ? new B56Bauteil
                         {
                             Bauteilcode =
-                                Wert(zeile, "B"),
+                                Wert(zeile, bauteilcodeSpalte),
                             Bezeichnung =
-                                Wert(zeile, "C"),
+                                string.IsNullOrWhiteSpace(
+                                    bezeichnungSpalte)
+                                    ? string.Empty
+                                    : Wert(zeile, bezeichnungSpalte),
                             Nachbarseite =
-                                Wert(zeile, "D"),
+                                string.IsNullOrWhiteSpace(
+                                    nachbarseiteSpalte)
+                                    ? string.Empty
+                                    : Wert(zeile, nachbarseiteSpalte),
+                            Flaeche =
+                                string.IsNullOrWhiteSpace(
+                                    flaecheSpalte)
+                                    ? 0d
+                                    : Zahl(
+                                        Wert(zeile, flaecheSpalte))
+                                        ?? 0d,
                             UWert =
-                                uWert.Value
+                                uWert.Value,
+                            TransmissionAnteil =
+                                string.IsNullOrWhiteSpace(
+                                    transmissionSpalte)
+                                    ? null
+                                    : Zahl(
+                                        Wert(zeile, transmissionSpalte)),
+                            Flaechenanteil =
+                                string.IsNullOrWhiteSpace(
+                                    flaechenanteilSpalte)
+                                    ? null
+                                    : Zahl(
+                                        Wert(zeile, flaechenanteilSpalte))
                         }
                         : null;
                 })
@@ -212,6 +271,169 @@ public sealed partial class B56TabellenImportService
                     bauteil is not null)
             .Cast<B56Bauteil>()
             .ToList();
+    }
+
+    private static int EnergiebedarfeNachEnergietraegerImportieren(
+        B56Arbeitsmappe arbeitsmappe,
+        IList<B56Kennwert> bestandskennwerte,
+        IReadOnlyList<B56Modernisierungsalternative>
+            modernisierungsalternativen)
+    {
+        var importierteWerte = 0;
+
+        foreach (var arbeitsblatt in
+                 arbeitsmappe.Arbeitsblaetter)
+        {
+            var zeilen =
+                arbeitsblatt.Zeilen
+                    .OrderBy(zeile => zeile.Zeilennummer)
+                    .ToList();
+
+            for (var zeilenIndex = 0;
+                 zeilenIndex < zeilen.Count;
+                 zeilenIndex++)
+            {
+                var kopfzeile = zeilen[zeilenIndex];
+                var energietraegerSpalte =
+                    FindeSpalte(
+                        kopfzeile,
+                        "Energieträger",
+                        "Energietraeger");
+
+                if (string.IsNullOrWhiteSpace(
+                        energietraegerSpalte))
+                {
+                    continue;
+                }
+
+                var bestandsSpalte =
+                    FindeSpalte(
+                        kopfzeile,
+                        "Bestand");
+
+                var alternativeSpalten =
+                    kopfzeile.Zellen
+                        .Select(
+                            zelle =>
+                                new
+                                {
+                                    zelle.Spalte,
+                                    Position =
+                                        AlternativePositionErmitteln(
+                                            zelle.Wert)
+                                })
+                        .Where(
+                            eintrag =>
+                                eintrag.Position.HasValue)
+                        .ToDictionary(
+                            eintrag => eintrag.Spalte,
+                            eintrag => eintrag.Position!.Value,
+                            StringComparer.OrdinalIgnoreCase);
+
+                if (string.IsNullOrWhiteSpace(
+                        bestandsSpalte) &&
+                    alternativeSpalten.Count == 0)
+                {
+                    continue;
+                }
+
+                var hatZeilenImport = false;
+
+                for (var datenIndex = zeilenIndex + 1;
+                     datenIndex < zeilen.Count;
+                     datenIndex++)
+                {
+                    var datenZeile = zeilen[datenIndex];
+
+                    var energietraeger =
+                        Wert(
+                            datenZeile,
+                            energietraegerSpalte);
+
+                    if (string.IsNullOrWhiteSpace(
+                            energietraeger))
+                    {
+                        if (hatZeilenImport)
+                        {
+                            break;
+                        }
+
+                        continue;
+                    }
+
+                    if (string.Equals(
+                            energietraeger,
+                            "Summe",
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    var kennwertName =
+                        $"Energiebedarf {energietraeger}";
+
+                    if (!string.IsNullOrWhiteSpace(
+                            bestandsSpalte))
+                    {
+                        var bestandswert =
+                            Zahl(
+                                Wert(
+                                    datenZeile,
+                                    bestandsSpalte));
+
+                        if (bestandswert.HasValue)
+                        {
+                            KennwertSetzen(
+                                bestandskennwerte,
+                                kennwertName,
+                                "[kWh/a]",
+                                bestandswert.Value);
+
+                            importierteWerte++;
+                            hatZeilenImport = true;
+                        }
+                    }
+
+                    foreach (var alternativeSpalte in
+                             alternativeSpalten)
+                    {
+                        var alternativwert =
+                            Zahl(
+                                Wert(
+                                    datenZeile,
+                                    alternativeSpalte.Key));
+
+                        if (!alternativwert.HasValue)
+                        {
+                            continue;
+                        }
+
+                        var alternative =
+                            modernisierungsalternativen
+                                .SingleOrDefault(
+                                    kandidat =>
+                                        kandidat.Position ==
+                                        alternativeSpalte.Value);
+
+                        if (alternative is null)
+                        {
+                            continue;
+                        }
+
+                        KennwertSetzen(
+                            alternative.Kennwerte,
+                            kennwertName,
+                            "[kWh/a]",
+                            alternativwert.Value);
+
+                        importierteWerte++;
+                        hatZeilenImport = true;
+                    }
+                }
+            }
+        }
+
+        return importierteWerte;
     }
 
     private static IReadOnlyList<B56Kennwert>
@@ -562,6 +784,57 @@ public sealed partial class B56TabellenImportService
         return zeile is null
             ? string.Empty
             : Wert(zeile, "C");
+    }
+
+    private static string? FindeSpalte(
+        B56Zeile zeile,
+        params string[] begriffe)
+    {
+        foreach (var begriff in begriffe)
+        {
+            var zelle =
+                zeile.Zellen.FirstOrDefault(
+                    kandidat =>
+                        kandidat.Wert.Contains(
+                            begriff,
+                            StringComparison.OrdinalIgnoreCase));
+
+            if (zelle is not null)
+            {
+                return zelle.Spalte;
+            }
+        }
+
+        return null;
+    }
+
+    private static void KennwertSetzen(
+        IList<B56Kennwert> kennwerte,
+        string name,
+        string einheit,
+        double wert)
+    {
+        for (var index = kennwerte.Count - 1;
+             index >= 0;
+             index--)
+        {
+            if (string.Equals(
+                    kennwerte[index].Name,
+                    name,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                kennwerte.RemoveAt(
+                    index);
+            }
+        }
+
+        kennwerte.Add(
+            new B56Kennwert
+            {
+                Name = name,
+                Einheit = einheit,
+                Wert = wert
+            });
     }
 
     private static string Wert(
