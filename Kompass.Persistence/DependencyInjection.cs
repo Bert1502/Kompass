@@ -2,10 +2,12 @@ using Kompass.Application.B56Import;
 using Kompass.Application.Economics;
 using Kompass.Application.Funding;
 using Kompass.Application.Projects;
+using Kompass.Application.Referenzdaten;
 using Kompass.Application.Reports;
 using Kompass.Application.Verbrauch;
 using Kompass.Application.Waermebruecken;
 using Kompass.Persistence.Data;
+using Kompass.Persistence.Services.Referenzdaten;
 using Kompass.Persistence.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -49,6 +51,15 @@ public static class DependencyInjection
         services.AddScoped<IB56KonfliktService, EfB56KonfliktService>();
 
         services.AddScoped<IBerichtsService, BerichtsService>();
+
+        services.Configure<ReferenzdatenProviderOptionen>(
+            configuration.GetSection(ReferenzdatenProviderOptionen.SectionName));
+
+        services.AddScoped<IReferenzdatenProvider, JsonReferenzdatenProvider>();
+        services.AddScoped<IReferenzdatenProvider, CsvReferenzdatenProvider>();
+        services.AddScoped<IReferenzdatenProvider, XmlReferenzdatenProvider>();
+        services.AddScoped<IReferenzdatenProvider, ExcelReferenzdatenProvider>();
+        services.AddScoped<IReferenzdatenService, EfReferenzdatenService>();
 
         return services;
     }

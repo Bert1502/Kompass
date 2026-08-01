@@ -2,6 +2,7 @@
 using Kompass.Domain.Economics;
 using Kompass.Domain.Funding;
 using Kompass.Domain.Projects;
+using Kompass.Domain.Referenzdaten;
 using Kompass.Domain.Verbrauch;
 using Kompass.Domain.Waermebruecken;
 using Kompass.Persistence.Data.Entities;
@@ -43,6 +44,12 @@ public sealed class KompassDbContext : DbContext
 
     public DbSet<VerbrauchsDaten> VerbrauchsDaten
         => Set<VerbrauchsDaten>();
+
+    public DbSet<Referenzdatensatz> Referenzdatensaetze
+        => Set<Referenzdatensatz>();
+
+    public DbSet<ReferenzwertAbweichung> ReferenzwertAbweichungen
+        => Set<ReferenzwertAbweichung>();
 
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
