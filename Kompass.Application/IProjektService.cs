@@ -36,6 +36,16 @@ public interface IProjektService
         string? gebaeudeart,
         CancellationToken cancellationToken = default);
 
+    Task<ProjektUebersicht?> FreigabestatusAktualisierenAsync(
+        Guid id,
+        Freigabestatus status,
+        CancellationToken cancellationToken = default);
+
+    Task<ProjektUebersicht?> NotizenAktualisierenAsync(
+        Guid id,
+        string? notizen,
+        CancellationToken cancellationToken = default);
+
     Task<bool> LoeschenAsync(
         Guid id,
         CancellationToken cancellationToken = default);

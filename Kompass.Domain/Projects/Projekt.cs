@@ -11,6 +11,7 @@ public sealed class Projekt : AggregateRoot
     public const int MaxOrtLaenge = 100;
     public const int MaxPostleitzahlLaenge = 10;
     public const int MaxGebaeudeartLaenge = 100;
+    public const int MaxNotizenLaenge = 2000;
 
     private readonly List<Modernisierungsalternative> _alternativen = new();
 
@@ -43,6 +44,13 @@ public sealed class Projekt : AggregateRoot
     public string? Postleitzahl { get; private set; }
 
     public string? Gebaeudeart { get; private set; }
+
+    public Freigabestatus Freigabestatus { get; private set; }
+        = Freigabestatus.NichtFreigegeben;
+
+    public DateTime? FreigegebenAm { get; private set; }
+
+    public string? Notizen { get; private set; }
 
     public Guid? QuellSnapshotId { get; private set; }
 
@@ -94,6 +102,48 @@ public sealed class Projekt : AggregateRoot
         Ort = BereinigeFeld(ort, MaxOrtLaenge, "Ort");
         Postleitzahl = BereinigeFeld(postleitzahl, MaxPostleitzahlLaenge, "Postleitzahl");
         Gebaeudeart = BereinigeFeld(gebaeudeart, MaxGebaeudeartLaenge, "Gebäudeart");
+    }
+
+    public void FreigabestatusAktualisieren(
+        Freigabestatus status)
+    {
+        if (!Enum.IsDefined(status))
+        {
+            throw new DomainException(
+                $"Der Freigabestatus '{status}' ist ungültig.");
+        }
+
+        if (status == Freigabestatus.Freigegeben &&
+            Freigabestatus != Freigabestatus.ZurFreigabeEingereicht)
+        {
+            throw new DomainException(
+                "Ein Projekt kann nur freigegeben werden, wenn es zuvor zur Freigabe eingereicht wurde.");
+        }
+
+        Freigabestatus = status;
+        FreigegebenAm = status == Freigabestatus.Freigegeben
+            ? DateTime.UtcNow
+            : FreigegebenAm;
+    }
+
+    public void NotizenAktualisieren(
+        string? notizen)
+    {
+        if (notizen is null)
+        {
+            Notizen = null;
+            return;
+        }
+
+        var bereinigt = notizen.Trim();
+
+        if (bereinigt.Length > MaxNotizenLaenge)
+        {
+            throw new DomainException(
+                $"Die Notizen dürfen höchstens {MaxNotizenLaenge} Zeichen enthalten.");
+        }
+
+        Notizen = bereinigt.Length == 0 ? null : bereinigt;
     }
 
     public void AlternativeHinzufuegen(

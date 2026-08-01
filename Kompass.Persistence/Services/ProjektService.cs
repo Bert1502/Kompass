@@ -34,7 +34,10 @@ public sealed class ProjektService : IProjektService
                 projekt.Strasse,
                 projekt.Ort,
                 projekt.Postleitzahl,
-                projekt.Gebaeudeart))
+                projekt.Gebaeudeart,
+                projekt.Freigabestatus,
+                projekt.FreigegebenAm,
+                projekt.Notizen))
             .ToListAsync(cancellationToken);
     }
 
@@ -63,7 +66,10 @@ public sealed class ProjektService : IProjektService
                 projekt.Strasse,
                 projekt.Ort,
                 projekt.Postleitzahl,
-                projekt.Gebaeudeart))
+                projekt.Gebaeudeart,
+                projekt.Freigabestatus,
+                projekt.FreigegebenAm,
+                projekt.Notizen))
             .SingleOrDefaultAsync(cancellationToken);
     }
 
@@ -216,6 +222,62 @@ public sealed class ProjektService : IProjektService
         return ErzeugeUebersicht(projekt);
     }
 
+    public async Task<ProjektUebersicht?> FreigabestatusAktualisierenAsync(
+        Guid id,
+        Freigabestatus status,
+        CancellationToken cancellationToken = default)
+    {
+        if (id == Guid.Empty)
+        {
+            return null;
+        }
+
+        var projekt = await _dbContext.Projekte
+            .Include(eintrag => eintrag.Alternativen)
+            .SingleOrDefaultAsync(
+                eintrag => eintrag.Id == id,
+                cancellationToken);
+
+        if (projekt is null)
+        {
+            return null;
+        }
+
+        projekt.FreigabestatusAktualisieren(status);
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return ErzeugeUebersicht(projekt);
+    }
+
+    public async Task<ProjektUebersicht?> NotizenAktualisierenAsync(
+        Guid id,
+        string? notizen,
+        CancellationToken cancellationToken = default)
+    {
+        if (id == Guid.Empty)
+        {
+            return null;
+        }
+
+        var projekt = await _dbContext.Projekte
+            .Include(eintrag => eintrag.Alternativen)
+            .SingleOrDefaultAsync(
+                eintrag => eintrag.Id == id,
+                cancellationToken);
+
+        if (projekt is null)
+        {
+            return null;
+        }
+
+        projekt.NotizenAktualisieren(notizen);
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return ErzeugeUebersicht(projekt);
+    }
+
     public async Task<bool> LoeschenAsync(
         Guid id,
         CancellationToken cancellationToken = default)
@@ -285,6 +347,9 @@ public sealed class ProjektService : IProjektService
             projekt.Strasse,
             projekt.Ort,
             projekt.Postleitzahl,
-            projekt.Gebaeudeart);
+            projekt.Gebaeudeart,
+            projekt.Freigabestatus,
+            projekt.FreigegebenAm,
+            projekt.Notizen);
     }
 }

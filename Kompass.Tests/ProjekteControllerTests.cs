@@ -381,6 +381,147 @@ public sealed class ProjekteControllerTests
         Assert.IsType<BadRequestObjectResult>(ergebnis.Result);
     }
 
+    [Fact]
+    public async Task FreigabestatusAktualisieren_liefert_Ok_bei_bekannter_Id()
+    {
+        var erwartet =
+            new ProjektUebersicht(
+                Guid.NewGuid(),
+                "Rathaus",
+                0,
+                Freigabestatus: Kompass.Domain.Projects.Freigabestatus.ZurFreigabeEingereicht);
+
+        var controller =
+            new ProjekteController(
+                new ProjektServiceFake(
+                    freigabestatus: erwartet),
+                NullLogger<ProjekteController>.Instance);
+
+        var ergebnis =
+            await controller.FreigabestatusAktualisierenAsync(
+                erwartet.Id,
+                new ProjektFreigabestatusAktualisierenRequest
+                {
+                    Freigabestatus =
+                        Kompass.Domain.Projects.Freigabestatus.ZurFreigabeEingereicht
+                },
+                CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(ergebnis.Result);
+        Assert.Equal(erwartet, ok.Value);
+    }
+
+    [Fact]
+    public async Task FreigabestatusAktualisieren_liefert_NotFound_bei_unbekannter_Id()
+    {
+        var controller =
+            new ProjekteController(
+                new ProjektServiceFake(
+                    freigabestatus: null),
+                NullLogger<ProjekteController>.Instance);
+
+        var ergebnis =
+            await controller.FreigabestatusAktualisierenAsync(
+                Guid.NewGuid(),
+                new ProjektFreigabestatusAktualisierenRequest(),
+                CancellationToken.None);
+
+        Assert.IsType<NotFoundObjectResult>(ergebnis.Result);
+    }
+
+    [Fact]
+    public async Task FreigabestatusAktualisieren_liefert_BadRequest_bei_DomainException()
+    {
+        var controller =
+            new ProjekteController(
+                new ProjektServiceFake(
+                    freigabestatusWirft:
+                        new Kompass.Domain.Common.DomainException(
+                            "Ungültiger Übergang.")),
+                NullLogger<ProjekteController>.Instance);
+
+        var ergebnis =
+            await controller.FreigabestatusAktualisierenAsync(
+                Guid.NewGuid(),
+                new ProjektFreigabestatusAktualisierenRequest
+                {
+                    Freigabestatus =
+                        Kompass.Domain.Projects.Freigabestatus.Freigegeben
+                },
+                CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(ergebnis.Result);
+    }
+
+    [Fact]
+    public async Task NotizenAktualisieren_liefert_Ok_bei_bekannter_Id()
+    {
+        var erwartet =
+            new ProjektUebersicht(
+                Guid.NewGuid(),
+                "Rathaus",
+                0,
+                Notizen: "Eine Notiz");
+
+        var controller =
+            new ProjekteController(
+                new ProjektServiceFake(
+                    notizen: erwartet),
+                NullLogger<ProjekteController>.Instance);
+
+        var ergebnis =
+            await controller.NotizenAktualisierenAsync(
+                erwartet.Id,
+                new ProjektNotizenAktualisierenRequest
+                {
+                    Notizen = "Eine Notiz"
+                },
+                CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(ergebnis.Result);
+        Assert.Equal(erwartet, ok.Value);
+    }
+
+    [Fact]
+    public async Task NotizenAktualisieren_liefert_NotFound_bei_unbekannter_Id()
+    {
+        var controller =
+            new ProjekteController(
+                new ProjektServiceFake(
+                    notizen: null),
+                NullLogger<ProjekteController>.Instance);
+
+        var ergebnis =
+            await controller.NotizenAktualisierenAsync(
+                Guid.NewGuid(),
+                new ProjektNotizenAktualisierenRequest(),
+                CancellationToken.None);
+
+        Assert.IsType<NotFoundObjectResult>(ergebnis.Result);
+    }
+
+    [Fact]
+    public async Task NotizenAktualisieren_liefert_BadRequest_bei_DomainException()
+    {
+        var controller =
+            new ProjekteController(
+                new ProjektServiceFake(
+                    notizenWirft:
+                        new Kompass.Domain.Common.DomainException("Zu lang.")),
+                NullLogger<ProjekteController>.Instance);
+
+        var ergebnis =
+            await controller.NotizenAktualisierenAsync(
+                Guid.NewGuid(),
+                new ProjektNotizenAktualisierenRequest
+                {
+                    Notizen = new string('N', 2001)
+                },
+                CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(ergebnis.Result);
+    }
+
     private sealed class ProjektServiceFake : IProjektService
     {
         private readonly IReadOnlyList<ProjektUebersicht>? _alleAbrufen;
@@ -392,6 +533,10 @@ public sealed class ProjekteControllerTests
         private readonly bool _loeschen;
         private readonly ProjektUebersicht? _stammdaten;
         private readonly Exception? _stammdatenWirft;
+        private readonly ProjektUebersicht? _freigabestatus;
+        private readonly Exception? _freigabestatusWirft;
+        private readonly ProjektUebersicht? _notizen;
+        private readonly Exception? _notizenWirft;
 
         public ProjektServiceFake(
             IReadOnlyList<ProjektUebersicht>? alleAbrufen = null,
@@ -402,7 +547,11 @@ public sealed class ProjekteControllerTests
             Exception? aktualisierenWirft = null,
             bool loeschen = false,
             ProjektUebersicht? stammdaten = null,
-            Exception? stammdatenWirft = null)
+            Exception? stammdatenWirft = null,
+            ProjektUebersicht? freigabestatus = null,
+            Exception? freigabestatusWirft = null,
+            ProjektUebersicht? notizen = null,
+            Exception? notizenWirft = null)
         {
             _alleAbrufen = alleAbrufen;
             _nachIdAbrufen = nachIdAbrufen;
@@ -413,6 +562,10 @@ public sealed class ProjekteControllerTests
             _loeschen = loeschen;
             _stammdaten = stammdaten;
             _stammdatenWirft = stammdatenWirft;
+            _freigabestatus = freigabestatus;
+            _freigabestatusWirft = freigabestatusWirft;
+            _notizen = notizen;
+            _notizenWirft = notizenWirft;
         }
 
         public Task<IReadOnlyList<ProjektUebersicht>> AlleAbrufenAsync(
@@ -500,6 +653,32 @@ public sealed class ProjekteControllerTests
         {
             return Task.FromResult(
                 _loeschen);
+        }
+
+        public Task<ProjektUebersicht?> FreigabestatusAktualisierenAsync(
+            Guid id,
+            Kompass.Domain.Projects.Freigabestatus status,
+            CancellationToken cancellationToken = default)
+        {
+            if (_freigabestatusWirft is not null)
+            {
+                throw _freigabestatusWirft;
+            }
+
+            return Task.FromResult(_freigabestatus);
+        }
+
+        public Task<ProjektUebersicht?> NotizenAktualisierenAsync(
+            Guid id,
+            string? notizen,
+            CancellationToken cancellationToken = default)
+        {
+            if (_notizenWirft is not null)
+            {
+                throw _notizenWirft;
+            }
+
+            return Task.FromResult(_notizen);
         }
     }
 }
