@@ -29,11 +29,7 @@ public sealed partial class B56TabellenImportService
     [
         "Primärenergiebedarf Gebäude",
         "Endenergiebedarf Gebäude",
-        "CO2-Emissionen Gebäude",
-        "Investitionskosten",
-        "davon Instandhaltung",
-        "davon energetisch bedingte Mehrkosten",
-        "Förderung gesamt"
+        "CO2-Emissionen Gebäude"
     ];
 
     private static readonly IReadOnlyList<string>

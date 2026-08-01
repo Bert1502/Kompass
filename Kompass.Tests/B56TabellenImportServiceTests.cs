@@ -65,7 +65,7 @@ public sealed class B56TabellenImportServiceTests
             ergebnis.ImportierteBauteile);
 
         Assert.Equal(
-            12,
+            9,
             ergebnis.ImportierteKennwerte);
 
         Assert.Equal(
@@ -349,14 +349,6 @@ public sealed class B56TabellenImportServiceTests
                 ("B", "CO2-Emissionen Gebäude"),
                 ("C", "20.5")),
             Zeile(
-                11,
-                ("B", "Investitionskosten"),
-                ("C", "50000")),
-            Zeile(
-                14,
-                ("B", "Förderung gesamt"),
-                ("C", "7500")),
-            Zeile(
                 28,
                 ("A", "Modernisierung 1")),
             Zeile(
@@ -367,10 +359,6 @@ public sealed class B56TabellenImportServiceTests
                 30,
                 ("B", "Beschreibung"),
                 ("C", "Fenstertausch")),
-            Zeile(
-                31,
-                ("B", "Investitionskosten"),
-                ("C", "20000")),
             Zeile(
                 37,
                 ("B", "Primärenergiebedarf Gebäude"),
