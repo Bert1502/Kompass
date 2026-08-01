@@ -1,0 +1,208 @@
+﻿<UserControl x:Class="Kompass.Desktop.Views.WirtschaftlichkeitView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="600"
+             d:DesignWidth="1000">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+
+        <StackPanel Margin="30">
+
+            <TextBlock Text="Wirtschaftlichkeit"
+                       FontSize="28"
+                       FontWeight="SemiBold"/>
+
+            <TextBlock Text="{Binding Projektname}"
+                       Margin="0,6,0,26"
+                       Foreground="#66747E"
+                       FontSize="15"/>
+
+            <!-- Lade-Schaltfläche und Status -->
+
+            <StackPanel Orientation="Horizontal"
+                        Margin="0,0,0,20">
+
+                <Button Content="Daten laden"
+                        Command="{Binding LadenCommand}"
+                        Width="130"
+                        Height="38"
+                        FontWeight="SemiBold"/>
+
+                <Border Margin="16,0,0,0"
+                        Background="#EEF2F4"
+                        CornerRadius="4"
+                        Padding="14,0"
+                        VerticalAlignment="Center">
+
+                    <TextBlock Text="{Binding StatusText}"
+                               Foreground="#34444F"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap"/>
+
+                </Border>
+
+            </StackPanel>
+
+            <!-- Bilanzierte Wirtschaftlichkeit -->
+
+            <Border Background="White"
+                    BorderBrush="#D5DBDF"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="24"
+                    Margin="0,0,0,20">
+
+                <StackPanel>
+
+                    <TextBlock Text="Bilanzierte Wirtschaftlichkeit"
+                               FontSize="20"
+                               FontWeight="SemiBold"/>
+
+                    <TextBlock Margin="0,6,0,16"
+                               Text="Wirtschaftlichkeitsberechnung auf Basis der bilanzierten Energiedaten (B56-Bilanzwerte)."
+                               Foreground="#687680"
+                               TextWrapping="Wrap"/>
+
+                    <DataGrid ItemsSource="{Binding BilanzierteZeilen}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              CanUserAddRows="False"
+                              HeadersVisibility="Column"
+                              GridLinesVisibility="Horizontal"
+                              MinHeight="80">
+
+                        <DataGrid.Columns>
+
+                            <DataGridTextColumn Header="Pos."
+                                                Binding="{Binding B56Position}"
+                                                Width="50"/>
+
+                            <DataGridTextColumn Header="Modernisierungsalternative"
+                                                Binding="{Binding Bezeichnung}"
+                                                Width="200"/>
+
+                            <DataGridTextColumn Header="Investition"
+                                                Binding="{Binding InvestitionskostenText}"
+                                                Width="110"/>
+
+                            <DataGridTextColumn Header="Förderung"
+                                                Binding="{Binding FoerderungText}"
+                                                Width="100"/>
+
+                            <DataGridTextColumn Header="Eigenanteil"
+                                                Binding="{Binding Ergebnis.EigenanteilText}"
+                                                Width="100"/>
+
+                            <DataGridTextColumn Header="Einsparung p.a."
+                                                Binding="{Binding Ergebnis.JaehrlicheEinsparungText}"
+                                                Width="120"/>
+
+                            <DataGridTextColumn Header="Amort. statisch"
+                                                Binding="{Binding Ergebnis.AmortisationStatischText}"
+                                                Width="110"/>
+
+                            <DataGridTextColumn Header="Amort. dyn."
+                                                Binding="{Binding Ergebnis.AmortisationDynamischText}"
+                                                Width="100"/>
+
+                            <DataGridTextColumn Header="Kapitalwert"
+                                                Binding="{Binding Ergebnis.KapitalwertText}"
+                                                Width="110"/>
+
+                            <DataGridTextColumn Header="Kosten/Nutzen"
+                                                Binding="{Binding Ergebnis.KostenNutzenText}"
+                                                Width="*"/>
+
+                        </DataGrid.Columns>
+
+                    </DataGrid>
+
+                </StackPanel>
+
+            </Border>
+
+            <!-- Praktische Wirtschaftlichkeit -->
+
+            <Border Background="White"
+                    BorderBrush="#D5DBDF"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="24">
+
+                <StackPanel>
+
+                    <TextBlock Text="Praktische Wirtschaftlichkeit"
+                               FontSize="20"
+                               FontWeight="SemiBold"/>
+
+                    <TextBlock Margin="0,6,0,16"
+                               Text="Wirtschaftlichkeitsberechnung auf Basis der realen Verbrauchsdaten."
+                               Foreground="#687680"
+                               TextWrapping="Wrap"/>
+
+                    <DataGrid ItemsSource="{Binding PraktischeZeilen}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              CanUserAddRows="False"
+                              HeadersVisibility="Column"
+                              GridLinesVisibility="Horizontal"
+                              MinHeight="80">
+
+                        <DataGrid.Columns>
+
+                            <DataGridTextColumn Header="Pos."
+                                                Binding="{Binding B56Position}"
+                                                Width="50"/>
+
+                            <DataGridTextColumn Header="Modernisierungsalternative"
+                                                Binding="{Binding Bezeichnung}"
+                                                Width="200"/>
+
+                            <DataGridTextColumn Header="Investition"
+                                                Binding="{Binding InvestitionskostenText}"
+                                                Width="110"/>
+
+                            <DataGridTextColumn Header="Förderung"
+                                                Binding="{Binding FoerderungText}"
+                                                Width="100"/>
+
+                            <DataGridTextColumn Header="Eigenanteil"
+                                                Binding="{Binding Ergebnis.EigenanteilText}"
+                                                Width="100"/>
+
+                            <DataGridTextColumn Header="Einsparung p.a."
+                                                Binding="{Binding Ergebnis.JaehrlicheEinsparungText}"
+                                                Width="120"/>
+
+                            <DataGridTextColumn Header="Amort. statisch"
+                                                Binding="{Binding Ergebnis.AmortisationStatischText}"
+                                                Width="110"/>
+
+                            <DataGridTextColumn Header="Amort. dyn."
+                                                Binding="{Binding Ergebnis.AmortisationDynamischText}"
+                                                Width="100"/>
+
+                            <DataGridTextColumn Header="Kapitalwert"
+                                                Binding="{Binding Ergebnis.KapitalwertText}"
+                                                Width="110"/>
+
+                            <DataGridTextColumn Header="Kosten/Nutzen"
+                                                Binding="{Binding Ergebnis.KostenNutzenText}"
+                                                Width="*"/>
+
+                        </DataGrid.Columns>
+
+                    </DataGrid>
+
+                </StackPanel>
+
+            </Border>
+
+        </StackPanel>
+
+    </ScrollViewer>
+
+</UserControl>

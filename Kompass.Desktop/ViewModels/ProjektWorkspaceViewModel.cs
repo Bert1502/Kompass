@@ -7,6 +7,8 @@ namespace Kompass.Desktop.ViewModels;
 public sealed class ProjektWorkspaceViewModel : ViewModelBase
 {
     private readonly B56ImportViewModel _b56ImportViewModel;
+    private readonly WirtschaftlichkeitViewModel _wirtschaftlichkeitViewModel;
+    private readonly FoerderungViewModel _foerderungViewModel;
 
     private ProjektUebersichtDto? _projekt;
     private object? _aktuellerInhalt;
@@ -14,9 +16,13 @@ public sealed class ProjektWorkspaceViewModel : ViewModelBase
     private string _statusText = "Bereit";
 
     public ProjektWorkspaceViewModel(
-        B56ImportViewModel b56ImportViewModel)
+        B56ImportViewModel b56ImportViewModel,
+        WirtschaftlichkeitViewModel wirtschaftlichkeitViewModel,
+        FoerderungViewModel foerderungViewModel)
     {
         _b56ImportViewModel = b56ImportViewModel;
+        _wirtschaftlichkeitViewModel = wirtschaftlichkeitViewModel;
+        _foerderungViewModel = foerderungViewModel;
 
         ProjektuebersichtCommand =
             new RelayCommand(
@@ -37,14 +43,12 @@ public sealed class ProjektWorkspaceViewModel : ViewModelBase
                     "Modernisierungsalternativen"));
 
         WirtschaftlichkeitCommand =
-            new RelayCommand(
-                () => BereichOhneInhaltAnzeigen(
-                    "Wirtschaftlichkeit"));
+            new AsyncRelayCommand(
+                WirtschaftlichkeitAnzeigenAsync);
 
         FoerderungCommand =
-            new RelayCommand(
-                () => BereichOhneInhaltAnzeigen(
-                    "Förderung"));
+            new AsyncRelayCommand(
+                FoerderungAnzeigenAsync);
 
         BerichtCommand =
             new RelayCommand(
@@ -167,6 +171,14 @@ public sealed class ProjektWorkspaceViewModel : ViewModelBase
             projekt.Id,
             projekt.Name);
 
+        _wirtschaftlichkeitViewModel.ProjektSetzen(
+            projekt.Id,
+            projekt.Name);
+
+        _foerderungViewModel.ProjektSetzen(
+            projekt.Id,
+            projekt.Name);
+
         ProjektuebersichtAnzeigen();
 
         StatusText =
@@ -198,6 +210,36 @@ public sealed class ProjektWorkspaceViewModel : ViewModelBase
 
         await _b56ImportViewModel
             .HistorieLadenAsync();
+    }
+
+    private async Task WirtschaftlichkeitAnzeigenAsync()
+    {
+        AktiverBereich =
+            "Wirtschaftlichkeit";
+
+        AktuellerInhalt =
+            _wirtschaftlichkeitViewModel;
+
+        StatusText =
+            "Wirtschaftlichkeit wurde ausgewählt.";
+
+        await _wirtschaftlichkeitViewModel
+            .LadenAsync();
+    }
+
+    private async Task FoerderungAnzeigenAsync()
+    {
+        AktiverBereich =
+            "Förderung";
+
+        AktuellerInhalt =
+            _foerderungViewModel;
+
+        StatusText =
+            "Förderung wurde ausgewählt.";
+
+        await _foerderungViewModel
+            .LadenAsync();
     }
 
     private void BereichOhneInhaltAnzeigen(

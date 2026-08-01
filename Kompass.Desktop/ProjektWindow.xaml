@@ -19,6 +19,14 @@
             <views:B56ImportView/>
         </DataTemplate>
 
+        <DataTemplate DataType="{x:Type viewModels:WirtschaftlichkeitViewModel}">
+            <views:WirtschaftlichkeitView/>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type viewModels:FoerderungViewModel}">
+            <views:FoerderungView/>
+        </DataTemplate>
+
     </Window.Resources>
 
     <Grid Background="#F3F5F7">
