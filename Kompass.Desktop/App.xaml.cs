@@ -69,6 +69,18 @@ public partial class App : System.Windows.Application
                 client.BaseAddress = apiBasisUri;
             });
 
+        services.AddHttpClient<IWirtschaftlichkeitApiClient, WirtschaftlichkeitApiClient>(
+            client =>
+            {
+                client.BaseAddress = apiBasisUri;
+            });
+
+        services.AddHttpClient<IFoerderungApiClient, FoerderungApiClient>(
+            client =>
+            {
+                client.BaseAddress = apiBasisUri;
+            });
+
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<IDateiDialogService, DateiDialogService>();
         services.AddSingleton<IProjektNavigationService, ProjektNavigationService>();
@@ -76,6 +88,8 @@ public partial class App : System.Windows.Application
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<ProjektWorkspaceViewModel>();
         services.AddTransient<B56ImportViewModel>();
+        services.AddTransient<WirtschaftlichkeitViewModel>();
+        services.AddTransient<FoerderungViewModel>();
 
         services.AddTransient<MainWindow>();
         services.AddTransient<ProjektWindow>();
