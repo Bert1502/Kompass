@@ -1,10 +1,5 @@
-# NAMING
+# Historische Benennungsregeln
 
-- Produkt: `KOMPASS`
-- Fachsprache bevorzugt deutsch
-- `Nutzungsprofil` statt allgemeinem `Zone`
-- Variante und Modernisierungsalternative nicht vermischen
-- Bauteilcodes unverändert
-- Interfaces mit `I`
-- Async-Methoden mit `Async`
-- `CancellationToken` letzter Parameter
+Die verbindlichen repositoryweiten Benennungsregeln stehen in [`.github/copilot-instructions.md`](../../.github/copilot-instructions.md).
+
+Lokale C#-Konventionen ergeben sich zusätzlich aus dem bestehenden Code und den aktivierten Analyzern. Diese Datei ist keine zusätzliche Anweisungsquelle.

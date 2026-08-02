@@ -1,13 +1,5 @@
-# IMPLEMENTATION_ORDER
+# Historische Implementierungsreihenfolge
 
-Keine neue Architekturplanung.
-1. Build und Tests stabilisieren.
-2. Projekt-Domain und CRUD absichern.
-3. Snapshot/Projektmodell-Trennung vollständig umsetzen.
-4. Snapshot-Payload versionieren.
-5. B56-End-to-End stabilisieren.
-6. echte HTTP- und Desktop-Vertragstests.
-7. große Komponenten nur mit Charakterisierungstests zerlegen.
-8. Backup/Restore/Recovery dokumentieren.
-9. weitere B56-Felder erst nach Freigabe.
-10. danach Wirtschaftlichkeit, Förderung und Berichte.
+Diese Reihenfolge ist durch spätere Arbeitspakete teilweise überholt und darf nicht als aktueller Auftrag verwendet werden.
+
+Repositoryweite Arbeitsregeln stehen in [`.github/copilot-instructions.md`](../../.github/copilot-instructions.md). Aktuelle Prioritäten müssen aus einem ausdrücklich beauftragten Arbeitspaket oder einem aktuellen, datierten Review hervorgehen.

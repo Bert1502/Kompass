@@ -56,7 +56,8 @@ public sealed class KompassDbContextMigrationTests
                     "20260730070445_AddB56KonfliktEintraege",
                     "20260730092438_AddB56KonfliktAlterNeuerWert",
                     "20260801081028_AddProjektFreigabestatus",
-                    "20260801094619_AddReferenzdaten"
+                    "20260801094619_AddReferenzdaten",
+                    "20260802135842_AddFachdatenkataloge"
                 ],
                 angewendeteMigrationen);
         }

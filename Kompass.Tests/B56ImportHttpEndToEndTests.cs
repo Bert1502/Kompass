@@ -8,6 +8,7 @@ using Kompass.Application.B56Import;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Logging;
 
 namespace Kompass.Tests.B56Import;
 
@@ -799,6 +800,7 @@ public sealed class B56ImportHttpEndToEndTests
         protected override void ConfigureWebHost(
             IWebHostBuilder builder)
         {
+            builder.ConfigureLogging(logging => logging.ClearProviders());
             builder.UseSetting(
                 "ConnectionStrings:KompassDatabase",
                 $"Data Source={Path.Combine(testverzeichnis, "kompass.db")}");
