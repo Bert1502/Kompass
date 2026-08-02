@@ -1,26 +1,5 @@
-Du arbeitest im Repository Bert1502/KOMPASS.
+# Abgeschlossener historischer Auftrag
 
-Lies vor jeder Änderung vollständig:
+Der hier früher beschriebene Auftrag zur Erstellung der B56-Gap-Analyse wurde abgeschlossen. Das Ergebnis liegt unter [`docs/reviews/B56_GAP_ANALYSIS.md`](reviews/B56_GAP_ANALYSIS.md).
 
-- docs/FUNCTIONAL_SPECIFICATION.md
-- docs/modules/WORKFLOW_B56_IMPORT.md
-- docs/adr/ADR-0008-B56-SNAPSHOT-UND-PROJEKTMODELL.md
-- CODEX.md beziehungsweise docs/CODEX.md
-
-Diese Dokumente sind für die fachliche Umsetzung verbindlich.
-
-Nächster Auftrag:
-
-1. Vergleiche den aktuellen Code mit ADR-0008 und der B56-Fachspezifikation.
-2. Erstelle unter docs/reviews/B56_GAP_ANALYSIS.md eine konkrete Gap-Analyse.
-3. Liste:
-   - bereits erfüllt,
-   - teilweise erfüllt,
-   - nicht erfüllt,
-   - notwendige Datenbankmigrationen,
-   - notwendige Tests,
-   - Risiken.
-4. Nimm in diesem Arbeitspaket keine funktionalen Quellcodeänderungen vor.
-5. Aktualisiere keine fachliche Entscheidung eigenmächtig.
-6. Führe dotnet restore, dotnet build und dotnet test aus.
-7. Erstelle einen Commit und Pull Request ausschließlich für Dokumentation und Gap-Analyse.
+Diese Datei ist keine Agentenanweisung und darf nicht als aktueller Arbeitsauftrag interpretiert werden. Repositoryweite Anweisungen stehen in [`.github/copilot-instructions.md`](../.github/copilot-instructions.md).

@@ -1,14 +1,5 @@
-# PROMPT_CONTEXT
+# Historischer Prompt-Kontext
 
-Repository: `Bert1502/KOMPASS`.
+Die verbindlichen repositoryweiten Anweisungen stehen in [`.github/copilot-instructions.md`](../../.github/copilot-instructions.md).
 
-- B56 ist alleiniger energetischer Rechenkern.
-- ThermCAD ist Wärmebrücken-Rechenkern.
-- Keine IFC-/gbXML-Auswertung.
-- B56-Excel ist zentraler Integrationspfad.
-- Originale und Snapshots sind unveränderlich.
-- Projektmodell ist bearbeitbar.
-- Reimport überschreibt nicht automatisch.
-- Bauteilcodes bleiben erhalten.
-- `Modernisierungsalternative` verwenden, wenn der B56-Begriff gemeint ist.
-- Nichts implementieren, was nicht durch Code, Test, ADR oder Spezifikation belegt ist.
+Diese Datei ist keine zusätzliche Anweisungsquelle und bleibt nur für bestehende Verweise erhalten.

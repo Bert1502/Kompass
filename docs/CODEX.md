@@ -1,30 +1,5 @@
-# CODEX.md
+# Historischer Codex-Einstiegspunkt
 
-## Mission
+Die repositoryweiten Agenten- und Copilot-Anweisungen stehen ausschließlich in [`.github/copilot-instructions.md`](../.github/copilot-instructions.md).
 
-KOMPASS ist eine Beratungssoftware für energetische Sanierungen. B56 ist
-der einzige energetische Rechenkern.
-
-## Nicht ändern
-
--   Architektur nur auf ausdrücklichen Auftrag ändern.
--   Keine eigenen DIN V 18599 Berechnungen implementieren.
--   Keine IFC-Auswertung implementieren.
-
-## Vor jeder Änderung
-
-1.  dotnet restore
-2.  dotnet build
-3.  dotnet test
-
-## Nach jeder Änderung
-
--   Build erfolgreich.
--   Änderungen dokumentieren.
--   Pull Request erstellen.
-
-## Fachliche Regeln
-
--   Modernisierungsalternativen stammen aus B56.
--   Varianten sind Planstände.
--   Wärmebrückenprozess einhalten.
+Diese Datei bleibt nur erhalten, damit bestehende Verweise nicht brechen. Sie enthält bewusst keine zusätzlichen Regeln.
