@@ -23,6 +23,8 @@ Verbindliche Architekturentscheidung: [`ADR-0009-FACHDATENKATALOGE.md`](../adr/A
 
 ## Konfiguration
 
+Ein unveränderlicher Referenz-Seed wird versionsbezogen unter `data/fachdatenbanken/v1.0.0/` gepflegt. Für den Betrieb wird immer eine vollständige Kopie in ein lokales, beschreibbares Verzeichnis außerhalb des Repositorys verwendet; die eingecheckten Referenzdateien werden nie zur Laufzeit verändert.
+
 Das lokale Quellverzeichnis wird außerhalb des Repositorys konfiguriert:
 
 ```json
