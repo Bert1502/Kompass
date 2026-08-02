@@ -3,6 +3,9 @@
 ###############################################################################
 * text=auto
 
+# SQLite reference databases are binary artifacts. Do not normalize, diff or merge them as text.
+*.sqlite binary
+
 ###############################################################################
 # Set default behavior for command prompt diff.
 #
