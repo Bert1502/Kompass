@@ -9,11 +9,16 @@ public sealed class FachdatenbankenController : ControllerBase
 {
     private readonly IFachdatenbankImportService _service;
     private readonly IConfiguration _configuration;
+    private readonly IWebHostEnvironment _environment;
 
-    public FachdatenbankenController(IFachdatenbankImportService service, IConfiguration configuration)
+    public FachdatenbankenController(
+        IFachdatenbankImportService service,
+        IConfiguration configuration,
+        IWebHostEnvironment environment)
     {
         _service = service;
         _configuration = configuration;
+        _environment = environment;
     }
 
     [HttpGet("pruefen")]
@@ -37,6 +42,10 @@ public sealed class FachdatenbankenController : ControllerBase
     private string? KonfiguriertesVerzeichnis()
     {
         var value = _configuration["Fachdatenbanken:Verzeichnis"];
-        return string.IsNullOrWhiteSpace(value) ? null : value;
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        return Path.GetFullPath(
+            Path.IsPathRooted(value)
+                ? value
+                : Path.Combine(_environment.ContentRootPath, value));
     }
 }

@@ -81,6 +81,12 @@ public partial class App : System.Windows.Application
                 client.BaseAddress = apiBasisUri;
             });
 
+        services.AddHttpClient<IFachdatenApiClient, FachdatenApiClient>(
+            client =>
+            {
+                client.BaseAddress = apiBasisUri;
+            });
+
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<IDateiDialogService, DateiDialogService>();
         services.AddSingleton<IProjektNavigationService, ProjektNavigationService>();

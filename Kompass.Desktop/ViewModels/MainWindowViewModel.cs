@@ -11,21 +11,25 @@ public sealed class MainWindowViewModel : ViewModelBase
     private readonly IProjektApiClient _projektApiClient;
     private readonly IDialogService _dialogService;
     private readonly IProjektNavigationService _projektNavigationService;
+    private readonly IFachdatenApiClient _fachdatenApiClient;
 
     private ProjektUebersichtDto? _ausgewaehltesProjekt;
     private string _neuerProjektname = string.Empty;
     private string _bearbeiteterProjektname = string.Empty;
     private string _statusText = "Bereit";
     private bool _istBeschaeftigt;
+    private string _fachdatenStatusText = "Fachdaten wurden noch nicht geprüft.";
 
     public MainWindowViewModel(
         IProjektApiClient projektApiClient,
         IDialogService dialogService,
-        IProjektNavigationService projektNavigationService)
+        IProjektNavigationService projektNavigationService,
+        IFachdatenApiClient fachdatenApiClient)
     {
         _projektApiClient = projektApiClient;
         _dialogService = dialogService;
         _projektNavigationService = projektNavigationService;
+        _fachdatenApiClient = fachdatenApiClient;
 
         Projekte =
             new ObservableCollection<ProjektUebersichtDto>();
@@ -54,6 +58,9 @@ public sealed class MainWindowViewModel : ViewModelBase
             new AsyncRelayCommand(
                 ProjektLoeschenAsync,
                 KannProjektLoeschen);
+
+        FachdatenPruefenCommand = new AsyncRelayCommand(FachdatenPruefenAsync, () => !IstBeschaeftigt);
+        FachdatenImportierenCommand = new AsyncRelayCommand(FachdatenImportierenAsync, () => !IstBeschaeftigt);
     }
 
     public ObservableCollection<ProjektUebersichtDto>
@@ -135,6 +142,12 @@ public sealed class MainWindowViewModel : ViewModelBase
         }
     }
 
+    public string FachdatenStatusText
+    {
+        get => _fachdatenStatusText;
+        private set => SetProperty(ref _fachdatenStatusText, value);
+    }
+
     public ICommand ProjekteLadenCommand { get; }
 
     public ICommand ProjektErstellenCommand { get; }
@@ -144,6 +157,8 @@ public sealed class MainWindowViewModel : ViewModelBase
     public ICommand ProjektOeffnenCommand { get; }
 
     public ICommand ProjektLoeschenCommand { get; }
+    public ICommand FachdatenPruefenCommand { get; }
+    public ICommand FachdatenImportierenCommand { get; }
 
     public async Task InitialisierenAsync()
     {
@@ -155,7 +170,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         try
         {
             IstBeschaeftigt = true;
-            StatusText = "Projekte werden geladen �";
+            StatusText = "Projekte werden geladen …";
 
             var projekte =
                 await _projektApiClient
@@ -188,7 +203,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         try
         {
             IstBeschaeftigt = true;
-            StatusText = "Projekt wird angelegt �";
+            StatusText = "Projekt wird angelegt …";
 
             var projekt =
                 await _projektApiClient
@@ -226,7 +241,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         try
         {
             IstBeschaeftigt = true;
-            StatusText = "Projekt wird aktualisiert �";
+            StatusText = "Projekt wird aktualisiert …";
 
             var aktualisiertesProjekt =
                 await _projektApiClient
@@ -282,7 +297,7 @@ public sealed class MainWindowViewModel : ViewModelBase
             .ProjektOeffnen(projekt);
 
         StatusText =
-            $"Projekt '{projekt.Name}' wurde ge�ffnet.";
+            $"Projekt '{projekt.Name}' wurde geöffnet.";
     }
 
     private async Task ProjektLoeschenAsync()
@@ -302,7 +317,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         if (!bestaetigt)
         {
             StatusText =
-                "L�schen wurde abgebrochen.";
+                "Löschen wurde abgebrochen.";
 
             return;
         }
@@ -312,7 +327,7 @@ public sealed class MainWindowViewModel : ViewModelBase
             IstBeschaeftigt = true;
 
             StatusText =
-                $"Projekt '{projekt.Name}' wird gel�scht �";
+                $"Projekt '{projekt.Name}' wird gelöscht …";
 
             var wurdeGeloescht =
                 await _projektApiClient
@@ -332,7 +347,7 @@ public sealed class MainWindowViewModel : ViewModelBase
             AusgewaehltesProjekt = null;
 
             StatusText =
-                $"Projekt '{projekt.Name}' wurde gel�scht.";
+                $"Projekt '{projekt.Name}' wurde gelöscht.";
         }
         catch (Exception exception)
         {
@@ -349,6 +364,45 @@ public sealed class MainWindowViewModel : ViewModelBase
         return !IstBeschaeftigt
             && !string.IsNullOrWhiteSpace(
                 NeuerProjektname);
+    }
+
+    private async Task FachdatenPruefenAsync()
+    {
+        try
+        {
+            IstBeschaeftigt = true;
+            FachdatenStatusText = "Sechs Fachdatenbanken werden geprüft …";
+            var ergebnis = await _fachdatenApiClient.PruefenAsync();
+            var warnungen = ergebnis.Datenbanken.Sum(x => x.Warnungen.Count);
+            FachdatenStatusText = ergebnis.IstGueltig
+                ? $"{ergebnis.Datenbanken.Count}/6 Datenbanken gültig, {warnungen} Warnung(en)."
+                : $"Prüfung fehlgeschlagen: {string.Join("; ", ergebnis.Datenbanken.SelectMany(x => x.Fehler))}";
+        }
+        catch (Exception exception)
+        {
+            FachdatenStatusText = $"Fehler: {exception.Message}";
+            _dialogService.FehlerAnzeigen(exception.Message);
+        }
+        finally { IstBeschaeftigt = false; }
+    }
+
+    private async Task FachdatenImportierenAsync()
+    {
+        try
+        {
+            IstBeschaeftigt = true;
+            FachdatenStatusText = "Fachdaten werden geprüft und importiert …";
+            var ergebnis = await _fachdatenApiClient.ImportierenAsync();
+            FachdatenStatusText = ergebnis.AngelegteDatensaetze == 0
+                ? "Import abgeschlossen; der Datenstand war bereits aktuell."
+                : $"Import abgeschlossen: {ergebnis.AngelegteDatensaetze} Datensätze neu angelegt.";
+        }
+        catch (Exception exception)
+        {
+            FachdatenStatusText = $"Fehler: {exception.Message}";
+            _dialogService.FehlerAnzeigen(exception.Message);
+        }
+        finally { IstBeschaeftigt = false; }
     }
 
     private bool KannProjektAktualisieren()
@@ -401,6 +455,9 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         AktualisiereCommand(
             ProjektLoeschenCommand);
+
+        AktualisiereCommand(FachdatenPruefenCommand);
+        AktualisiereCommand(FachdatenImportierenCommand);
     }
 
     private static void AktualisiereCommand(

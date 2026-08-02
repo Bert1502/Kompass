@@ -49,6 +49,39 @@ public sealed class FachdatenbankImportServiceTests
         finally { SqliteConnection.ClearAllPools(); Directory.Delete(verzeichnis, true); }
     }
 
+    [Fact]
+    public async Task Versionierter_Referenz_Seed_wird_vollstaendig_und_idempotent_importiert()
+    {
+        var verzeichnis = Path.GetFullPath(
+            Path.Combine(
+                AppContext.BaseDirectory,
+                "..", "..", "..", "..",
+                "data", "fachdatenbanken", "v1.0.0"));
+
+        Assert.True(Directory.Exists(verzeichnis), $"Seed-Verzeichnis fehlt: {verzeichnis}");
+
+        await using var context = ErzeugeContext();
+        await context.Database.EnsureCreatedAsync();
+        var service = new FachdatenbankImportService(context);
+
+        var erster = await service.ImportierenAsync(verzeichnis);
+        var zweiter = await service.ImportierenAsync(verzeichnis);
+
+        Assert.Equal(46, erster.AngelegteStammdaten);
+        Assert.Equal(10, erster.AngelegteKategorien);
+        Assert.Equal(12, erster.AngelegteMassnahmen);
+        Assert.Equal(0, zweiter.AngelegteStammdaten);
+        Assert.Equal(0, zweiter.AngelegteKategorien);
+        Assert.Equal(0, zweiter.AngelegteMassnahmen);
+        Assert.Equal(1, await context.Regelwerke.CountAsync());
+        Assert.Equal(11, await context.Regelwerksanforderungen.CountAsync());
+        Assert.Equal(2, await context.Foerderprogramme.CountAsync());
+        Assert.Equal(8, await context.Foerdertatbestaende.CountAsync());
+        Assert.Equal(10, await context.Materialien.CountAsync());
+        Assert.Equal(2, await context.WirtschaftlicheZeitreihen.CountAsync());
+        Assert.Equal(2, await context.WirtschaftlicheZeitwerte.CountAsync());
+    }
+
     private static KompassDbContext ErzeugeContext()
     {
         var connection = new SqliteConnection("Data Source=:memory:");
