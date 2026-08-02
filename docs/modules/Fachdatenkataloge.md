@@ -18,8 +18,9 @@ Verbindliche Architekturentscheidung: [`ADR-0009-FACHDATENKATALOGE.md`](../adr/A
 - konkrete Projektmaßnahmen mit Referenz auf Maßnahmenkatalog und optionaler B56-Modernisierungsalternative;
 - EF-Migration `AddFachdatenkataloge`;
 - read-only Schema- und Integritätsprüfung der sechs SQLite-Quellen;
-- idempotenter Import der sicheren vorbereiteten Stammdaten, Kategorien und Maßnahmen als Entwurf;
+- idempotenter Import von Quellen, Regelwerken und Anforderungen, Förderprogrammen und -tatbeständen, wirtschaftlichen Zeitreihen, Maßnahmen, Materialien und Kategorien;
 - API-Endpunkte für Dry Run und Import.
+- sichtbare Prüf- und Importfunktionen auf der Startseite der Desktop-Anwendung.
 
 ## Konfiguration
 
@@ -46,12 +47,15 @@ Fehlende Dateien, abweichende Schema-Versionen oder fehlende Tabellen blockieren
 
 ## Importierte Daten aus Schema 1.0.0
 
-- Fördergeber;
+- Fachdatenquellen;
+- Regelwerke und numerische oder textliche Anforderungen;
+- Fördergeber, Förderprogramme und Fördertatbestände;
+- wirtschaftliche Zeitreihen und Stichtagswerte;
 - Maßnahmenkategorien;
 - Maßnahmenkatalogeinträge;
-- Materialkategorien.
+- Materialkategorien und Materialien.
 
-Die gelieferten Regelwerke, Förderprogramme, Wirtschaftlichkeitswerte und Materialien sind leer und erzeugen deshalb keine erfundenen Datensätze. Maßnahmen ohne Quelle bleiben Entwurf.
+Nicht belegte optionale Detailwerte werden weiterhin nicht erfunden. Das Projektschema erzeugt keine Musterprojekte.
 
 ## Nicht übernommen
 
