@@ -15,6 +15,8 @@ public sealed partial class B56TabellenImportService
         "SCModernisierungen";
     private const string EnergieberichtBlatt =
         "SCEnergiebericht";
+    private const string EnergiebilanzBlatt =
+        "SCEnergiebilanz";
 
     private static readonly IReadOnlySet<string> IgnorierteArbeitsblaetter =
         new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -84,7 +86,9 @@ public sealed partial class B56TabellenImportService
 
         var bauteile =
             BauteileImportieren(
-                modernisierungsblatt);
+                modernisierungsblatt,
+                kontext.Arbeitsmappe.ArbeitsblattSuchen(
+                    EnergiebilanzBlatt));
 
         var bestandskennwerte =
             BestandskennwerteImportieren(
@@ -156,7 +160,8 @@ public sealed partial class B56TabellenImportService
 
     private static IReadOnlyList<B56Bauteil>
         BauteileImportieren(
-            B56Arbeitsblatt arbeitsblatt)
+            B56Arbeitsblatt arbeitsblatt,
+            B56Arbeitsblatt? energiebilanz)
     {
         var kopfzeile =
             arbeitsblatt.Zeilen.FirstOrDefault(
@@ -173,7 +178,7 @@ public sealed partial class B56TabellenImportService
             return [];
         }
 
-        return arbeitsblatt.Zeilen
+        var bauteile = arbeitsblatt.Zeilen
             .Where(
                 zeile =>
                     zeile.Zeilennummer >
@@ -211,6 +216,57 @@ public sealed partial class B56TabellenImportService
                 bauteil =>
                     bauteil is not null)
             .Cast<B56Bauteil>()
+            .ToList();
+
+        if (energiebilanz is null)
+        {
+            return bauteile;
+        }
+
+        var flaechenKopfzeile =
+            energiebilanz.Zeilen.FirstOrDefault(
+                zeile =>
+                    Wert(zeile, "B") == "Codierung" &&
+                    Wert(zeile, "C") == "Bezeichnung" &&
+                    Wert(zeile, "D") == "Fläche" &&
+                    Wert(zeile, "E") == "U-Wert");
+
+        if (flaechenKopfzeile is null)
+        {
+            return bauteile;
+        }
+
+        var flaechenzeilen =
+            energiebilanz.Zeilen
+                .Where(zeile => zeile.Zeilennummer > flaechenKopfzeile.Zeilennummer)
+                .TakeWhile(zeile => !string.IsNullOrWhiteSpace(Wert(zeile, "B")))
+                .ToList();
+
+        return bauteile
+            .Select(
+                bauteil =>
+                {
+                    var flaechenzeile =
+                        flaechenzeilen.FirstOrDefault(
+                            zeile =>
+                                string.Equals(
+                                    Wert(zeile, "B"),
+                                    bauteil.Bauteilcode,
+                                    StringComparison.OrdinalIgnoreCase));
+
+                    var flaeche = flaechenzeile is null
+                        ? null
+                        : Zahl(Wert(flaechenzeile, "D"));
+
+                    return new B56Bauteil
+                    {
+                        Bauteilcode = bauteil.Bauteilcode,
+                        Bezeichnung = bauteil.Bezeichnung,
+                        Nachbarseite = bauteil.Nachbarseite,
+                        Flaeche = flaeche ?? 0d,
+                        UWert = bauteil.UWert
+                    };
+                })
             .ToList();
     }
 
@@ -362,11 +418,23 @@ public sealed partial class B56TabellenImportService
                 new B56Kennwert
                 {
                     Name = name,
+                    Einheit = EinheitFuerKennwert(name),
                     Wert = wert.Value
                 });
         }
 
         return ergebnis;
+    }
+
+    private static string EinheitFuerKennwert(string name)
+    {
+        return name switch
+        {
+            "Primärenergiebedarf Gebäude" => "[kWh/a]",
+            "Endenergiebedarf Gebäude" => "[kWh/a]",
+            "CO2-Emissionen Gebäude" => "[kg]",
+            _ => string.Empty
+        };
     }
 
     private static int BerichtskennwerteImportieren(
