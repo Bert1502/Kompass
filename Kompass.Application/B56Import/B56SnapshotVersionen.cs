@@ -6,7 +6,7 @@ public static class B56SnapshotVersionen
 
     public const int AktuelleSchemaVersion = 2;
 
-    public const string AktuelleParserVersion = "1.2";
+    public const string AktuelleParserVersion = "1.3";
 
     public const string LegacyParserVersion = "legacy";
 

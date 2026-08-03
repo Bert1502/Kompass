@@ -4,6 +4,11 @@
 
 KOMPASS integriert externe Fachdatenschemata für Regelwerke, Förderung, Wirtschaftlichkeit, Maßnahmen, Materialien und Projekte in die bestehende zentrale EF-Core-Datenbank. Die sechs gelieferten SQLite-Dateien sind Importquellen, keine zusätzlichen Laufzeitdatenbanken.
 
+Beim Start der API wird der konfigurierte, versionierte Datenstand
+idempotent in die zentrale Datenbank importiert. Damit stehen insbesondere
+die freigegebenen Förderprogramme unmittelbar in der Desktopanwendung zur
+Verfügung; ein manueller Erstimport ist nicht erforderlich.
+
 Verbindliche Architekturentscheidung: [`ADR-0009-FACHDATENKATALOGE.md`](../adr/ADR-0009-FACHDATENKATALOGE.md).
 
 ## Implementierter Stand

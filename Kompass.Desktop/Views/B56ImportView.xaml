@@ -302,6 +302,10 @@
                     <TextBlock Text="Bauteile der ausgewählten Modernisierungsalternative"
                                Margin="0,16,0,8"
                                FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding AlternativeBauteileStatusText}"
+                               Margin="0,0,0,8"
+                               Foreground="#666666"
+                               TextWrapping="Wrap"/>
                     <DataGrid ItemsSource="{Binding AusgewaehlteModernisierungsalternative.Bauteile}"
                               AutoGenerateColumns="False"
                               IsReadOnly="True"

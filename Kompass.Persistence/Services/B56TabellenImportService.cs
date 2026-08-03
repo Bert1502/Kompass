@@ -26,7 +26,8 @@ public sealed partial class B56TabellenImportService
             "SCNeubauberatungsbericht",
             "SCEnergiebilanz",
             "SCZonendaten",
-            "SCModernisierungen"
+            "SCModernisierungen",
+            "SCEnergiebericht"
         };
 
     private static readonly IReadOnlyList<string> Kennwertnamen =
@@ -289,6 +290,26 @@ public sealed partial class B56TabellenImportService
                 {
                     var flaechenzeile =
                         flaechenzeilen.FirstOrDefault(
+                            zeile =>
+                                string.Equals(
+                                    Wert(zeile, "B"),
+                                    bauteil.Bauteilcode,
+                                    StringComparison.OrdinalIgnoreCase) &&
+                                string.Equals(
+                                    Wert(zeile, "C"),
+                                    bauteil.Bezeichnung,
+                                    StringComparison.OrdinalIgnoreCase))
+                        ?? flaechenzeilen.FirstOrDefault(
+                            zeile =>
+                                string.Equals(
+                                    Wert(zeile, "B"),
+                                    bauteil.Bauteilcode,
+                                    StringComparison.OrdinalIgnoreCase) &&
+                                string.Equals(
+                                    Wert(zeile, "D"),
+                                    bauteil.Nachbarseite,
+                                    StringComparison.OrdinalIgnoreCase))
+                        ?? flaechenzeilen.FirstOrDefault(
                             zeile =>
                                 string.Equals(
                                     Wert(zeile, "B"),

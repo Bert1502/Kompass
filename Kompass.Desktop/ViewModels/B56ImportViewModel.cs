@@ -223,11 +223,24 @@ public sealed class B56ImportViewModel : ViewModelBase
     {
         get => _ausgewaehlteModernisierungsalternative;
 
-        set =>
-            SetProperty(
-                ref _ausgewaehlteModernisierungsalternative,
-                value);
+        set
+        {
+            if (SetProperty(
+                    ref _ausgewaehlteModernisierungsalternative,
+                    value))
+            {
+                OnPropertyChanged(
+                    nameof(AlternativeBauteileStatusText));
+            }
+        }
     }
+
+    public string AlternativeBauteileStatusText =>
+        AusgewaehlteModernisierungsalternative is null
+            ? "Bitte wählen Sie eine Modernisierungsalternative aus."
+            : AusgewaehlteModernisierungsalternative.Bauteile.Count == 0
+                ? "Der B56-Export enthält für diese Alternative keine fachlich belastbare Bauteilzuordnung."
+                : $"{AusgewaehlteModernisierungsalternative.Bauteile.Count} Bauteil(e) zugeordnet.";
 
     public string ErgebnisStatusText
     {
