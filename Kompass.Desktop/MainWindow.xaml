@@ -130,7 +130,10 @@
                     CornerRadius="4"
                     Padding="18">
 
-                <StackPanel>
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+
+                <StackPanel Margin="0,0,8,0">
 
                     <TextBlock Text="Projekt anlegen"
                                FontSize="20"
@@ -212,6 +215,8 @@
                             FontWeight="SemiBold"/>
 
                 </StackPanel>
+
+                </ScrollViewer>
 
             </Border>
 

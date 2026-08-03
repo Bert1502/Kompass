@@ -95,6 +95,11 @@ public sealed class B56TabellenImportServiceTests
                 kennwert => kennwert.Name));
 
         Assert.Equal(
+            ["[kWh/a]", "[kWh/a]", "[kg]"],
+            ergebnis.Bestandskennwerte.Select(
+                kennwert => kennwert.Einheit));
+
+        Assert.Equal(
             ["Gesamtpaket", "Fenster"],
             ergebnis.Modernisierungsalternativen.Select(
                 alternative => alternative.Bezeichnung));
@@ -103,6 +108,59 @@ public sealed class B56TabellenImportServiceTests
             "Anonymisierte Gesamtmaßnahme",
             ergebnis.Modernisierungsalternativen[0]
                 .Beschreibung);
+    }
+
+    [Fact]
+    public async Task Importiert_Bauteilflaechen_aus_der_Energiebilanz()
+    {
+        var service =
+            new B56TabellenImportService(
+                new B56TabellenFinder());
+
+        var ergebnis =
+            await service.ImportierenAsync(
+                new B56ImportKontext
+                {
+                    ImportId = Guid.NewGuid(),
+                    ProjektId = Guid.NewGuid(),
+                    Projektname = "Testprojekt",
+                    Quelldatei = "test.xlsm",
+                    Archivdatei = "test.xlsm",
+                    SHA256 = "0123456789abcdef",
+                    Importzeitpunkt = DateTimeOffset.UtcNow,
+                    Arbeitsmappe = new B56Arbeitsmappe
+                    {
+                        Dateipfad = "test.xlsm",
+                        Arbeitsblaetter =
+                        [
+                            new B56Arbeitsblatt
+                            {
+                                Name = "SCModernisierungen",
+                                Zeilen =
+                                [
+                                    Zeile(1, ("A", "Bestand")),
+                                    Zeile(2, ("B", "Bauteilcode"), ("C", "Bauteil"), ("D", "Nachbarseite"), ("E", "U-Wert")),
+                                    Zeile(3, ("B", "AW01"), ("C", "Außenwand"), ("D", "gegen Außenluft"), ("E", "0.24")),
+                                    Zeile(4, ("B", "AF01"), ("C", "Fenster"), ("D", "Fenster(tür)"), ("E", "1.3"))
+                                ]
+                            },
+                            new B56Arbeitsblatt
+                            {
+                                Name = "SCEnergiebilanz",
+                                Zeilen =
+                                [
+                                    Zeile(5, ("B", "Codierung"), ("C", "Bezeichnung"), ("D", "Fläche"), ("E", "U-Wert")),
+                                    Zeile(6, ("B", "AW01"), ("C", "Abweichende Bezeichnung"), ("D", "359.24"), ("E", "0.24")),
+                                    Zeile(7, ("B", "AF01"), ("C", "Fenster"), ("D", "33.78"), ("E", "1.3"))
+                                ]
+                            }
+                        ]
+                    }
+                });
+
+        Assert.Equal(
+            [359.24d, 33.78d],
+            ergebnis.Bauteile.Select(bauteil => bauteil.Flaeche));
     }
 
     [Fact]
