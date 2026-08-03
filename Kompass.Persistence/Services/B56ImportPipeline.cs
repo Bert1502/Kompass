@@ -57,6 +57,9 @@ public sealed class B56ImportPipeline : IB56ImportPipeline
             Modernisierungsalternativen =
                 tabellenErgebnis.Modernisierungsalternativen,
 
+            EffizienzstandardKontrollwert =
+                tabellenErgebnis.EffizienzstandardKontrollwert,
+
             Warnungen =
                 tabellenErgebnis.Warnungen
         };

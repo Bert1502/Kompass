@@ -108,6 +108,10 @@ public sealed class B56TabellenImportServiceTests
             "Anonymisierte Gesamtmaßnahme",
             ergebnis.Modernisierungsalternativen[0]
                 .Beschreibung);
+
+        Assert.Equal(
+            "EG 55",
+            ergebnis.EffizienzstandardKontrollwert?.Originaltext);
     }
 
     [Fact]
@@ -161,6 +165,53 @@ public sealed class B56TabellenImportServiceTests
         Assert.Equal(
             [359.24d, 33.78d],
             ergebnis.Bauteile.Select(bauteil => bauteil.Flaeche));
+    }
+
+    [Fact]
+    public async Task Importiert_Beg_Ziel_unveraendert_als_Gegenkontrolle()
+    {
+        var importId = Guid.NewGuid();
+        var service =
+            new B56TabellenImportService(
+                new B56TabellenFinder());
+
+        var ergebnis =
+            await service.ImportierenAsync(
+                new B56ImportKontext
+                {
+                    ImportId = importId,
+                    ProjektId = Guid.NewGuid(),
+                    Projektname = "Testprojekt",
+                    Quelldatei = "test.xlsm",
+                    Archivdatei = "test.xlsm",
+                    SHA256 = "0123456789abcdef",
+                    Importzeitpunkt = DateTimeOffset.UtcNow,
+                    Arbeitsmappe = new B56Arbeitsmappe
+                    {
+                        Dateipfad = "test.xlsm",
+                        Arbeitsblaetter =
+                        [
+                            new B56Arbeitsblatt
+                            {
+                                Name = "SCModernisierungen",
+                                Zeilen =
+                                [
+                                    Zeile(7, ("C", "EG 55"))
+                                ]
+                            }
+                        ]
+                    }
+                });
+
+        var kontrollwert =
+            Assert.IsType<B56EffizienzstandardKontrollwert>(
+                ergebnis.EffizienzstandardKontrollwert);
+
+        Assert.Equal(importId, kontrollwert.ImportId);
+        Assert.Equal("BEG_ZIEL", kontrollwert.Feldname);
+        Assert.Equal("EG 55", kontrollwert.Originaltext);
+        Assert.Equal("SCModernisierungen", kontrollwert.Arbeitsblatt);
+        Assert.Equal("C7", kontrollwert.Zelladresse);
     }
 
     [Fact]
@@ -493,6 +544,9 @@ public sealed class B56TabellenImportServiceTests
                 6,
                 ("B", "Beschreibung"),
                 ("C", "Anonymisierte Gesamtmaßnahme")),
+            Zeile(
+                7,
+                ("C", "EG 55")),
             Zeile(
                 8,
                 ("B", "Primärenergiebedarf Gebäude"),

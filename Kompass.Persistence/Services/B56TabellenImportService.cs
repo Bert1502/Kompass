@@ -101,6 +101,11 @@ public sealed partial class B56TabellenImportService
                 cancellationToken)
                 .ToList();
 
+        var effizienzstandardKontrollwert =
+            EffizienzstandardKontrollwertImportieren(
+                modernisierungsblatt,
+                kontext.ImportId);
+
         var energieberichtblatt =
             kontext.Arbeitsmappe.ArbeitsblattSuchen(
                 EnergieberichtBlatt);
@@ -153,9 +158,45 @@ public sealed partial class B56TabellenImportService
                 Modernisierungsalternativen =
                     modernisierungsalternativen,
 
+                EffizienzstandardKontrollwert =
+                    effizienzstandardKontrollwert,
+
                 Warnungen =
                     warnungen
             });
+    }
+
+    private static B56EffizienzstandardKontrollwert?
+        EffizienzstandardKontrollwertImportieren(
+            B56Arbeitsblatt arbeitsblatt,
+            Guid importId)
+    {
+        var zelle =
+            arbeitsblatt.Zeilen
+                .SingleOrDefault(zeile => zeile.Zeilennummer == 7)
+                ?.Zellen
+                .SingleOrDefault(
+                    zelle =>
+                        string.Equals(
+                            zelle.Spalte,
+                            "C",
+                            StringComparison.OrdinalIgnoreCase));
+
+        if (zelle is null ||
+            string.IsNullOrWhiteSpace(zelle.Wert))
+        {
+            return null;
+        }
+
+        return new B56EffizienzstandardKontrollwert
+        {
+            ImportId = importId,
+            Originaltext = zelle.Wert,
+            Arbeitsblatt = arbeitsblatt.Name,
+            Zelladresse = string.IsNullOrWhiteSpace(zelle.Adresse)
+                ? "C7"
+                : zelle.Adresse
+        };
     }
 
     private static IReadOnlyList<B56Bauteil>

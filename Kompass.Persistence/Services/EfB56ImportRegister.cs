@@ -122,8 +122,8 @@ public sealed class EfB56ImportRegister : IB56ImportRegister
             return null;
         }
 
-        if (entity.SnapshotSchemaVersion !=
-            B56SnapshotVersionen.AktuelleSchemaVersion)
+        if (!B56SnapshotVersionen.WirdUnterstuetzt(
+                entity.SnapshotSchemaVersion))
         {
             throw new B56SnapshotFormatException(
                 importId,

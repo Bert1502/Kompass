@@ -182,6 +182,32 @@ public sealed class EfB56ImportRegisterTests
     }
 
     [Fact]
+    public async Task Schema_Eins_Snapshot_bleibt_nach_Erweiterung_lesbar()
+    {
+        await using var testdatenbank =
+            await ProjektTestdatenbank.ErstellenAsync();
+
+        var entity =
+            ErzeugeSnapshotEntity(
+                snapshotSchemaVersion: 1,
+                fachdatenJson: "{}");
+
+        testdatenbank.Context.B56ImportEintraege.Add(entity);
+        await testdatenbank.Context.SaveChangesAsync();
+
+        var register =
+            new EfB56ImportRegister(testdatenbank.Context);
+
+        var fachdaten =
+            await register.FachdatenAbrufenAsync(
+                entity.ProjektId,
+                entity.ImportId);
+
+        Assert.NotNull(fachdaten);
+        Assert.Null(fachdaten.EffizienzstandardKontrollwert);
+    }
+
+    [Fact]
     public async Task Beschaedigte_Fachdaten_werden_kontrolliert_abgelehnt()
     {
         await using var testdatenbank =

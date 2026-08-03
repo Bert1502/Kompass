@@ -19,6 +19,9 @@ public sealed class B56TabellenImportErgebnis
         Modernisierungsalternativen { get; init; }
         = Array.Empty<B56Modernisierungsalternative>();
 
+    public B56EffizienzstandardKontrollwert?
+        EffizienzstandardKontrollwert { get; init; }
+
     public IReadOnlyList<string> Warnungen { get; init; }
         = Array.Empty<string>();
 }

@@ -11,11 +11,17 @@ Ich sehe:
 - bis zu neun Modernisierungsalternativen,
 - Bauteile und B56-Bauteilcodes,
 - wesentliche energetische Ergebnisse,
+- den von B56 ausgewiesenen Effizienzstandard als Gegenkontrolle,
 - Warnungen und fehlende Werte.
 
 Ich ändere die B56-Originalwerte nicht. Ich kann ergänzende Projektdaten, Kosten, Förderangaben, Energiepreise und Kommentare eingeben.
 
 Ich bestätige den Import erst nach Prüfung. Danach wird aus dem unveränderlichen Import-Snapshot ein bearbeitbarer KOMPASS-Projektstand erzeugt.
+
+KOMPASS stuft die importierten energetischen Ergebnisse anhand des
+versionierten Regelstands selbst ein. Ich sehe diese Einstufung und den
+unveränderten B56-Kontrollwert getrennt. Abweichungen werden nicht
+automatisch aufgelöst.
 
 Bei einem späteren B56-Import wird eine neue Version angelegt. KOMPASS zeigt die Unterschiede. Meine bisherigen Kosten, Kommentare und sonstigen Ergänzungen werden nicht automatisch überschrieben.
 
