@@ -108,6 +108,10 @@ public sealed class B56TabellenImportServiceTests
             "Anonymisierte Gesamtmaßnahme",
             ergebnis.Modernisierungsalternativen[0]
                 .Beschreibung);
+
+        Assert.Equal(
+            "EG 55",
+            ergebnis.EffizienzstandardKontrollwert?.Originaltext);
     }
 
     [Fact]
@@ -161,6 +165,53 @@ public sealed class B56TabellenImportServiceTests
         Assert.Equal(
             [359.24d, 33.78d],
             ergebnis.Bauteile.Select(bauteil => bauteil.Flaeche));
+    }
+
+    [Fact]
+    public async Task Importiert_Beg_Ziel_unveraendert_als_Gegenkontrolle()
+    {
+        var importId = Guid.NewGuid();
+        var service =
+            new B56TabellenImportService(
+                new B56TabellenFinder());
+
+        var ergebnis =
+            await service.ImportierenAsync(
+                new B56ImportKontext
+                {
+                    ImportId = importId,
+                    ProjektId = Guid.NewGuid(),
+                    Projektname = "Testprojekt",
+                    Quelldatei = "test.xlsm",
+                    Archivdatei = "test.xlsm",
+                    SHA256 = "0123456789abcdef",
+                    Importzeitpunkt = DateTimeOffset.UtcNow,
+                    Arbeitsmappe = new B56Arbeitsmappe
+                    {
+                        Dateipfad = "test.xlsm",
+                        Arbeitsblaetter =
+                        [
+                            new B56Arbeitsblatt
+                            {
+                                Name = "SCModernisierungen",
+                                Zeilen =
+                                [
+                                    Zeile(7, ("C", "EG 55"))
+                                ]
+                            }
+                        ]
+                    }
+                });
+
+        var kontrollwert =
+            Assert.IsType<B56EffizienzstandardKontrollwert>(
+                ergebnis.EffizienzstandardKontrollwert);
+
+        Assert.Equal(importId, kontrollwert.ImportId);
+        Assert.Equal("BEG_ZIEL", kontrollwert.Feldname);
+        Assert.Equal("EG 55", kontrollwert.Originaltext);
+        Assert.Equal("SCModernisierungen", kontrollwert.Arbeitsblatt);
+        Assert.Equal("C7", kontrollwert.Zelladresse);
     }
 
     [Fact]
@@ -418,6 +469,7 @@ public sealed class B56TabellenImportServiceTests
     [InlineData("SCEnergiebilanzNeubau")]
     [InlineData("SCNeubauberatungsbericht")]
     [InlineData("SCEnergiebilanz")]
+    [InlineData("SCEnergiebericht")]
     [InlineData("SCZonendaten")]
     [InlineData("SCModernisierungen")]
     public async Task Tabellen_in_ignorierten_Arbeitsblaettern_erzeugen_keine_Warnung(
@@ -477,6 +529,59 @@ public sealed class B56TabellenImportServiceTests
         Assert.Empty(ergebnis.Warnungen);
     }
 
+    [Fact]
+    public async Task Ordnet_Flaechen_bei_gleichem_Code_ueber_die_Bezeichnung_zu()
+    {
+        var service =
+            new B56TabellenImportService(
+                new B56TabellenFinder());
+
+        var ergebnis =
+            await service.ImportierenAsync(
+                new B56ImportKontext
+                {
+                    ImportId = Guid.NewGuid(),
+                    ProjektId = Guid.NewGuid(),
+                    Projektname = "Testprojekt",
+                    Quelldatei = "test.xlsm",
+                    Archivdatei = "test.xlsm",
+                    SHA256 = "0123456789abcdef",
+                    Importzeitpunkt = DateTimeOffset.UtcNow,
+                    Arbeitsmappe = new B56Arbeitsmappe
+                    {
+                        Dateipfad = "test.xlsm",
+                        Arbeitsblaetter =
+                        [
+                            new B56Arbeitsblatt
+                            {
+                                Name = "SCModernisierungen",
+                                Zeilen =
+                                [
+                                    Zeile(1, ("A", "Bestand")),
+                                    Zeile(2, ("B", "Bauteilcode"), ("C", "Bauteil"), ("D", "Nachbarseite"), ("E", "U-Wert")),
+                                    Zeile(3, ("B", "AW01"), ("C", "Wand Erde"), ("D", "gegen Erdreich"), ("E", "0.3")),
+                                    Zeile(4, ("B", "AW01"), ("C", "Wand Luft"), ("D", "gegen Außenluft"), ("E", "0.24"))
+                                ]
+                            },
+                            new B56Arbeitsblatt
+                            {
+                                Name = "SCEnergiebilanz",
+                                Zeilen =
+                                [
+                                    Zeile(5, ("B", "Codierung"), ("C", "Bezeichnung"), ("D", "Fläche"), ("E", "U-Wert")),
+                                    Zeile(6, ("B", "AW01"), ("C", "Wand Erde"), ("D", "163.58"), ("E", "0.3")),
+                                    Zeile(7, ("B", "AW01"), ("C", "Wand Luft"), ("D", "359.24"), ("E", "0.24"))
+                                ]
+                            }
+                        ]
+                    }
+                });
+
+        Assert.Equal(
+            [163.58d, 359.24d],
+            ergebnis.Bauteile.Select(bauteil => bauteil.Flaeche));
+    }
+
     private static IReadOnlyList<B56Zeile>
         ErzeugeReferenzzeilen()
     {
@@ -493,6 +598,9 @@ public sealed class B56TabellenImportServiceTests
                 6,
                 ("B", "Beschreibung"),
                 ("C", "Anonymisierte Gesamtmaßnahme")),
+            Zeile(
+                7,
+                ("C", "EG 55")),
             Zeile(
                 8,
                 ("B", "Primärenergiebedarf Gebäude"),

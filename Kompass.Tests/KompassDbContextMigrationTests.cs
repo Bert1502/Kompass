@@ -135,7 +135,7 @@ public sealed class KompassDbContextMigrationTests
                             eintrag.ImportId == importId);
 
             Assert.Equal(
-                B56SnapshotVersionen.AktuelleSchemaVersion,
+                B56SnapshotVersionen.AeltesteUnterstuetzteSchemaVersion,
                 snapshot.SnapshotSchemaVersion);
             Assert.Equal(
                 B56SnapshotVersionen.LegacyParserVersion,

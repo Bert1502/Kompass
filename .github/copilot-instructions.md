@@ -6,6 +6,7 @@ Diese Datei ist die einzige repositoryweite Anweisungsquelle für GitHub Copilot
 
 - KOMPASS unterstützt Energieberatungsprojekte und ergänzt externe Fachprogramme.
 - Solar-Computer B56 ist der einzige energetische Rechenkern. Keine eigene DIN-V-18599-Bilanzierung implementieren.
+- KOMPASS stuft importierte B56-Ergebnisse anhand versionierter Regelwerte selbst ein. Den B56-Wert `BEG_ZIEL` nur als getrennten Gegenkontrollwert behandeln.
 - ThermCAD bleibt das Fachprogramm für Wärmebrückenberechnung. Keine eigenen Psi-, Chi- oder fRsi-Berechnungen implementieren.
 - Keine fachliche IFC-/gbXML-Auswertung, keine Geometrieauswertung und keinen IFC-Parser implementieren. Externe Modellreferenzen dürfen nur nach ausdrücklicher fachlicher Freigabe gespeichert werden.
 - Keine Förder-, Norm- oder Parserregeln erfinden. Bei fachlicher Unklarheit anhalten und eine konkrete Entscheidung anfordern.
@@ -18,6 +19,7 @@ Diese Datei ist die einzige repositoryweite Anweisungsquelle für GitHub Copilot
 - Freigegebene Berichte und andere freigegebene Stände revisionieren, nicht überschreiben.
 - `Variante` bezeichnet einen B56-Plan- oder Berechnungsstand. `Modernisierungsalternative` bezeichnet eine Maßnahme innerhalb einer Variante. Begriffe nicht gleichsetzen.
 - B56-Bauteilcodes niemals still verändern. Unbekannte Werte nicht schätzen oder durch stille Fallbacks ersetzen.
+- Kosten und Förderung nicht aus B56 importieren; sie gehören zum bearbeitbaren KOMPASS-Projektmodell.
 - Fachsprache im Domainmodell bevorzugt deutsch; `Nutzungsprofil` statt eines allgemeinen Begriffs `Zone` verwenden.
 - C#-Konventionen beibehalten: Interfaces beginnen mit `I`, asynchrone Methoden enden mit `Async`, `CancellationToken` ist der letzte Parameter.
 

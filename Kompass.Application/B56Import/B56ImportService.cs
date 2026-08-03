@@ -80,11 +80,18 @@ public sealed class B56ImportService : IB56ImportService
                     sha256,
                     cancellationToken);
 
-            if (vorhandenerEintrag is not null &&
+            var wurdeMitAktuellemParserImportiert =
+                vorhandenerEintrag is not null &&
+                string.Equals(
+                    vorhandenerEintrag.ParserVersion,
+                    B56SnapshotVersionen.AktuelleParserVersion,
+                    StringComparison.Ordinal);
+
+            if (wurdeMitAktuellemParserImportiert &&
                 !_optionen.DoppelteImporteZulassen)
             {
                 return B56ImportErgebnis.BereitsImportiert(
-                    vorhandenerEintrag,
+                    vorhandenerEintrag!,
                     pruefung.VollstaendigerDateipfad);
             }
 
@@ -190,8 +197,12 @@ public sealed class B56ImportService : IB56ImportService
             {
                 ergebnis.MeldungHinzufuegen(
                     B56Meldungstyp.Warnung,
-                    "B56-DUBLETTE-ZUGELASSEN",
-                    "Die Datei war bereits vorhanden, wurde aufgrund der Konfiguration jedoch erneut archiviert.");
+                    wurdeMitAktuellemParserImportiert
+                        ? "B56-DUBLETTE-ZUGELASSEN"
+                        : "B56-MIT-NEUEM-PARSER-IMPORTIERT",
+                    wurdeMitAktuellemParserImportiert
+                        ? "Die Datei war bereits vorhanden, wurde aufgrund der Konfiguration jedoch erneut archiviert."
+                        : "Die Datei wurde erneut importiert, weil inzwischen eine neuere Parser-Version verfügbar ist.");
             }
 
             return ergebnis;
