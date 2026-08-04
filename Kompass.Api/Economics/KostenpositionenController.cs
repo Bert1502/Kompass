@@ -20,7 +20,7 @@ public sealed class KostenpositionenController : ControllerBase
         _logger = logger;
     }
 
-    [HttpGet]
+    [HttpGet(Name = KostenpositionenListenRoute)]
     [ProducesResponseType(
         typeof(IReadOnlyList<Kostenposition>),
         StatusCodes.Status200OK)]
@@ -90,8 +90,8 @@ public sealed class KostenpositionenController : ControllerBase
             });
         }
 
-        return CreatedAtAction(
-            nameof(ListenAsync),
+        return CreatedAtRoute(
+            KostenpositionenListenRoute,
             new { projektId, alternativeId },
             gespeicherte);
     }
@@ -123,4 +123,7 @@ public sealed class KostenpositionenController : ControllerBase
 
         return NoContent();
     }
+
+    private const string KostenpositionenListenRoute =
+        "KostenpositionenListen";
 }

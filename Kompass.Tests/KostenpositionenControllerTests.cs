@@ -45,7 +45,8 @@ public sealed class KostenpositionenControllerTests
             },
             CancellationToken.None);
 
-        var created = Assert.IsType<CreatedAtActionResult>(antwort.Result);
+        var created = Assert.IsType<CreatedAtRouteResult>(antwort.Result);
+        Assert.Equal("KostenpositionenListen", created.RouteName);
         Assert.Same(empfangen, created.Value);
         Assert.NotNull(empfangen);
         Assert.Equal("Planung", empfangen.Bezeichnung);
