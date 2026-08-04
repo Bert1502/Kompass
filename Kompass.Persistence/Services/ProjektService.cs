@@ -315,20 +315,50 @@ public sealed class ProjektService : IProjektService
             return null;
         }
 
-        return await _dbContext
+        var alternative = await _dbContext
             .Set<Modernisierungsalternative>()
+            .AsNoTracking()
+            .Include(a => a.Kostenpositionen)
             .Where(
                 a =>
                     a.Id == alternativeId &&
                     EF.Property<Guid?>(a, "ProjektId") == projektId)
-            .Select(
-                a =>
-                    new AlternativeKurzinfo(
-                        a.Id,
-                        a.Bezeichnung,
-                        projektId,
-                        a.Kostenpositionen.Sum(k => k.Betrag)))
             .SingleOrDefaultAsync(cancellationToken);
+
+        return alternative is null
+            ? null
+            : new AlternativeKurzinfo(
+                alternative.Id,
+                alternative.Bezeichnung,
+                projektId,
+                alternative.Gesamtkosten);
+    }
+
+    public async Task<IReadOnlyList<AlternativeKurzinfo>> AlternativenAbrufenAsync(
+        Guid projektId,
+        CancellationToken cancellationToken = default)
+    {
+        if (projektId == Guid.Empty)
+        {
+            return Array.Empty<AlternativeKurzinfo>();
+        }
+
+        var alternativen = await _dbContext
+            .Set<Modernisierungsalternative>()
+            .AsNoTracking()
+            .Include(a => a.Kostenpositionen)
+            .Where(a => EF.Property<Guid?>(a, "ProjektId") == projektId)
+            .OrderBy(a => a.B56Position)
+            .ThenBy(a => a.Bezeichnung)
+            .ToListAsync(cancellationToken);
+
+        return alternativen
+            .Select(a => new AlternativeKurzinfo(
+                a.Id,
+                a.Bezeichnung,
+                projektId,
+                a.Gesamtkosten))
+            .ToList();
     }
 
     private static ProjektUebersicht ErzeugeUebersicht(

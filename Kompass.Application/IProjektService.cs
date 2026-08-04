@@ -59,4 +59,8 @@ public interface IProjektService
         Guid projektId,
         Guid alternativeId,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<AlternativeKurzinfo>> AlternativenAbrufenAsync(
+        Guid projektId,
+        CancellationToken cancellationToken = default);
 }

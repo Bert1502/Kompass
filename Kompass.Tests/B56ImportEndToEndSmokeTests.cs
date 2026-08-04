@@ -423,5 +423,12 @@ public sealed class B56ImportEndToEndSmokeTests
         {
             throw new NotSupportedException();
         }
+
+        public Task<IReadOnlyList<AlternativeKurzinfo>> AlternativenAbrufenAsync(
+            Guid projektId,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
     }
 }

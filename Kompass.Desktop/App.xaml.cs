@@ -75,6 +75,12 @@ public partial class App : System.Windows.Application
                 client.BaseAddress = apiBasisUri;
             });
 
+        services.AddHttpClient<IKostenApiClient, KostenApiClient>(
+            client =>
+            {
+                client.BaseAddress = apiBasisUri;
+            });
+
         services.AddHttpClient<IFoerderungApiClient, FoerderungApiClient>(
             client =>
             {
@@ -94,6 +100,7 @@ public partial class App : System.Windows.Application
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<ProjektWorkspaceViewModel>();
         services.AddTransient<B56ImportViewModel>();
+        services.AddTransient<KostenViewModel>();
         services.AddTransient<WirtschaftlichkeitViewModel>();
         services.AddTransient<FoerderungViewModel>();
 

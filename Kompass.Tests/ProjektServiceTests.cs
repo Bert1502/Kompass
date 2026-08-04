@@ -149,6 +149,45 @@ public sealed class ProjektServiceTests
     }
 
     [Fact]
+    public async Task AlternativenAbrufen_liefert_nur_Alternativen_des_Projekts_mit_Gesamtkosten()
+    {
+        await using var testdatenbank =
+            await ProjektTestdatenbank.ErstellenAsync();
+
+        var projekt = new Projekt(Guid.NewGuid(), "Rathaus");
+        var alternative = new Modernisierungsalternative(
+            Guid.NewGuid(),
+            "Fenster",
+            "",
+            b56Position: 1);
+        alternative.KostenpositionHinzufuegen(
+            new Kompass.Domain.Economics.Kostenposition(
+                Guid.NewGuid(),
+                "Fensteraustausch",
+                12500m,
+                Kompass.Domain.Economics.Kostenart.Architektur));
+        projekt.AlternativeHinzufuegen(alternative);
+
+        var anderesProjekt = new Projekt(Guid.NewGuid(), "Schule");
+        anderesProjekt.AlternativeHinzufuegen(
+            new Modernisierungsalternative(
+                Guid.NewGuid(),
+                "Dach",
+                ""));
+
+        testdatenbank.Context.Projekte.AddRange(projekt, anderesProjekt);
+        await testdatenbank.Context.SaveChangesAsync();
+
+        var service = new ProjektService(testdatenbank.Context);
+        var alternativen = await service.AlternativenAbrufenAsync(projekt.Id);
+
+        var ergebnis = Assert.Single(alternativen);
+        Assert.Equal(alternative.Id, ergebnis.Id);
+        Assert.Equal("Fenster", ergebnis.Bezeichnung);
+        Assert.Equal(12500m, ergebnis.Gesamtkosten);
+    }
+
+    [Fact]
     public async Task Erstellen_lehnt_doppelten_bereinigten_Namen_ab()
     {
         await using var testdatenbank =

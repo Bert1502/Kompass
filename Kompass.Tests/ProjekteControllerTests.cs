@@ -647,6 +647,14 @@ public sealed class ProjekteControllerTests
             return Task.FromResult<AlternativeKurzinfo?>(null);
         }
 
+        public Task<IReadOnlyList<AlternativeKurzinfo>> AlternativenAbrufenAsync(
+            Guid projektId,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<AlternativeKurzinfo>>(
+                Array.Empty<AlternativeKurzinfo>());
+        }
+
         public Task<bool> LoeschenAsync(
             Guid id,
             CancellationToken cancellationToken = default)

@@ -7,6 +7,7 @@ namespace Kompass.Desktop.ViewModels;
 public sealed class ProjektWorkspaceViewModel : ViewModelBase
 {
     private readonly B56ImportViewModel _b56ImportViewModel;
+    private readonly KostenViewModel _kostenViewModel;
     private readonly WirtschaftlichkeitViewModel _wirtschaftlichkeitViewModel;
     private readonly FoerderungViewModel _foerderungViewModel;
 
@@ -17,10 +18,12 @@ public sealed class ProjektWorkspaceViewModel : ViewModelBase
 
     public ProjektWorkspaceViewModel(
         B56ImportViewModel b56ImportViewModel,
+        KostenViewModel kostenViewModel,
         WirtschaftlichkeitViewModel wirtschaftlichkeitViewModel,
         FoerderungViewModel foerderungViewModel)
     {
         _b56ImportViewModel = b56ImportViewModel;
+        _kostenViewModel = kostenViewModel;
         _wirtschaftlichkeitViewModel = wirtschaftlichkeitViewModel;
         _foerderungViewModel = foerderungViewModel;
 
@@ -33,9 +36,8 @@ public sealed class ProjektWorkspaceViewModel : ViewModelBase
                 B56ImportAnzeigenAsync);
 
         KostenCommand =
-            new RelayCommand(
-                () => BereichOhneInhaltAnzeigen(
-                    "Kosten"));
+            new AsyncRelayCommand(
+                KostenAnzeigenAsync);
 
         ModernisierungsalternativenCommand =
             new RelayCommand(
@@ -171,6 +173,10 @@ public sealed class ProjektWorkspaceViewModel : ViewModelBase
             projekt.Id,
             projekt.Name);
 
+        _kostenViewModel.ProjektSetzen(
+            projekt.Id,
+            projekt.Name);
+
         _wirtschaftlichkeitViewModel.ProjektSetzen(
             projekt.Id,
             projekt.Name);
@@ -225,6 +231,15 @@ public sealed class ProjektWorkspaceViewModel : ViewModelBase
 
         await _wirtschaftlichkeitViewModel
             .LadenAsync();
+    }
+
+    private async Task KostenAnzeigenAsync()
+    {
+        AktiverBereich = "Kosten";
+        AktuellerInhalt = _kostenViewModel;
+        StatusText = "Kosten wurden ausgewählt.";
+
+        await _kostenViewModel.LadenAsync();
     }
 
     private async Task FoerderungAnzeigenAsync()

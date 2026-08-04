@@ -1,0 +1,165 @@
+<UserControl x:Class="Kompass.Desktop.Views.KostenView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="600"
+             d:DesignWidth="1000">
+
+    <Grid Margin="30">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Kosten"
+                   FontSize="28"
+                   FontWeight="SemiBold"/>
+
+        <TextBlock Grid.Row="1"
+                   Text="{Binding Projektname}"
+                   Margin="0,6,0,20"
+                   Foreground="#66747E"
+                   FontSize="15"/>
+
+        <Border Grid.Row="2"
+                Background="White"
+                BorderBrush="#D5DBDF"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="18"
+                Margin="0,0,0,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="260"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="145"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <TextBlock Text="Modernisierungsalternative"
+                               Foreground="#687680"
+                               Margin="0,0,0,5"/>
+                    <ComboBox ItemsSource="{Binding Alternativen}"
+                              SelectedItem="{Binding AusgewaehlteAlternative}"
+                              DisplayMemberPath="Anzeige"
+                              Height="34"/>
+                </StackPanel>
+
+                <TextBlock Grid.Column="2"
+                           Text="{Binding StatusText}"
+                           VerticalAlignment="Center"
+                           Foreground="#34444F"
+                           TextWrapping="Wrap"/>
+
+                <Button Grid.Column="4"
+                        Content="Daten laden"
+                        Command="{Binding LadenCommand}"
+                        Height="36"
+                        VerticalAlignment="Center"
+                        FontWeight="SemiBold"/>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="3"
+                Background="White"
+                BorderBrush="#D5DBDF"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="18">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="140"/>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="130"/>
+                        <ColumnDefinition Width="110"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBox Text="{Binding Bezeichnung, UpdateSourceTrigger=PropertyChanged}"
+                             Margin="0,0,10,12"
+                             Height="34"
+                             VerticalContentAlignment="Center"
+                             ToolTip="Bezeichnung der Kostenposition"/>
+
+                    <ComboBox Grid.Column="1"
+                              ItemsSource="{Binding Kostenarten}"
+                              SelectedItem="{Binding AusgewaehlteKostenart}"
+                              DisplayMemberPath="Bezeichnung"
+                              Margin="0,0,10,12"
+                              Height="34"/>
+
+                    <TextBox Grid.Column="2"
+                             Text="{Binding Betrag, UpdateSourceTrigger=PropertyChanged}"
+                             Margin="0,0,10,12"
+                             Height="34"
+                             VerticalContentAlignment="Center"
+                             ToolTip="Betrag in EUR"/>
+
+                    <Button Grid.Column="3"
+                            Content="Hinzufügen"
+                            Command="{Binding HinzufuegenCommand}"
+                            Margin="0,0,10,12"
+                            Height="34"
+                            FontWeight="SemiBold"/>
+
+                    <Button Grid.Column="4"
+                            Content="Löschen"
+                            Command="{Binding EntfernenCommand}"
+                            Margin="0,0,0,12"
+                            Height="34"/>
+                </Grid>
+
+                <DataGrid Grid.Row="1"
+                          ItemsSource="{Binding Positionen}"
+                          SelectedItem="{Binding AusgewaehltePosition}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          CanUserAddRows="False"
+                          HeadersVisibility="Column"
+                          GridLinesVisibility="Horizontal">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Bezeichnung"
+                                            Binding="{Binding Bezeichnung}"
+                                            Width="*"/>
+                        <DataGridTextColumn Header="Kostenart"
+                                            Binding="{Binding KostenartText}"
+                                            Width="190"/>
+                        <DataGridTextColumn Header="Betrag"
+                                            Binding="{Binding BetragText}"
+                                            Width="150"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="4"
+                Background="#263746"
+                CornerRadius="4"
+                Padding="18,12"
+                Margin="0,16,0,0">
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right">
+                <TextBlock Text="Gesamtkosten: "
+                           Foreground="#D9E0E5"
+                           FontSize="16"/>
+                <TextBlock Text="{Binding GesamtkostenText}"
+                           Foreground="White"
+                           FontSize="16"
+                           FontWeight="SemiBold"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>
