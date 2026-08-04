@@ -62,6 +62,23 @@ public sealed class ProjekteController : ControllerBase
         return Ok(projekt);
     }
 
+    [HttpGet("{id:guid}/alternativen")]
+    [ProducesResponseType(
+        typeof(IReadOnlyList<AlternativeKurzinfo>),
+        StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<AlternativeKurzinfo>>>
+        AlternativenAbrufenAsync(
+            Guid id,
+            CancellationToken cancellationToken)
+    {
+        var alternativen =
+            await _projektService.AlternativenAbrufenAsync(
+                id,
+                cancellationToken);
+
+        return Ok(alternativen);
+    }
+
     [HttpPost]
     [ProducesResponseType(
         typeof(ProjektUebersicht),

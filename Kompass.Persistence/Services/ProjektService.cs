@@ -331,6 +331,29 @@ public sealed class ProjektService : IProjektService
             .SingleOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<AlternativeKurzinfo>> AlternativenAbrufenAsync(
+        Guid projektId,
+        CancellationToken cancellationToken = default)
+    {
+        if (projektId == Guid.Empty)
+        {
+            return Array.Empty<AlternativeKurzinfo>();
+        }
+
+        return await _dbContext
+            .Set<Modernisierungsalternative>()
+            .AsNoTracking()
+            .Where(a => EF.Property<Guid?>(a, "ProjektId") == projektId)
+            .OrderBy(a => a.B56Position)
+            .ThenBy(a => a.Bezeichnung)
+            .Select(a => new AlternativeKurzinfo(
+                a.Id,
+                a.Bezeichnung,
+                projektId,
+                a.Kostenpositionen.Sum(k => k.Betrag)))
+            .ToListAsync(cancellationToken);
+    }
+
     private static ProjektUebersicht ErzeugeUebersicht(
         Projekt projekt)
     {
