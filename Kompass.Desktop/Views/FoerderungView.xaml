@@ -46,6 +46,57 @@
 
             </StackPanel>
 
+            <Border Background="White" BorderBrush="#D5DBDF" BorderThickness="1" CornerRadius="4" Padding="24" Margin="0,0,0,20">
+                <StackPanel>
+                    <TextBlock Text="Fördervoraussetzungen" FontSize="20" FontWeight="SemiBold"/>
+                    <TextBlock Margin="0,6,0,16" Foreground="#687680" TextWrapping="Wrap"
+                               Text="Manuelle fachliche Angaben. NGF und Qp des Bestands werden ausschließlich aus dem bestätigten B56-Import übernommen."/>
+                    <UniformGrid Columns="4">
+                        <TextBlock Text="Baujahr" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding Voraussetzungen.Baujahr, UpdateSourceTrigger=PropertyChanged}" Margin="4"/>
+                        <TextBlock Text="Erstnutzung" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding Voraussetzungen.Erstnutzung, UpdateSourceTrigger=PropertyChanged}" Margin="4"/>
+                        <TextBlock Text="Gebäudeart" VerticalAlignment="Center"/>
+                        <ComboBox ItemsSource="{Binding Gebaeudearten}" SelectedItem="{Binding Voraussetzungen.Gebaeudeart}" Margin="4"/>
+                        <TextBlock Text="Nutzung" VerticalAlignment="Center"/>
+                        <ComboBox ItemsSource="{Binding Nutzungen}" SelectedItem="{Binding Voraussetzungen.Nutzung}" Margin="4"/>
+                        <TextBlock Text="Wohneinheiten" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding Voraussetzungen.Wohneinheiten, UpdateSourceTrigger=PropertyChanged}" Margin="4"/>
+                        <TextBlock Text="Eigentümer-/Antragstellerart" VerticalAlignment="Center"/>
+                        <ComboBox ItemsSource="{Binding Eigentuemarten}" SelectedItem="{Binding Voraussetzungen.Eigentuemart}" Margin="4"/>
+                        <TextBlock Text="NGF aus B56" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding Voraussetzungen.Nettogrundflaeche}" IsReadOnly="True" Margin="4"/>
+                        <TextBlock Text="Qp Bestand aus B56" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding Voraussetzungen.JahresPrimaerenergiebedarf}" IsReadOnly="True" Margin="4"/>
+                        <TextBlock Text="Qp,Ref" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding Voraussetzungen.QpReferenz, UpdateSourceTrigger=PropertyChanged}" Margin="4"/>
+                        <TextBlock Text="Quelle Qp,Ref" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding Voraussetzungen.QpReferenzQuelle, UpdateSourceTrigger=PropertyChanged}" Margin="4"/>
+                    </UniformGrid>
+                    <WrapPanel Margin="0,12,0,8">
+                        <CheckBox Content="Selbstnutzung" IsThreeState="True" IsChecked="{Binding Voraussetzungen.Selbstnutzung}" Margin="0,0,18,8"/>
+                        <CheckBox Content="Vermietung" IsThreeState="True" IsChecked="{Binding Voraussetzungen.Vermietung}" Margin="0,0,18,8"/>
+                        <CheckBox Content="Denkmal" IsThreeState="True" IsChecked="{Binding Voraussetzungen.Denkmal}" Margin="0,0,18,8"/>
+                        <CheckBox Content="Besonders erhaltenswerte Bausubstanz" IsThreeState="True" IsChecked="{Binding Voraussetzungen.BesondersErhaltenswerteBausubstanz}" Margin="0,0,18,8"/>
+                        <CheckBox Content="Gemeinnützigkeit" IsThreeState="True" IsChecked="{Binding Voraussetzungen.Gemeinnuetzigkeit}" Margin="0,0,18,8"/>
+                        <CheckBox Content="Wirtschaftliche Tätigkeit" IsThreeState="True" IsChecked="{Binding Voraussetzungen.WirtschaftlicheTaetigkeit}" Margin="0,0,18,8"/>
+                        <CheckBox Content="Vorsteuerabzug" IsThreeState="True" IsChecked="{Binding Voraussetzungen.Vorsteuerabzug}" Margin="0,0,18,8"/>
+                        <CheckBox Content="iSFP" IsThreeState="True" IsChecked="{Binding Voraussetzungen.ISfp}" Margin="0,0,18,8"/>
+                        <CheckBox Content="Energieausweis" IsThreeState="True" IsChecked="{Binding Voraussetzungen.Energieausweis}" Margin="0,0,18,8"/>
+                    </WrapPanel>
+                    <TextBlock Text="Vorliegende Nachweise (Bezeichnungen, durch Semikolon getrennt)"/>
+                    <TextBox Text="{Binding Voraussetzungen.Nachweise, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="55" Margin="0,4,0,10"/>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="WPB-Verhältnis Qp/Qp,Ref: " FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding Voraussetzungen.WpbVerhaeltnis}" Margin="0,0,20,0"/>
+                        <TextBlock Text="Rechnerischer Vorschlag: " FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding Voraussetzungen.WpbRechnerischerVorschlag}" Margin="0,0,20,0"/>
+                        <CheckBox Content="WPB fachlich bestätigt" IsThreeState="True" IsChecked="{Binding Voraussetzungen.WpbFachlichBestaetigt}"/>
+                    </StackPanel>
+                    <Button Content="Fördervoraussetzungen speichern" Command="{Binding SpeichernCommand}" Width="245" Height="38" HorizontalAlignment="Left" Margin="0,16,0,0"/>
+                </StackPanel>
+            </Border>
+
             <!-- Förderübersicht je Alternative -->
 
             <Border Background="White"
@@ -139,6 +190,25 @@
 
                                             </DataGrid.Columns>
 
+                                        </DataGrid>
+
+                                        <TextBlock Text="Förderberechnung und Vorprüfung" FontWeight="SemiBold" Margin="0,14,0,6"/>
+                                        <DataGrid ItemsSource="{Binding Berechnung.Programmfoerderungen}" AutoGenerateColumns="False"
+                                                  IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Programm" Binding="{Binding Programmkennung}" Width="100"/>
+                                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="145"/>
+                                                <DataGridTextColumn Header="Investition" Binding="{Binding DataContext.Berechnung.Investitionskosten, RelativeSource={RelativeSource AncestorType=DataGrid}}" Width="90"/>
+                                                <DataGridTextColumn Header="förderfähig" Binding="{Binding FoerderfaehigeKosten}" Width="90"/>
+                                                <DataGridTextColumn Header="Obergrenze" Binding="{Binding Foerderhoechstbetrag}" Width="90"/>
+                                                <DataGridTextColumn Header="Grundquote" Binding="{Binding Grundfoerderquote, StringFormat=P0}" Width="80"/>
+                                                <DataGridTextColumn Header="Grundförderung" Binding="{Binding Grundfoerderung}" Width="100"/>
+                                                <DataGridTextColumn Header="iSFP-Bonus" Binding="{Binding ISfpBonus}" Width="85"/>
+                                                <DataGridTextColumn Header="WPB-Bonus" Binding="{Binding WpbBonus}" Width="85"/>
+                                                <DataGridTextColumn Header="Förderbetrag" Binding="{Binding Foerderbetrag}" Width="95"/>
+                                                <DataGridTextColumn Header="Eigenanteil" Binding="{Binding Eigenanteil}" Width="90"/>
+                                                <DataGridTextColumn Header="Fehlend / Ausschluss" Binding="{Binding Hinweise}" Width="*"/>
+                                            </DataGrid.Columns>
                                         </DataGrid>
 
                                     </StackPanel>

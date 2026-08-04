@@ -15,6 +15,7 @@ public sealed class FoerderungViewModel : ViewModelBase
     private string _projektname = string.Empty;
     private string _statusText = "Bitte Projekt laden.";
     private string _katalogStatusText = "Förderprogrammkatalog wird beim Laden angezeigt.";
+    private FoerdervoraussetzungenDto _voraussetzungen = new();
 
     public FoerderungViewModel(
         IFoerderungApiClient apiClient,
@@ -33,6 +34,7 @@ public sealed class FoerderungViewModel : ViewModelBase
             new AsyncRelayCommand(
                 LadenAsync,
                 () => _projektId != Guid.Empty);
+        SpeichernCommand = new AsyncRelayCommand(SpeichernAsync, () => _projektId != Guid.Empty);
     }
 
     public ObservableCollection<FoerderuebersichtAlternativeDto> Alternativen { get; }
@@ -58,6 +60,17 @@ public sealed class FoerderungViewModel : ViewModelBase
     }
 
     public ICommand LadenCommand { get; }
+    public ICommand SpeichernCommand { get; }
+
+    public FoerdervoraussetzungenDto Voraussetzungen
+    {
+        get => _voraussetzungen;
+        private set => SetProperty(ref _voraussetzungen, value);
+    }
+
+    public Array Gebaeudearten => Enum.GetValues(typeof(Kompass.Domain.Funding.FoerderGebaeudeart));
+    public Array Nutzungen => Enum.GetValues(typeof(Kompass.Domain.Funding.FoerderNutzung));
+    public Array Eigentuemarten => Enum.GetValues(typeof(Kompass.Domain.Funding.Antragstellerart));
 
     public void ProjektSetzen(
         Guid projektId,
@@ -67,6 +80,7 @@ public sealed class FoerderungViewModel : ViewModelBase
         Projektname = projektname;
 
         ((AsyncRelayCommand)LadenCommand).Aktualisieren();
+        ((AsyncRelayCommand)SpeichernCommand).Aktualisieren();
     }
 
     public async Task LadenAsync()
@@ -84,6 +98,9 @@ public sealed class FoerderungViewModel : ViewModelBase
 
         try
         {
+            Voraussetzungen = await _apiClient.VoraussetzungenAbrufenAsync(_projektId)
+                ?? new FoerdervoraussetzungenDto();
+
             var katalog =
                 await _apiClient.KatalogAbrufenAsync();
 
@@ -111,6 +128,7 @@ public sealed class FoerderungViewModel : ViewModelBase
             {
                 foreach (var alternative in uebersicht.Alternativen)
                 {
+                    alternative.Berechnung = await _apiClient.BerechnenAsync(_projektId, alternative.AlternativeId);
                     Alternativen.Add(alternative);
                 }
             }
@@ -123,6 +141,21 @@ public sealed class FoerderungViewModel : ViewModelBase
         {
             StatusText = $"Fehler: {exception.Message}";
 
+            _dialogService.FehlerAnzeigen(exception.Message);
+        }
+    }
+
+    private async Task SpeichernAsync()
+    {
+        try
+        {
+            Voraussetzungen = await _apiClient.VoraussetzungenSpeichernAsync(_projektId, Voraussetzungen)
+                ?? Voraussetzungen;
+            StatusText = "Fördervoraussetzungen gespeichert und WPB-Vorschlag aktualisiert.";
+        }
+        catch (Exception exception)
+        {
+            StatusText = $"Speichern fehlgeschlagen: {exception.Message}";
             _dialogService.FehlerAnzeigen(exception.Message);
         }
     }

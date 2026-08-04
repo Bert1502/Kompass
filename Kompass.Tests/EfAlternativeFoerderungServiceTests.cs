@@ -239,6 +239,35 @@ public sealed class EfAlternativeFoerderungServiceTests
         Assert.Equal(10_000m, ergebnis.GesamtFoerderung);
         Assert.Equal(90_000m, ergebnis.Eigenanteil);
     }
+
+    [Fact]
+    public async Task FoerderungBerechnen_wendet_Wpb_Bonus_erst_nach_fachlicher_Bestaetigung_an()
+    {
+        await using var db = await FoerderungZuordnungTestdatenbank.ErstellenAsync();
+        var (projektId, alternativeId) = await db.ErzeugeProjektMitAlternativeAsync();
+        await db.ErzeugeKostenpositionAsync(alternativeId, 100_000m);
+        var programm = await db.ErzeugeFoerderprogrammAsync(foerdersatz: 0.20m);
+        await db.Service.ProgrammZuordnenAsync(projektId, alternativeId, programm.Id);
+        var v = new Foerdervoraussetzungen(Guid.NewGuid(), projektId);
+        v.B56BestandswerteUebernehmen(1000m, 400m);
+        v.Aktualisieren(1970, new DateOnly(1971, 1, 1), FoerderGebaeudeart.Nichtwohngebaeude,
+            FoerderNutzung.Selbstgenutzt, null, Antragstellerart.Kommune, true, false, false, false,
+            false, false, false, false, true, "Standardnachweis", 100m, "GEG", false);
+        db.Context.Foerdervoraussetzungen.Add(v);
+        await db.Context.SaveChangesAsync();
+
+        var unbestaetigt = await db.Service.FoerderungBerechnenAsync(projektId, alternativeId, new DateOnly(2026, 7, 1));
+        Assert.Equal(0m, unbestaetigt!.Programmfoerderungen[0].WpbBonus);
+
+        v.Aktualisieren(1970, new DateOnly(1971, 1, 1), FoerderGebaeudeart.Nichtwohngebaeude,
+            FoerderNutzung.Selbstgenutzt, null, Antragstellerart.Kommune, true, false, false, false,
+            false, false, false, false, true, "Standardnachweis", 100m, "GEG", true);
+        await db.Context.SaveChangesAsync();
+        var bestaetigt = await db.Service.FoerderungBerechnenAsync(projektId, alternativeId, new DateOnly(2026, 7, 1));
+
+        Assert.Equal(10_000m, bestaetigt!.Programmfoerderungen[0].WpbBonus);
+        Assert.Equal(30_000m, bestaetigt.Programmfoerderungen[0].Foerderbetrag);
+    }
 }
 
 internal sealed class FoerderungZuordnungTestdatenbank : IAsyncDisposable

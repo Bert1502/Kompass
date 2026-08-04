@@ -95,4 +95,28 @@ public sealed class FoerderungApiClient : IFoerderungApiClient
                 exception);
         }
     }
+
+    public async Task<FoerdervoraussetzungenDto?> VoraussetzungenAbrufenAsync(Guid projektId, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.GetAsync($"api/projekte/{projektId}/foerdervoraussetzungen", cancellationToken);
+        if (response.StatusCode == HttpStatusCode.NotFound) return new FoerdervoraussetzungenDto();
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<FoerdervoraussetzungenDto>(JsonOptionen, cancellationToken);
+    }
+
+    public async Task<FoerdervoraussetzungenDto?> VoraussetzungenSpeichernAsync(Guid projektId, FoerdervoraussetzungenDto voraussetzungen, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.PutAsJsonAsync($"api/projekte/{projektId}/foerdervoraussetzungen", voraussetzungen, JsonOptionen, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<FoerdervoraussetzungenDto>(JsonOptionen, cancellationToken);
+    }
+
+    public async Task<FoerderberechnungDto?> BerechnenAsync(Guid projektId, Guid alternativeId, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.PostAsync($"api/projekte/{projektId}/alternativen/{alternativeId}/foerderprogramme/berechnen", null, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<FoerderberechnungDto>(JsonOptionen, cancellationToken);
+    }
 }

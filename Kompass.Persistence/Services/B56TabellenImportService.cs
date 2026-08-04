@@ -96,6 +96,16 @@ public sealed partial class B56TabellenImportService
                 modernisierungsblatt)
                 .ToList();
 
+        var ngf = ZusatzkennwertImportieren(
+            modernisierungsblatt,
+            "NGF",
+            "Nettogrundfl\u00e4che",
+            "Nettogrundfl\u00e4che NGF");
+        if (ngf is not null)
+        {
+            bestandskennwerte.Add(ngf);
+        }
+
         var modernisierungsalternativen =
             ModernisierungsalternativenImportieren(
                 modernisierungsblatt,
@@ -359,6 +369,28 @@ public sealed partial class B56TabellenImportService
         return KennwerteImportieren(
             nachfolgendeZeilen,
             Bestandskennwertnamen);
+    }
+
+    private static B56Kennwert? ZusatzkennwertImportieren(
+        B56Arbeitsblatt arbeitsblatt,
+        string name,
+        params string[] feldnamen)
+    {
+        foreach (var zeile in arbeitsblatt.Zeilen)
+        {
+            if (!feldnamen.Any(feldname => string.Equals(Wert(zeile, "B"), feldname, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            var wert = Zahl(Wert(zeile, "C"));
+            if (wert.HasValue)
+            {
+                return new B56Kennwert { Name = name, Einheit = "[m\u00b2]", Wert = wert.Value };
+            }
+        }
+
+        return null;
     }
 
     private static IReadOnlyList<B56Modernisierungsalternative>
