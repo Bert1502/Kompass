@@ -54,7 +54,10 @@ public sealed class EfKostenpositionService : IKostenpositionService
             return null;
         }
 
-        alternative.KostenpositionHinzufuegen(kostenposition);
+        _dbContext.Set<Kostenposition>().Add(kostenposition);
+        _dbContext.Entry(kostenposition)
+            .Property<Guid?>("ModernisierungsalternativeId")
+            .CurrentValue = alternative.Id;
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
