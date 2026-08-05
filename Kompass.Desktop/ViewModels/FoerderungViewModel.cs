@@ -136,7 +136,7 @@ public sealed class FoerderungViewModel : ViewModelBase
             }
 
             StatusText = Alternativen.Count == 0
-                ? "Keine Förderungen zugeordnet. Bitte zuerst Förderprogramme über die API zuordnen."
+                ? "Keine Modernisierungsalternativen im Projektmodell vorhanden. Bitte den bestätigten B56-Snapshot in das Projektmodell übernehmen."
                 : $"Förderübersicht für {Alternativen.Count} Alternative(n) geladen.";
         }
         catch (ProjektApiException exception)

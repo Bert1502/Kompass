@@ -155,6 +155,19 @@ public sealed class EfAlternativeFoerderungService : IAlternativeFoerderungServi
                 alternativeId,
                 cancellationToken);
 
+        if (programme.Count == 0)
+        {
+            programme = await _dbContext.Foerderprogramme
+                .Include(f => f.Foerderquoten)
+                .Include(f => f.Hoechstbetraege)
+                .Include(f => f.Kumulierbarkeitsregeln)
+                .Include(f => f.Pflichtnachweisregeln)
+                .Include(f => f.Gueltigkeitsregeln)
+                .OrderBy(f => f.Programmkennung)
+                .ThenBy(f => f.Version)
+                .ToListAsync(cancellationToken);
+        }
+
         var voraussetzungen = await _dbContext.Foerdervoraussetzungen
             .SingleOrDefaultAsync(x => x.ProjektId == projektId, cancellationToken);
 

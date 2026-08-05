@@ -316,20 +316,21 @@ public sealed class FoerderuebersichtServiceTests
     }
 
     [Fact]
-    public async Task Foerderuebersicht_listet_Alternativen_mit_leerer_Programmliste()
+    public async Task Foerderuebersicht_listet_ohne_Zuordnung_alle_Katalogprogramme_als_Kandidaten()
     {
         await using var db = await BerichtsTestdatenbank.ErstellenAsync();
 
         var projektId = await db.ErzeugeProjektAsync();
         await db.ErzeugeAlternativeAsync(projektId, 1, "Alt A", 40000m);
         await db.ErzeugeAlternativeAsync(projektId, 2, "Alt B", 20000m);
+        await db.ErzeugeFoerderprogrammAsync("BEG EM", 1);
 
         var bericht =
             await db.Service.FoerderuebersichtErzeugenAsync(projektId);
 
         Assert.NotNull(bericht);
         Assert.Equal(2, bericht.Alternativen.Count);
-        Assert.All(bericht.Alternativen, a => Assert.Empty(a.ZugeordneteProgramme));
+        Assert.All(bericht.Alternativen, a => Assert.Single(a.ZugeordneteProgramme));
     }
 
     [Fact]

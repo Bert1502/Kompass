@@ -5,6 +5,7 @@ using Kompass.Domain.Projects;
 using Kompass.Domain.Funding;
 using Kompass.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace Kompass.Persistence.Services;
 
@@ -13,13 +14,16 @@ public sealed class B56ProjektmodellUebernahmeService
 {
     private readonly KompassDbContext _dbContext;
     private readonly IB56ImportRegister _importRegister;
+    private readonly IB56ArbeitsmappenLeser? _arbeitsmappenLeser;
 
     public B56ProjektmodellUebernahmeService(
         KompassDbContext dbContext,
-        IB56ImportRegister importRegister)
+        IB56ImportRegister importRegister,
+        IB56ArbeitsmappenLeser? arbeitsmappenLeser = null)
     {
         _dbContext = dbContext;
         _importRegister = importRegister;
+        _arbeitsmappenLeser = arbeitsmappenLeser;
     }
 
     public async Task<B56ProjektmodellUebernahmeErgebnis> UebernehmenAsync(
@@ -52,20 +56,11 @@ public sealed class B56ProjektmodellUebernahmeService
                 "Projekt oder B56-Snapshot wurde nicht gefunden.");
         }
 
-        if (projekt.QuellSnapshotId == importId &&
-            snapshot.SnapshotStatus ==
-                B56SnapshotStatus.InProjektmodellUebernommen)
-        {
-            return ErzeugeErgebnis(
-                B56ProjektmodellUebernahmeStatus.Erfolgreich,
-                projektId,
-                importId,
-                projekt.ProjektmodellVersion,
-                projekt.Alternativen.Count,
-                "Der B56-Snapshot wurde bereits in das Projektmodell übernommen.");
-        }
+        var istBereitsUebernommen =
+            projekt.QuellSnapshotId == importId &&
+            snapshot.SnapshotStatus == B56SnapshotStatus.InProjektmodellUebernommen;
 
-        if (snapshot.SnapshotStatus !=
+        if (!istBereitsUebernommen && snapshot.SnapshotStatus !=
             B56SnapshotStatus.FachlichBestaetigt)
         {
             return ErzeugeErgebnis(
@@ -94,6 +89,45 @@ public sealed class B56ProjektmodellUebernahmeService
                 "Der B56-Snapshot enthält keine übernehmbaren Fachdaten.");
         }
 
+        var ngf = Kennwert(fachdaten.Bestandskennwerte, "NGF");
+        var primaerenergiebedarfGesamt = Kennwert(
+            fachdaten.Bestandskennwerte,
+            "Prim\u00e4renergiebedarf Geb\u00e4ude",
+            "Prim\u00e4renergiebedarf Bericht");
+
+        if ((!ngf.HasValue || !primaerenergiebedarfGesamt.HasValue) &&
+            _arbeitsmappenLeser is not null &&
+            File.Exists(snapshot.Archivdateipfad))
+        {
+            var arbeitsmappe = await _arbeitsmappenLeser.LesenAsync(
+                snapshot.Archivdateipfad,
+                cancellationToken);
+            ngf ??= BenannterZahlenwert(arbeitsmappe, "AllgBezugFlach");
+            primaerenergiebedarfGesamt ??= BenannterZahlenwert(
+                arbeitsmappe,
+                "bestand_primaerenergiebedarf");
+        }
+        var qpBestand = ngf is > 0 && primaerenergiebedarfGesamt.HasValue
+            ? Math.Round(primaerenergiebedarfGesamt.Value / ngf.Value, 3)
+            : primaerenergiebedarfGesamt;
+
+        await B56BestandswerteSpeichernAsync(
+            projektId,
+            ngf,
+            qpBestand,
+            cancellationToken);
+
+        if (istBereitsUebernommen)
+        {
+            return ErzeugeErgebnis(
+                B56ProjektmodellUebernahmeStatus.Erfolgreich,
+                projektId,
+                importId,
+                projekt.ProjektmodellVersion,
+                projekt.Alternativen.Count,
+                "Der B56-Snapshot war bereits im Projektmodell; NGF und Qp Bestand wurden aktualisiert.");
+        }
+
         var bauteilcodes =
             await _dbContext.Set<Bauteilcode>()
                 .ToDictionaryAsync(
@@ -110,18 +144,6 @@ public sealed class B56ProjektmodellUebernahmeService
                             importId,
                             bauteilcodes))
                 .ToList();
-
-        var voraussetzungen = await _dbContext.Foerdervoraussetzungen
-            .SingleOrDefaultAsync(x => x.ProjektId == projektId, cancellationToken);
-        if (voraussetzungen is null)
-        {
-            voraussetzungen = new Foerdervoraussetzungen(Guid.NewGuid(), projektId);
-            _dbContext.Foerdervoraussetzungen.Add(voraussetzungen);
-        }
-
-        voraussetzungen.B56BestandswerteUebernehmen(
-            Kennwert(fachdaten.Bestandskennwerte, "NGF"),
-            Kennwert(fachdaten.Bestandskennwerte, "Prim\u00e4renergiebedarf Geb\u00e4ude", "Prim\u00e4renergiebedarf Bericht"));
 
         try
         {
@@ -159,6 +181,42 @@ public sealed class B56ProjektmodellUebernahmeService
             projekt.ProjektmodellVersion,
             alternativen.Count,
             "Der B56-Snapshot wurde in das Projektmodell übernommen.");
+    }
+
+    private async Task B56BestandswerteSpeichernAsync(
+        Guid projektId,
+        decimal? ngf,
+        decimal? qpBestand,
+        CancellationToken cancellationToken)
+    {
+        var voraussetzungen = await _dbContext.Foerdervoraussetzungen
+            .SingleOrDefaultAsync(x => x.ProjektId == projektId, cancellationToken);
+        if (voraussetzungen is null)
+        {
+            voraussetzungen = new Foerdervoraussetzungen(Guid.NewGuid(), projektId);
+            _dbContext.Foerdervoraussetzungen.Add(voraussetzungen);
+        }
+
+        voraussetzungen.B56BestandswerteUebernehmen(ngf, qpBestand);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private static decimal? BenannterZahlenwert(
+        B56Arbeitsmappe arbeitsmappe,
+        string zellname)
+    {
+        if (!arbeitsmappe.BenannteZellwerte.TryGetValue(zellname, out var rohwert))
+        {
+            return null;
+        }
+
+        return decimal.TryParse(
+            rohwert.Replace(',', '.'),
+            NumberStyles.Float,
+            CultureInfo.InvariantCulture,
+            out var wert)
+            ? wert
+            : null;
     }
 
     private Modernisierungsalternative ErzeugeAlternative(

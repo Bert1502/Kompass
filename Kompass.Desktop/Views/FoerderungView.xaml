@@ -113,7 +113,7 @@
                                FontWeight="SemiBold"/>
 
                     <TextBlock Margin="0,6,0,16"
-                               Text="Zugeordnete Förderprogramme für jede Modernisierungsalternative dieses Projekts."
+                               Text="Für jede Modernisierungsalternative werden die zugeordneten Programme bewertet. Ohne ausdrückliche Zuordnung werden automatisch alle Programme des Katalogs als Kandidaten geprüft."
                                Foreground="#687680"
                                TextWrapping="Wrap"/>
 

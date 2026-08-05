@@ -104,7 +104,7 @@ public sealed class B56ProjektmodellUebernahmeServiceTests
             gespeicherterSnapshot?.SnapshotStatus);
         var voraussetzungen = await testdatenbank.Context.Foerdervoraussetzungen.SingleAsync(x => x.ProjektId == projekt.Id);
         Assert.Equal(1250m, voraussetzungen.Nettogrundflaeche);
-        Assert.Equal(500000m, voraussetzungen.JahresPrimaerenergiebedarf);
+        Assert.Equal(400m, voraussetzungen.JahresPrimaerenergiebedarf);
     }
 
     [Fact]

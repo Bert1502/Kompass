@@ -111,6 +111,21 @@ public sealed partial class B56TabellenImportService
             bestandskennwerte.Add(ngf);
         }
 
+        var qpBestand = BenanntenKennwertImportieren(
+            kontext.Arbeitsmappe,
+            "bestand_primaerenergiebedarf",
+            "Prim\u00e4renergiebedarf Geb\u00e4ude",
+            "[kWh/a]");
+        if (qpBestand is not null)
+        {
+            bestandskennwerte.RemoveAll(
+                kennwert => string.Equals(
+                    kennwert.Name,
+                    qpBestand.Name,
+                    StringComparison.OrdinalIgnoreCase));
+            bestandskennwerte.Add(qpBestand);
+        }
+
         var modernisierungsalternativen =
             ModernisierungsalternativenImportieren(
                 modernisierungsblatt,

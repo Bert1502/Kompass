@@ -197,8 +197,6 @@ public sealed class BerichtsService : IBerichtsService
             .Where(z => alternativeIds.Contains(z.ModernisierungsalternativeId))
             .ToListAsync(cancellationToken);
 
-        var programmIds = zuordnungen.Select(z => z.FoerderprogrammId).Distinct().ToList();
-
         var programme = await _dbContext.Foerderprogramme
             .AsNoTracking()
             .Include(f => f.Foerderquoten)
@@ -206,7 +204,6 @@ public sealed class BerichtsService : IBerichtsService
             .Include(f => f.Kumulierbarkeitsregeln)
             .Include(f => f.Pflichtnachweisregeln)
             .Include(f => f.Gueltigkeitsregeln)
-            .Where(f => programmIds.Contains(f.Id))
             .ToDictionaryAsync(f => f.Id, cancellationToken);
 
         var kopf = new Berichtskopf(
@@ -236,7 +233,10 @@ public sealed class BerichtsService : IBerichtsService
                         .OrderBy(p => p.Programmkennung)
                         .ThenBy(p => p.Version)
                         .ToList<Foerderprogramm>()
-                    : new List<Foerderprogramm>();
+                    : programme.Values
+                        .OrderBy(p => p.Programmkennung)
+                        .ThenBy(p => p.Version)
+                        .ToList();
 
                 return new FoerderuebersichtAlternative(
                     a.Id,

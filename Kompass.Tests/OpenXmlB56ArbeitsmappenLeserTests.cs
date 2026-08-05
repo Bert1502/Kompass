@@ -81,6 +81,26 @@ public sealed class OpenXmlB56ArbeitsmappenLeserTests
         }
     }
 
+    [Fact]
+    public async Task Liest_NGF_aus_der_benannten_Zelle_der_B56_Referenzdatei()
+    {
+        var dateipfad = Path.GetFullPath(
+            Path.Combine(
+                AppContext.BaseDirectory,
+                "..",
+                "..",
+                "..",
+                "B56 Projektdaten.xlsm"));
+
+        Assert.True(File.Exists(dateipfad), $"B56-Referenzdatei fehlt: {dateipfad}");
+
+        var arbeitsmappe = await new OpenXmlB56ArbeitsmappenLeser()
+            .LesenAsync(dateipfad);
+
+        Assert.Equal("1081.5999999999999", arbeitsmappe.BenannteZellwerte["AllgBezugFlach"]);
+        Assert.Equal("294961.63500000001", arbeitsmappe.BenannteZellwerte["bestand_primaerenergiebedarf"]);
+    }
+
     private static void ErzeugeArbeitsmappe(
         string dateipfad)
     {
