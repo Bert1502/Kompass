@@ -65,7 +65,7 @@ public sealed class B56TabellenImportServiceTests
             ergebnis.ImportierteBauteile);
 
         Assert.Equal(
-            9,
+            11,
             ergebnis.ImportierteKennwerte);
 
         Assert.Equal(
@@ -108,6 +108,13 @@ public sealed class B56TabellenImportServiceTests
             "Anonymisierte Gesamtmaßnahme",
             ergebnis.Modernisierungsalternativen[0]
                 .Beschreibung);
+
+        Assert.Equal(
+            [120000d, 45000d],
+            ergebnis.Modernisierungsalternativen
+                .Select(alternative => alternative.Kennwerte
+                    .Single(kennwert => kennwert.Name == "Investitionskosten")
+                    .Wert));
 
         Assert.Equal(
             "EG 55",
@@ -602,6 +609,10 @@ public sealed class B56TabellenImportServiceTests
                 7,
                 ("C", "EG 55")),
             Zeile(
+                11,
+                ("B", "Investitionskosten"),
+                ("C", "120000")),
+            Zeile(
                 8,
                 ("B", "Primärenergiebedarf Gebäude"),
                 ("C", "100.5")),
@@ -624,6 +635,10 @@ public sealed class B56TabellenImportServiceTests
                 30,
                 ("B", "Beschreibung"),
                 ("C", "Fenstertausch")),
+            Zeile(
+                31,
+                ("B", "Investitionskosten"),
+                ("C", "45000")),
             Zeile(
                 37,
                 ("B", "Primärenergiebedarf Gebäude"),

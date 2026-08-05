@@ -244,6 +244,26 @@
 
             <!-- Förderprogrammkatalog -->
 
+            <Border Background="White" BorderBrush="#D5DBDF" BorderThickness="1"
+                    CornerRadius="4" Padding="24" Margin="0,0,0,20">
+                <StackPanel>
+                    <TextBlock Text="Anforderungsübersicht aller Programme" FontSize="20" FontWeight="SemiBold"/>
+                    <TextBlock Margin="0,6,0,12" Foreground="#687680" TextWrapping="Wrap"
+                               Text="Vollständige Kontrollliste der für die Modernisierungsalternativen betrachteten Förderprogramme. Offene Punkte sind fachlich zu bestätigen."/>
+                    <DataGrid ItemsSource="{Binding AllePruefanforderungen}" AutoGenerateColumns="False"
+                              IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column"
+                              GridLinesVisibility="Horizontal" MinHeight="180" MaxHeight="520">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Programm" Binding="{Binding Programmkennung}" Width="110"/>
+                            <DataGridTextColumn Header="Bereich" Binding="{Binding Bereich}" Width="160"/>
+                            <DataGridTextColumn Header="Anforderung" Binding="{Binding Anforderung}" Width="2*"/>
+                            <DataGridTextColumn Header="Bezugsquelle" Binding="{Binding Bezugsquelle}" Width="*"/>
+                            <DataGridTextColumn Header="Prüfstatus" Binding="{Binding Pruefstatus}" Width="160"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+            </Border>
+
             <Border Background="White"
                     BorderBrush="#D5DBDF"
                     BorderThickness="1"

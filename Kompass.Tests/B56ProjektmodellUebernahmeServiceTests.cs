@@ -60,6 +60,10 @@ public sealed class B56ProjektmodellUebernahmeServiceTests
                     .ThenInclude(
                         alternative =>
                             alternative.Bauteile)
+                .Include(eintrag => eintrag.Alternativen)
+                    .ThenInclude(
+                        alternative =>
+                            alternative.Kostenpositionen)
                 .SingleAsync(
                     eintrag =>
                         eintrag.Id == projekt.Id);
@@ -99,6 +103,7 @@ public sealed class B56ProjektmodellUebernahmeServiceTests
             alternative.IstImAktuellenB56SnapshotVorhanden);
         Assert.Single(
             alternative.Bauteile);
+        Assert.Equal(50_000m, alternative.Gesamtkosten);
         Assert.Equal(
             B56SnapshotStatus.InProjektmodellUebernommen,
             gespeicherterSnapshot?.SnapshotStatus);
@@ -261,7 +266,7 @@ public sealed class B56ProjektmodellUebernahmeServiceTests
             alternativenNachPosition[2]
                 .IstImAktuellenB56SnapshotVorhanden);
         Assert.Equal(
-            500m,
+            50_500m,
             alternativenNachPosition[2].Gesamtkosten);
         Assert.True(
             alternativenNachPosition[3]
@@ -321,6 +326,15 @@ public sealed class B56ProjektmodellUebernahmeServiceTests
                                     alternative.Bezeichnung,
                                 Beschreibung =
                                     $"{alternative.Bezeichnung} erneuern",
+                                Kennwerte =
+                                [
+                                    new B56Kennwert
+                                    {
+                                        Name = "Investitionskosten",
+                                        Einheit = "[EUR]",
+                                        Wert = 50_000
+                                    }
+                                ],
                                 Bauteile =
                                 [
                                     new B56Bauteil

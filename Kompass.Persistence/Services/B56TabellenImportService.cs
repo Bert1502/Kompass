@@ -32,6 +32,7 @@ public sealed partial class B56TabellenImportService
 
     private static readonly IReadOnlyList<string> Kennwertnamen =
     [
+        "Investitionskosten",
         "Primärenergiebedarf Gebäude",
         "Endenergiebedarf Gebäude",
         "CO2-Emissionen Gebäude"
@@ -556,6 +557,7 @@ public sealed partial class B56TabellenImportService
     {
         return name switch
         {
+            "Investitionskosten" => "[EUR]",
             "Primärenergiebedarf Gebäude" => "[kWh/a]",
             "Endenergiebedarf Gebäude" => "[kWh/a]",
             "CO2-Emissionen Gebäude" => "[kg]",

@@ -241,6 +241,34 @@ public sealed class EfAlternativeFoerderungServiceTests
     }
 
     [Fact]
+    public async Task FoerderungBerechnen_begrenzt_Beg_Em_fuer_Nwg_auf_500_Euro_je_Ngf()
+    {
+        await using var db = await FoerderungZuordnungTestdatenbank.ErstellenAsync();
+        var (projektId, alternativeId) = await db.ErzeugeProjektMitAlternativeAsync();
+        await db.ErzeugeKostenpositionAsync(alternativeId, 100_000m);
+        var programm = await db.ErzeugeFoerderprogrammAsync(foerdersatz: 0.15m);
+        await db.Service.ProgrammZuordnenAsync(projektId, alternativeId, programm.Id);
+
+        var voraussetzungen = new Foerdervoraussetzungen(Guid.NewGuid(), projektId);
+        voraussetzungen.B56BestandswerteUebernehmen(100m, 250m);
+        voraussetzungen.Aktualisieren(
+            1980, new DateOnly(1981, 1, 1), FoerderGebaeudeart.Nichtwohngebaeude,
+            FoerderNutzung.Selbstgenutzt, null, Antragstellerart.Kommune,
+            true, false, false, false, false, false, false, false, false,
+            "Fachunternehmererklärung", null, null, false);
+        db.Context.Foerdervoraussetzungen.Add(voraussetzungen);
+        await db.Context.SaveChangesAsync();
+
+        var ergebnis = await db.Service.FoerderungBerechnenAsync(
+            projektId, alternativeId, new DateOnly(2026, 7, 1));
+
+        var anteil = Assert.Single(ergebnis!.Programmfoerderungen);
+        Assert.Equal(50_000m, anteil.Foerderhoechstbetrag);
+        Assert.Equal(50_000m, anteil.FoerderfaehigeKosten);
+        Assert.Equal(7_500m, anteil.Grundfoerderung);
+    }
+
+    [Fact]
     public async Task FoerderungBerechnen_wendet_Wpb_Bonus_erst_nach_fachlicher_Bestaetigung_an()
     {
         await using var db = await FoerderungZuordnungTestdatenbank.ErstellenAsync();

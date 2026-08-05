@@ -251,10 +251,15 @@ public sealed class EfAlternativeFoerderungService : IAlternativeFoerderungServi
             .OrderByDescending(r => r.GueltigAb)
             .FirstOrDefault();
 
+        var istBegEm = programm.Programmkennung.Contains("BEG", StringComparison.OrdinalIgnoreCase) &&
+            programm.Programmkennung.Contains("EM", StringComparison.OrdinalIgnoreCase);
+        var begEmObergrenze = istBegEm
+            ? BerechneBegEmObergrenze(voraussetzungen, fehlend)
+            : (decimal?)null;
         var hoechstbetrag = aktiverHoechstbetrag is null
-            ? investitionskosten
+            ? begEmObergrenze ?? investitionskosten
             : BerechneObergrenze(aktiverHoechstbetrag, voraussetzungen, fehlend);
-        var istKostenobergrenze = aktiverHoechstbetrag is not null &&
+        var istKostenobergrenze = begEmObergrenze.HasValue || aktiverHoechstbetrag is not null &&
             (aktiverHoechstbetrag.Bezugsbasis.Contains("Wohneinheit", StringComparison.OrdinalIgnoreCase) ||
              aktiverHoechstbetrag.Bezugsbasis.Contains("NGF", StringComparison.OrdinalIgnoreCase) ||
              aktiverHoechstbetrag.Bezugsbasis.Contains("m²", StringComparison.OrdinalIgnoreCase));
@@ -329,6 +334,37 @@ public sealed class EfAlternativeFoerderungService : IAlternativeFoerderungServi
             return regel.Betrag * v.Nettogrundflaeche.Value;
         }
         return regel.Betrag;
+    }
+
+    private static decimal? BerechneBegEmObergrenze(
+        Foerdervoraussetzungen? voraussetzungen,
+        ICollection<string> fehlend)
+    {
+        if (voraussetzungen?.Gebaeudeart == FoerderGebaeudeart.Nichtwohngebaeude)
+        {
+            if (voraussetzungen.Nettogrundflaeche is not > 0)
+            {
+                fehlend.Add("Nettogrundfläche für die BEG-EM-Kostenobergrenze");
+                return null;
+            }
+
+            return 500m * voraussetzungen.Nettogrundflaeche.Value;
+        }
+
+        if (voraussetzungen?.Gebaeudeart == FoerderGebaeudeart.Wohngebaeude)
+        {
+            if (voraussetzungen.Wohneinheiten is not > 0)
+            {
+                fehlend.Add("Wohneinheiten für die BEG-EM-Kostenobergrenze");
+                return null;
+            }
+
+            var betragJeWohneinheit = voraussetzungen.ISfp == true ? 60_000m : 30_000m;
+            return betragJeWohneinheit * voraussetzungen.Wohneinheiten.Value;
+        }
+
+        fehlend.Add("Gebäudeart für die BEG-EM-Kostenobergrenze");
+        return null;
     }
 
     private async Task<bool> AlternativeGehoertZuProjektAsync(

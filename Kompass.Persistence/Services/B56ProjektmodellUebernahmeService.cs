@@ -3,6 +3,7 @@ using Kompass.Domain.B56;
 using Kompass.Domain.Common;
 using Kompass.Domain.Projects;
 using Kompass.Domain.Funding;
+using Kompass.Domain.Economics;
 using Kompass.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
@@ -256,6 +257,17 @@ public sealed class B56ProjektmodellUebernahmeService
                 new AlternativeBauteil(
                     Guid.NewGuid(),
                     bauteilcode));
+        }
+
+        var investitionskosten = Kennwert(quelle.Kennwerte, "Investitionskosten");
+        if (investitionskosten is > 0)
+        {
+            alternative.KostenpositionHinzufuegen(
+                new Kostenposition(
+                    Guid.NewGuid(),
+                    "Investitionskosten aus B56",
+                    investitionskosten.Value,
+                    Kostenart.Sonstige));
         }
 
         return alternative;

@@ -93,7 +93,10 @@ public sealed record FoerderprogrammKurzDto(
     public string HoechstbetragText =>
         Hoechstbetrag.HasValue
             ? $"{Hoechstbetrag.Value:N0} €"
-            : "–";
+            : Programmkennung.Contains("BEG", StringComparison.OrdinalIgnoreCase) &&
+              Programmkennung.Contains("EM", StringComparison.OrdinalIgnoreCase)
+                ? "30/60 T€ je WE; 500 €/m² NGF"
+                : "–";
 
     public string GueltigkeitText =>
         GueltigBis.HasValue

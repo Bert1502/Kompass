@@ -31,6 +31,8 @@ public sealed class FoerderungViewModel : ViewModelBase
         Foerderprogramme =
             new ObservableCollection<FoerderprogrammKatalogDto>();
 
+        AllePruefanforderungen = new ObservableCollection<FoerderanforderungDto>();
+
         LadenCommand =
             new AsyncRelayCommand(
                 LadenAsync,
@@ -41,6 +43,7 @@ public sealed class FoerderungViewModel : ViewModelBase
     public ObservableCollection<FoerderuebersichtAlternativeDto> Alternativen { get; }
 
     public ObservableCollection<FoerderprogrammKatalogDto> Foerderprogramme { get; }
+    public ObservableCollection<FoerderanforderungDto> AllePruefanforderungen { get; }
 
     public string Projektname
     {
@@ -96,6 +99,7 @@ public sealed class FoerderungViewModel : ViewModelBase
 
         Alternativen.Clear();
         Foerderprogramme.Clear();
+        AllePruefanforderungen.Clear();
 
         try
         {
@@ -131,6 +135,14 @@ public sealed class FoerderungViewModel : ViewModelBase
                 {
                     alternative.Berechnung = await _apiClient.BerechnenAsync(_projektId, alternative.AlternativeId);
                     alternative.Pruefanforderungen = ErzeugePruefanforderungen(alternative);
+                    foreach (var anforderung in alternative.Pruefanforderungen.Where(
+                                 kandidat => !AllePruefanforderungen.Any(vorhanden =>
+                                     vorhanden.Programmkennung == kandidat.Programmkennung &&
+                                     vorhanden.Bereich == kandidat.Bereich &&
+                                     vorhanden.Anforderung == kandidat.Anforderung)))
+                    {
+                        AllePruefanforderungen.Add(anforderung);
+                    }
                     Alternativen.Add(alternative);
                 }
             }
@@ -212,6 +224,15 @@ public sealed class FoerderungViewModel : ViewModelBase
             foreach (var regel in programm.Hoechstbetraege ?? [])
                 Hinzufuegen("Höchstbetrag", $"{regel.Bezeichnung}: {regel.Betrag:N2} {regel.Waehrung} {regel.Bezugsbasis}",
                     regel.Beschreibung ?? programm.Quellenstand, "In Berechnung berücksichtigt");
+            if ((programm.Hoechstbetraege?.Count ?? 0) == 0 &&
+                programm.Programmkennung.Contains("BEG", StringComparison.OrdinalIgnoreCase) &&
+                programm.Programmkennung.Contains("EM", StringComparison.OrdinalIgnoreCase))
+            {
+                Hinzufuegen("Höchstbetrag",
+                    "Sonstige Effizienzmaßnahmen: WG 30.000 € je Wohneinheit und Kalenderjahr, mit iSFP 60.000 €; NWG 500 € je m² NGF und Kalenderjahr. Anteilige Begrenzung bei Teilmaßnahmen beachten.",
+                    "BEG-FAQ / BEG-EM-Richtlinie, Stand Juli 2026",
+                    "In Berechnung berücksichtigt");
+            }
             foreach (var regel in programm.Kumulierbarkeitsregeln ?? [])
                 Hinzufuegen("Kumulierbarkeit", $"{regel.Bezeichnung}: {regel.Status} – {regel.Beschreibung}",
                     programm.Quellenstand, regel.Status == KumulierbarkeitStatus.Unbestimmt ? "Manuell zu prüfen" : "Kontrollieren");
