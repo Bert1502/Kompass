@@ -52,14 +52,19 @@
                               Height="34"/>
                 </StackPanel>
 
-                <TextBlock Grid.Column="2"
-                           Text="{Binding StatusText}"
-                           VerticalAlignment="Center"
-                           Foreground="#34444F"
-                           TextWrapping="Wrap"/>
+                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding StatusText}"
+                               Foreground="#34444F"
+                               TextWrapping="Wrap"/>
+                    <TextBlock Margin="0,3,0,0"
+                               Foreground="#687680"
+                               FontSize="12"
+                               Text="Lädt Alternativen und bereits gespeicherte Kostenpositionen erneut aus dem Projekt."
+                               TextWrapping="Wrap"/>
+                </StackPanel>
 
                 <Button Grid.Column="4"
-                        Content="Daten laden"
+                        Content="Neu laden"
                         Command="{Binding LadenCommand}"
                         Height="36"
                         VerticalAlignment="Center"

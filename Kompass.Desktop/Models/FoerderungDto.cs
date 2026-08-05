@@ -26,7 +26,17 @@ public sealed record FoerderuebersichtAlternativeDto(
             : $"{ZugeordneteProgramme.Count} Programm(e)";
 
     public FoerderberechnungDto? Berechnung { get; set; }
+
+    public IReadOnlyList<FoerderanforderungDto> Pruefanforderungen { get; set; }
+        = Array.Empty<FoerderanforderungDto>();
 }
+
+public sealed record FoerderanforderungDto(
+    string Programmkennung,
+    string Bereich,
+    string Anforderung,
+    string Bezugsquelle,
+    string Pruefstatus);
 
 public sealed record FoerderberechnungDto(DateOnly Stichtag, decimal Investitionskosten,
     IReadOnlyList<ProgrammFoerderungsanteilDto> Programmfoerderungen, decimal GesamtFoerderung, decimal Eigenanteil);
@@ -104,7 +114,12 @@ public sealed record FoerderprogrammKatalogDto(
     decimal? Hoechstbetrag,
     string Kumulierbarkeit,
     string Pflichtnachweise,
-    string Quellenstand)
+    string Quellenstand,
+    IReadOnlyList<FoerderquoteRegelDto>? Foerderquoten = null,
+    IReadOnlyList<HoechstbetragRegelDto>? Hoechstbetraege = null,
+    IReadOnlyList<KumulierbarkeitsregelDto>? Kumulierbarkeitsregeln = null,
+    IReadOnlyList<PflichtnachweisRegelDto>? Pflichtnachweisregeln = null,
+    IReadOnlyList<GueltigkeitsregelDto>? Gueltigkeitsregeln = null)
 {
     public string FoerdersatzText =>
         $"{Foerdersatz:P0}";
@@ -119,3 +134,42 @@ public sealed record FoerderprogrammKatalogDto(
             ? $"{GueltigAb:d} – {GueltigBis.Value:d}"
             : $"ab {GueltigAb:d}";
 }
+
+public sealed record FoerderquoteRegelDto(
+    string Bezeichnung,
+    decimal Quote,
+    string Bezugsbasis,
+    DateOnly GueltigAb,
+    DateOnly? GueltigBis,
+    string? Beschreibung);
+
+public sealed record HoechstbetragRegelDto(
+    string Bezeichnung,
+    decimal Betrag,
+    string Waehrung,
+    string Bezugsbasis,
+    DateOnly GueltigAb,
+    DateOnly? GueltigBis,
+    string? Beschreibung);
+
+public sealed record KumulierbarkeitsregelDto(
+    string Bezeichnung,
+    KumulierbarkeitStatus Status,
+    string Beschreibung,
+    DateOnly GueltigAb,
+    DateOnly? GueltigBis);
+
+public sealed record PflichtnachweisRegelDto(
+    string Bezeichnung,
+    string Beschreibung,
+    Nachweiszeitpunkt Zeitpunkt,
+    bool IstPflicht,
+    DateOnly GueltigAb,
+    DateOnly? GueltigBis);
+
+public sealed record GueltigkeitsregelDto(
+    string Bezeichnung,
+    Gueltigkeitsbezug Bezug,
+    DateOnly GueltigAb,
+    DateOnly? GueltigBis,
+    string? Beschreibung);

@@ -1,5 +1,6 @@
 using Kompass.Application.Funding;
 using Kompass.Domain.Funding;
+using Kompass.Domain.Common;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Kompass.Api.Funding;
@@ -19,9 +20,17 @@ public sealed class FoerdervoraussetzungenController : ControllerBase
     }
 
     [HttpPut]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<Foerdervoraussetzungen>> Speichern(Guid projektId, FoerdervoraussetzungenEingabe eingabe, CancellationToken ct)
     {
-        var wert = await _service.SpeichernAsync(projektId, eingabe, ct);
-        return wert is null ? NotFound() : Ok(wert);
+        try
+        {
+            var wert = await _service.SpeichernAsync(projektId, eingabe, ct);
+            return wert is null ? NotFound() : Ok(wert);
+        }
+        catch (DomainException exception)
+        {
+            return BadRequest(new { Nachricht = exception.Message });
+        }
     }
 }

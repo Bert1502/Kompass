@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Kompass.Tests;
 
@@ -64,12 +65,45 @@ public sealed class FoerdervoraussetzungenHttpIntegrationTests
         }
     }
 
+    [Fact]
+    public async Task Ungueltige_Voraussetzungen_liefern_400_statt_500()
+    {
+        var verzeichnis = Path.Combine(Path.GetTempPath(), $"kompass-foerder-http-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(verzeichnis);
+        try
+        {
+            await using var factory = new ApiFactory(verzeichnis);
+            using var client = factory.CreateClient();
+            Guid projektId;
+            await using (var scope = factory.Services.CreateAsyncScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<KompassDbContext>();
+                var projekt = new Projekt(Guid.NewGuid(), "Schule");
+                db.Projekte.Add(projekt);
+                await db.SaveChangesAsync();
+                projektId = projekt.Id;
+            }
+
+            var antwort = await client.PutAsJsonAsync(
+                $"/api/projekte/{projektId}/foerdervoraussetzungen",
+                new { QpReferenz = 100m, QpReferenzQuelle = "" });
+
+            Assert.Equal(HttpStatusCode.BadRequest, antwort.StatusCode);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            if (Directory.Exists(verzeichnis)) Directory.Delete(verzeichnis, true);
+        }
+    }
+
     private sealed record Antwort(decimal? Nettogrundflaeche, decimal? WpbVerhaeltnis, WpbPruefstatus WpbRechnerischerVorschlag);
 
     private sealed class ApiFactory(string verzeichnis) : WebApplicationFactory<Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
+            builder.ConfigureLogging(logging => logging.ClearProviders());
             builder.UseSetting("ConnectionStrings:KompassDatabase", $"Data Source={Path.Combine(verzeichnis, "kompass.db")}");
             builder.UseSetting("Fachdatenbanken:Verzeichnis", string.Empty);
         }

@@ -37,6 +37,36 @@ public sealed class B56NgfImportTests
         Assert.Equal("[m\u00b2]", ngf.Einheit);
     }
 
+    [Fact]
+    public async Task Benannte_Zelle_AllgBezugFlach_hat_Vorrang()
+    {
+        var mappe = new B56Arbeitsmappe
+        {
+            BenannteZellwerte = new Dictionary<string, string>
+            {
+                ["AllgBezugFlach"] = "987.25"
+            },
+            Arbeitsblaetter =
+            [
+                new B56Arbeitsblatt
+                {
+                    Name = "SCModernisierungen",
+                    Zeilen = [Zeile(1, ("B", "Nettogrundfl\u00e4che"), ("C", "1250"))]
+                }
+            ]
+        };
+
+        var service = new B56TabellenImportService(new B56TabellenFinder());
+        var ergebnis = await service.ImportierenAsync(new B56ImportKontext
+        {
+            Arbeitsmappe = mappe,
+            ImportId = Guid.NewGuid(),
+            ProjektId = Guid.NewGuid()
+        });
+
+        Assert.Equal(987.25, Assert.Single(ergebnis.Bestandskennwerte, x => x.Name == "NGF").Wert);
+    }
+
     private static B56Zeile Zeile(int nummer, params (string Spalte, string Wert)[] werte) => new()
     {
         Zeilennummer = nummer,

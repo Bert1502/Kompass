@@ -101,6 +101,7 @@ public partial class App : System.Windows.Application
         services.AddTransient<ProjektWorkspaceViewModel>();
         services.AddTransient<B56ImportViewModel>();
         services.AddTransient<KostenViewModel>();
+        services.AddTransient<ModernisierungsalternativenViewModel>();
         services.AddTransient<WirtschaftlichkeitViewModel>();
         services.AddTransient<FoerderungViewModel>();
 

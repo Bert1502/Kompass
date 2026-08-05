@@ -15,12 +15,34 @@
 
     <Window.Resources>
 
+        <Style x:Key="NavigationsButton" TargetType="Button">
+            <Setter Property="Height" Value="42"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Padding" Value="14,0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Style.Triggers>
+                <Trigger Property="Tag" Value="True">
+                    <Setter Property="Background" Value="#C7DCE8"/>
+                    <Setter Property="BorderBrush" Value="#2878A0"/>
+                    <Setter Property="BorderThickness" Value="4,0,0,0"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="Foreground" Value="#163F55"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <DataTemplate DataType="{x:Type viewModels:B56ImportViewModel}">
             <views:B56ImportView/>
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type viewModels:KostenViewModel}">
             <views:KostenView/>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type viewModels:ModernisierungsalternativenViewModel}">
+            <views:ModernisierungsalternativenView/>
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type viewModels:WirtschaftlichkeitViewModel}">
@@ -111,52 +133,38 @@
 
                     <Button Content="Projektübersicht"
                             Command="{Binding ProjektuebersichtCommand}"
-                            Height="42"
-                            Margin="0,0,0,6"
-                            HorizontalContentAlignment="Left"
-                            Padding="14,0"/>
+                            Tag="{Binding IstProjektuebersichtAktiv}"
+                            Style="{StaticResource NavigationsButton}"/>
 
                     <Button Content="B56-Import"
                             Command="{Binding B56ImportCommand}"
-                            Height="42"
-                            Margin="0,0,0,6"
-                            HorizontalContentAlignment="Left"
-                            Padding="14,0"/>
+                            Tag="{Binding IstB56ImportAktiv}"
+                            Style="{StaticResource NavigationsButton}"/>
 
                     <Button Content="Kosten"
                             Command="{Binding KostenCommand}"
-                            Height="42"
-                            Margin="0,0,0,6"
-                            HorizontalContentAlignment="Left"
-                            Padding="14,0"/>
+                            Tag="{Binding IstKostenAktiv}"
+                            Style="{StaticResource NavigationsButton}"/>
 
                     <Button Content="Modernisierungsalternativen"
                             Command="{Binding ModernisierungsalternativenCommand}"
-                            Height="42"
-                            Margin="0,0,0,6"
-                            HorizontalContentAlignment="Left"
-                            Padding="14,0"/>
+                            Tag="{Binding IstModernisierungsalternativenAktiv}"
+                            Style="{StaticResource NavigationsButton}"/>
 
                     <Button Content="Wirtschaftlichkeit"
                             Command="{Binding WirtschaftlichkeitCommand}"
-                            Height="42"
-                            Margin="0,0,0,6"
-                            HorizontalContentAlignment="Left"
-                            Padding="14,0"/>
+                            Tag="{Binding IstWirtschaftlichkeitAktiv}"
+                            Style="{StaticResource NavigationsButton}"/>
 
                     <Button Content="Förderung"
                             Command="{Binding FoerderungCommand}"
-                            Height="42"
-                            Margin="0,0,0,6"
-                            HorizontalContentAlignment="Left"
-                            Padding="14,0"/>
+                            Tag="{Binding IstFoerderungAktiv}"
+                            Style="{StaticResource NavigationsButton}"/>
 
                     <Button Content="Bericht"
                             Command="{Binding BerichtCommand}"
-                            Height="42"
-                            Margin="0,0,0,6"
-                            HorizontalContentAlignment="Left"
-                            Padding="14,0"/>
+                            Tag="{Binding IstBerichtAktiv}"
+                            Style="{StaticResource NavigationsButton}"/>
 
                 </StackPanel>
 
@@ -408,7 +416,7 @@
                                     </StackPanel>
 
                                     <TextBlock Grid.Column="2"
-                                               Text="Offen"
+                                               Text="{Binding ProjektinformationenWorkflowStatus}"
                                                Foreground="#687680"
                                                VerticalAlignment="Center"/>
 
@@ -442,7 +450,7 @@
                                     </StackPanel>
 
                                     <TextBlock Grid.Column="2"
-                                               Text="Offen"
+                                               Text="{Binding B56WorkflowStatus}"
                                                Foreground="#687680"
                                                VerticalAlignment="Center"/>
 
@@ -476,7 +484,7 @@
                                     </StackPanel>
 
                                     <TextBlock Grid.Column="2"
-                                               Text="Offen"
+                                               Text="{Binding KostenWorkflowStatus}"
                                                Foreground="#687680"
                                                VerticalAlignment="Center"/>
 
@@ -510,7 +518,7 @@
                                     </StackPanel>
 
                                     <TextBlock Grid.Column="2"
-                                               Text="Offen"
+                                               Text="{Binding WirtschaftlichkeitWorkflowStatus}"
                                                Foreground="#687680"
                                                VerticalAlignment="Center"/>
 
@@ -544,7 +552,7 @@
                                     </StackPanel>
 
                                     <TextBlock Grid.Column="2"
-                                               Text="Offen"
+                                               Text="{Binding BerichtWorkflowStatus}"
                                                Foreground="#687680"
                                                VerticalAlignment="Center"/>
 

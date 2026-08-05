@@ -33,12 +33,12 @@ public sealed class OpenXmlB56ArbeitsmappenLeser
         var workbookPart =
             dokument.WorkbookPart
             ?? throw new InvalidDataException(
-                "Die Excel-Datei enth‰lt keine Arbeitsmappe.");
+                "Die Excel-Datei enth√§lt keine Arbeitsmappe.");
 
         var workbook =
             workbookPart.Workbook
             ?? throw new InvalidDataException(
-                "Die Excel-Datei enth‰lt keine g¸ltige Workbook-Struktur.");
+                "Die Excel-Datei enth√§lt keine g√ºltige Workbook-Struktur.");
 
         var sharedStrings =
             SharedStringsLesen(workbookPart);
@@ -92,10 +92,57 @@ public sealed class OpenXmlB56ArbeitsmappenLeser
                     Path.GetFullPath(dateipfad),
 
                 Arbeitsblaetter =
-                    arbeitsblaetter
+                    arbeitsblaetter,
+
+                BenannteZellwerte =
+                    BenannteZellwerteLesen(workbook, arbeitsblaetter)
             };
 
         return Task.FromResult(arbeitsmappe);
+    }
+
+    private static IReadOnlyDictionary<string, string> BenannteZellwerteLesen(
+        Workbook workbook,
+        IReadOnlyList<B56Arbeitsblatt> arbeitsblaetter)
+    {
+        var ergebnis = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var definedName in workbook.DefinedNames?.Elements<DefinedName>()
+                     ?? Enumerable.Empty<DefinedName>())
+        {
+            var name = definedName.Name?.Value;
+            var bezug = definedName.Text?.Trim();
+            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(bezug))
+            {
+                continue;
+            }
+
+            var trennstelle = bezug.LastIndexOf('!');
+            if (trennstelle <= 0 || trennstelle == bezug.Length - 1)
+            {
+                continue;
+            }
+
+            var blattname = bezug[..trennstelle].Trim().Trim('\'').Replace("''", "'");
+            var adresse = bezug[(trennstelle + 1)..].Replace("$", string.Empty);
+            if (adresse.Contains(':') || adresse.Contains(','))
+            {
+                continue;
+            }
+
+            var wert = arbeitsblaetter
+                .FirstOrDefault(blatt => string.Equals(blatt.Name, blattname, StringComparison.OrdinalIgnoreCase))?
+                .Zeilen.SelectMany(zeile => zeile.Zellen)
+                .FirstOrDefault(zelle => string.Equals(zelle.Adresse, adresse, StringComparison.OrdinalIgnoreCase))?
+                .Wert;
+
+            if (!string.IsNullOrWhiteSpace(wert))
+            {
+                ergebnis[name] = wert;
+            }
+        }
+
+        return ergebnis;
     }
 
     private static IReadOnlyList<string> SharedStringsLesen(

@@ -8,6 +8,7 @@ public sealed class ProjektWorkspaceViewModel : ViewModelBase
 {
     private readonly B56ImportViewModel _b56ImportViewModel;
     private readonly KostenViewModel _kostenViewModel;
+    private readonly ModernisierungsalternativenViewModel _modernisierungsalternativenViewModel;
     private readonly WirtschaftlichkeitViewModel _wirtschaftlichkeitViewModel;
     private readonly FoerderungViewModel _foerderungViewModel;
 
@@ -19,11 +20,13 @@ public sealed class ProjektWorkspaceViewModel : ViewModelBase
     public ProjektWorkspaceViewModel(
         B56ImportViewModel b56ImportViewModel,
         KostenViewModel kostenViewModel,
+        ModernisierungsalternativenViewModel modernisierungsalternativenViewModel,
         WirtschaftlichkeitViewModel wirtschaftlichkeitViewModel,
         FoerderungViewModel foerderungViewModel)
     {
         _b56ImportViewModel = b56ImportViewModel;
         _kostenViewModel = kostenViewModel;
+        _modernisierungsalternativenViewModel = modernisierungsalternativenViewModel;
         _wirtschaftlichkeitViewModel = wirtschaftlichkeitViewModel;
         _foerderungViewModel = foerderungViewModel;
 
@@ -40,9 +43,7 @@ public sealed class ProjektWorkspaceViewModel : ViewModelBase
                 KostenAnzeigenAsync);
 
         ModernisierungsalternativenCommand =
-            new RelayCommand(
-                () => BereichOhneInhaltAnzeigen(
-                    "Modernisierungsalternativen"));
+            new AsyncRelayCommand(ModernisierungsalternativenAnzeigenAsync);
 
         WirtschaftlichkeitCommand =
             new AsyncRelayCommand(
@@ -88,6 +89,12 @@ public sealed class ProjektWorkspaceViewModel : ViewModelBase
 
             OnPropertyChanged(
                 nameof(QuellSnapshotId));
+
+            OnPropertyChanged(nameof(ProjektinformationenWorkflowStatus));
+            OnPropertyChanged(nameof(B56WorkflowStatus));
+            OnPropertyChanged(nameof(KostenWorkflowStatus));
+            OnPropertyChanged(nameof(WirtschaftlichkeitWorkflowStatus));
+            OnPropertyChanged(nameof(BerichtWorkflowStatus));
         }
     }
 
@@ -127,15 +134,53 @@ public sealed class ProjektWorkspaceViewModel : ViewModelBase
         Projekt?.QuellSnapshotId?.ToString()
         ?? "Kein B56-Snapshot übernommen";
 
+    public string ProjektinformationenWorkflowStatus =>
+        Projekt is not null &&
+        !string.IsNullOrWhiteSpace(Projekt.Auftraggeber) &&
+        !string.IsNullOrWhiteSpace(Projekt.Ort)
+            ? "Erledigt"
+            : "Offen";
+
+    public string B56WorkflowStatus =>
+        Projekt?.QuellSnapshotId is not null ? "Erledigt" : "Offen";
+
+    public string KostenWorkflowStatus =>
+        Projekt?.AnzahlAlternativen > 0 ? "Bereit" : "Gesperrt";
+
+    public string WirtschaftlichkeitWorkflowStatus =>
+        Projekt?.AnzahlAlternativen > 0 ? "Bereit" : "Gesperrt";
+
+    public string BerichtWorkflowStatus =>
+        Projekt?.QuellSnapshotId is not null ? "Bereit" : "Gesperrt";
+
     public string AktiverBereich
     {
         get => _aktiverBereich;
 
-        private set =>
-            SetProperty(
-                ref _aktiverBereich,
-                value);
+        private set
+        {
+            if (!SetProperty(ref _aktiverBereich, value))
+            {
+                return;
+            }
+
+            OnPropertyChanged(nameof(IstProjektuebersichtAktiv));
+            OnPropertyChanged(nameof(IstB56ImportAktiv));
+            OnPropertyChanged(nameof(IstKostenAktiv));
+            OnPropertyChanged(nameof(IstModernisierungsalternativenAktiv));
+            OnPropertyChanged(nameof(IstWirtschaftlichkeitAktiv));
+            OnPropertyChanged(nameof(IstFoerderungAktiv));
+            OnPropertyChanged(nameof(IstBerichtAktiv));
+        }
     }
+
+    public bool IstProjektuebersichtAktiv => AktiverBereich == "Projektübersicht";
+    public bool IstB56ImportAktiv => AktiverBereich == "B56-Import";
+    public bool IstKostenAktiv => AktiverBereich == "Kosten";
+    public bool IstModernisierungsalternativenAktiv => AktiverBereich == "Modernisierungsalternativen";
+    public bool IstWirtschaftlichkeitAktiv => AktiverBereich == "Wirtschaftlichkeit";
+    public bool IstFoerderungAktiv => AktiverBereich == "Förderung";
+    public bool IstBerichtAktiv => AktiverBereich == "Bericht";
 
     public string StatusText
     {
@@ -176,6 +221,8 @@ public sealed class ProjektWorkspaceViewModel : ViewModelBase
         _kostenViewModel.ProjektSetzen(
             projekt.Id,
             projekt.Name);
+
+        _modernisierungsalternativenViewModel.ProjektSetzen(projekt.Id, projekt.Name);
 
         _wirtschaftlichkeitViewModel.ProjektSetzen(
             projekt.Id,
@@ -240,6 +287,14 @@ public sealed class ProjektWorkspaceViewModel : ViewModelBase
         StatusText = "Kosten wurden ausgewählt.";
 
         await _kostenViewModel.LadenAsync();
+    }
+
+    private async Task ModernisierungsalternativenAnzeigenAsync()
+    {
+        AktiverBereich = "Modernisierungsalternativen";
+        AktuellerInhalt = _modernisierungsalternativenViewModel;
+        StatusText = "Modernisierungsalternativen wurden ausgewählt.";
+        await _modernisierungsalternativenViewModel.LadenAsync();
     }
 
     private async Task FoerderungAnzeigenAsync()

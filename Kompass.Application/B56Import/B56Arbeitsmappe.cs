@@ -7,6 +7,9 @@ public sealed class B56Arbeitsmappe
     public IReadOnlyList<B56Arbeitsblatt> Arbeitsblaetter { get; init; }
         = Array.Empty<B56Arbeitsblatt>();
 
+    public IReadOnlyDictionary<string, string> BenannteZellwerte { get; init; }
+        = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
     public B56Arbeitsblatt? ArbeitsblattSuchen(
         string name)
     {
