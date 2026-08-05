@@ -67,6 +67,8 @@ public sealed class OpenXmlB56ArbeitsmappenLeserTests
                 ["A", "B", "C", "D"],
                 zeile.Zellen.Select(
                     zelle => zelle.Spalte));
+
+            Assert.Equal("12.5", arbeitsmappe.BenannteZellwerte["AllgBezugFlach"]);
         }
         finally
         {
@@ -151,6 +153,13 @@ public sealed class OpenXmlB56ArbeitsmappenLeserTests
                 SheetId = 1,
                 Name = "B56"
             });
+
+        workbookPart.Workbook.Append(
+            new DefinedNames(
+                new DefinedName("'B56'!$D$1")
+                {
+                    Name = "AllgBezugFlach"
+                }));
 
         workbookPart.Workbook.Save();
     }

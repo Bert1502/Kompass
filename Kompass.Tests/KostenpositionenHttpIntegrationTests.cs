@@ -100,7 +100,11 @@ public sealed class KostenpositionenHttpIntegrationTests
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
-            builder.ConfigureLogging(logging => logging.AddConsole());
+            builder.ConfigureLogging(logging =>
+            {
+                logging.ClearProviders();
+                logging.AddConsole();
+            });
             builder.UseSetting(
                 "ConnectionStrings:KompassDatabase",
                 $"Data Source={Path.Combine(testverzeichnis, "kompass.db")}");

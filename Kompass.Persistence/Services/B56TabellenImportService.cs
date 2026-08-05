@@ -96,6 +96,21 @@ public sealed partial class B56TabellenImportService
                 modernisierungsblatt)
                 .ToList();
 
+        var ngf = BenanntenKennwertImportieren(
+                kontext.Arbeitsmappe,
+                "AllgBezugFlach",
+                "NGF",
+                "[m\u00b2]")
+            ?? ZusatzkennwertImportieren(
+                modernisierungsblatt,
+                "NGF",
+                "Nettogrundfl\u00e4che",
+                "Nettogrundfl\u00e4che NGF");
+        if (ngf is not null)
+        {
+            bestandskennwerte.Add(ngf);
+        }
+
         var modernisierungsalternativen =
             ModernisierungsalternativenImportieren(
                 modernisierungsblatt,
@@ -361,6 +376,28 @@ public sealed partial class B56TabellenImportService
             Bestandskennwertnamen);
     }
 
+    private static B56Kennwert? ZusatzkennwertImportieren(
+        B56Arbeitsblatt arbeitsblatt,
+        string name,
+        params string[] feldnamen)
+    {
+        foreach (var zeile in arbeitsblatt.Zeilen)
+        {
+            if (!feldnamen.Any(feldname => string.Equals(Wert(zeile, "B"), feldname, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            var wert = Zahl(Wert(zeile, "C"));
+            if (wert.HasValue)
+            {
+                return new B56Kennwert { Name = name, Einheit = "[m\u00b2]", Wert = wert.Value };
+            }
+        }
+
+        return null;
+    }
+
     private static IReadOnlyList<B56Modernisierungsalternative>
         ModernisierungsalternativenImportieren(
             B56Arbeitsblatt arbeitsblatt,
@@ -453,6 +490,18 @@ public sealed partial class B56TabellenImportService
         }
 
         return ergebnis;
+    }
+
+    private static B56Kennwert? BenanntenKennwertImportieren(
+        B56Arbeitsmappe arbeitsmappe,
+        string zellname,
+        string kennwertname,
+        string einheit)
+    {
+        return arbeitsmappe.BenannteZellwerte.TryGetValue(zellname, out var rohwert) &&
+               Zahl(rohwert) is { } wert
+            ? new B56Kennwert { Name = kennwertname, Einheit = einheit, Wert = wert }
+            : null;
     }
 
     private static IReadOnlyList<B56Kennwert>

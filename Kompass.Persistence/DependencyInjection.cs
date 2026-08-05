@@ -45,6 +45,8 @@ public static class DependencyInjection
 
         services.AddScoped<IAlternativeFoerderungService, EfAlternativeFoerderungService>();
 
+        services.AddScoped<IFoerdervoraussetzungenService, EfFoerdervoraussetzungenService>();
+
         services.AddScoped<IWaermebrueckeService, EfWaermebrueckeService>();
 
         services.AddScoped<IVerbrauchsDatenService, EfVerbrauchsDatenService>();

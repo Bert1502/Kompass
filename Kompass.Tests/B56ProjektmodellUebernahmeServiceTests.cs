@@ -102,6 +102,9 @@ public sealed class B56ProjektmodellUebernahmeServiceTests
         Assert.Equal(
             B56SnapshotStatus.InProjektmodellUebernommen,
             gespeicherterSnapshot?.SnapshotStatus);
+        var voraussetzungen = await testdatenbank.Context.Foerdervoraussetzungen.SingleAsync(x => x.ProjektId == projekt.Id);
+        Assert.Equal(1250m, voraussetzungen.Nettogrundflaeche);
+        Assert.Equal(500000m, voraussetzungen.JahresPrimaerenergiebedarf);
     }
 
     [Fact]
@@ -299,6 +302,11 @@ public sealed class B56ProjektmodellUebernahmeServiceTests
 
         return new B56ImportPipelineErgebnis
         {
+            Bestandskennwerte =
+            [
+                new B56Kennwert { Name = "NGF", Einheit = "[m²]", Wert = 1250 },
+                new B56Kennwert { Name = "Primärenergiebedarf Gebäude", Einheit = "[kWh/a]", Wert = 500000 }
+            ],
             ImportierteModernisierungsalternativen =
                 alternativen.Length,
             Modernisierungsalternativen =

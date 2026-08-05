@@ -2,6 +2,7 @@ using Kompass.Application.B56Import;
 using Kompass.Domain.B56;
 using Kompass.Domain.Common;
 using Kompass.Domain.Projects;
+using Kompass.Domain.Funding;
 using Kompass.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -110,6 +111,18 @@ public sealed class B56ProjektmodellUebernahmeService
                             bauteilcodes))
                 .ToList();
 
+        var voraussetzungen = await _dbContext.Foerdervoraussetzungen
+            .SingleOrDefaultAsync(x => x.ProjektId == projektId, cancellationToken);
+        if (voraussetzungen is null)
+        {
+            voraussetzungen = new Foerdervoraussetzungen(Guid.NewGuid(), projektId);
+            _dbContext.Foerdervoraussetzungen.Add(voraussetzungen);
+        }
+
+        voraussetzungen.B56BestandswerteUebernehmen(
+            Kennwert(fachdaten.Bestandskennwerte, "NGF"),
+            Kennwert(fachdaten.Bestandskennwerte, "Prim\u00e4renergiebedarf Geb\u00e4ude", "Prim\u00e4renergiebedarf Bericht"));
+
         try
         {
             var hinzugefuegteAlternativen =
@@ -188,6 +201,12 @@ public sealed class B56ProjektmodellUebernahmeService
         }
 
         return alternative;
+    }
+
+    private static decimal? Kennwert(IEnumerable<B56Kennwert> kennwerte, params string[] namen)
+    {
+        var kennwert = kennwerte.FirstOrDefault(k => namen.Any(n => string.Equals(n, k.Name, StringComparison.OrdinalIgnoreCase)));
+        return kennwert is null ? null : Convert.ToDecimal(kennwert.Wert);
     }
 
     private static B56ProjektmodellUebernahmeErgebnis ErzeugeErgebnis(

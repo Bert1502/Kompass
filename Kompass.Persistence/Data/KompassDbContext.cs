@@ -43,6 +43,9 @@ public sealed class KompassDbContext : DbContext
     public DbSet<FoerderungZuordnung> FoerderungZuordnungen
         => Set<FoerderungZuordnung>();
 
+    public DbSet<Foerdervoraussetzungen> Foerdervoraussetzungen
+        => Set<Foerdervoraussetzungen>();
+
     public DbSet<Waermebruecke> Waermebruecken
         => Set<Waermebruecke>();
 
